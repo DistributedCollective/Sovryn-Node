@@ -1,0 +1,27 @@
+{
+  "name": "watcher",
+  "private": true,
+  "version": "1.0.0",
+  "description": "liquidation handler for sovryn smart contracts",
+  "scripts": {
+    "test-tx": "mocha -r esm ./tests/transaction.js",
+    "test-lx": "mocha -r esm ./tests/test_liquidations.js --timeout 200000",
+    "dev": "nodemon -r esm ./tests/test_node_web3.js",
+    "start:testnet": "nodemon -r esm start.js testnet",
+    "start:mainnet": "nodemon -r esm start.js mainnet",
+    "compile-front": "npx webpack --config ./public/webpack.config.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@rsksmart/rsk3": "^0.3.4",
+    "abi-decoder": "^2.3.0",
+    "esm": "^3.2.25",
+    "socket.io": "^2.3.0",
+    "web3": "^1.2.11"
+  },
+  "devDependencies": {
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12"
+  }
+}

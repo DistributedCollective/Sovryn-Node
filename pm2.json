@@ -1,0 +1,17 @@
+{
+  "apps": [
+    {
+      "name": "liquidation watcher",
+      "script": "./start.js",
+      "watch": false,
+      "node_args": "-r esm",
+      "args": "mainnet",
+      "out_file": "./logs/out.log",
+      "error_file": "./logs/err.log",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}
+  
