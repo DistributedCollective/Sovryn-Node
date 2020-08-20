@@ -3,6 +3,7 @@
  * Starts transaction processing and provides the api to monitor open positions
  */
 import TransactionController from './transaction';
+import rCtrl from './routes';
 
 class MainController {
     
@@ -12,7 +13,8 @@ class MainController {
             p.socket=socket;
             p.showOpenPositions();
         });
-        this.txCtrl1 = new TransactionController();
+        const txCtrl = new TransactionController();
+        txCtrl.start();
     }
 
     async showOpenPositions() {

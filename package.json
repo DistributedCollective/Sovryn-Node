@@ -5,7 +5,7 @@
   "description": "liquidation handler for sovryn smart contracts",
   "scripts": {
     "test-tx": "mocha -r esm ./tests/transaction.js",
-    "test-lx": "mocha -r esm ./tests/test_liquidations.js --timeout 200000",
+    "test-lx": "mocha -r esm ./tests/test_liquidations.js --timeout 1500000",
     "dev": "nodemon -r esm ./tests/test_node_web3.js",
     "start:testnet": "nodemon -r esm start.js testnet",
     "start:mainnet": "nodemon -r esm start.js mainnet",

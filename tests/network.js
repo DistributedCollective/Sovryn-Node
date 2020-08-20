@@ -18,8 +18,6 @@ setInterval(()=> {
 },1000)
 
 
-
-
 //curl http://18.138.223.132:4444 -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"net_peerCount","params":[],"id":1}'
 //curl http://13.251.148.208:4444 -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
 //curl http://18.138.223.132:4444 -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'

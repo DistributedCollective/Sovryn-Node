@@ -8,8 +8,8 @@ const io = require('socket.io')(http);
 
 import cTest from './config/config_testnet';
 import cMain from './config/config_mainnet';
-if(process.argv[2]=="mainnet") global.c=cMain;
-else global.c=cTest;
+if(process.argv[2]=="mainnet") global.conf=cMain;
+else global.conf=cTest;
 
 import mainController from './controller/main';
 
@@ -17,8 +17,8 @@ console.log("Hola. It is "+new Date(Date.now())+ ". Starting the app on "+proces
        
 app.use(express.static('public/dist'));
 
-http.listen(c.serverPort, () => {
-    console.log('listening on *:'+c.serverPort);
+http.listen(conf.serverPort, () => {
+    console.log('listening on *:'+conf.serverPort);
 });
 
 mainController.start(io);

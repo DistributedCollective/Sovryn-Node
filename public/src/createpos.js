@@ -5,7 +5,7 @@ import abiTestToken from '../../config/abiTestToken';
 import Web3 from 'web3';
 const abiDecoder = require('abi-decoder');
 
-var contractISUSD, contractTokenSUSD;
+var contractISUSD, contractTokenSUSD, contractTokenRBTC;
 
 abiDecoder.addABI(abiComplete);
 
@@ -14,7 +14,8 @@ async function start() {
     console.log("init");
     contractISUSD = new web3.eth.Contract(abiLoanToken, c.loanTokenSUSD);
     contractTokenSUSD = new web3.eth.Contract(abiTestToken, c.testTokenSUSD);
-
+    contractTokenRBTC = new web3.eth.Contract(abiTestToken, c.testTokenRBTC);
+            
     //contractIRBTC = new web3.eth.Contract(abiLoanToken, loanTokenRBTC);
     //contractTokenRBTC = new web3.eth.Contract(abiTestToken, testTokenRBTC);
 
@@ -49,10 +50,10 @@ async function openLongPosition(amount, leverage) {
         const collateralTokenSent = web3.utils.toWei(amount, 'ether');
         const loanDataBytes = "0x"; //need to be empty
 
-        let a = await approveToken(contractTokenSUSD, c.loanTokenSUSD, collateralTokenSent);
+        let a = await approveToken(contractTokenRBTC, c.loanTokenSUSD, collateralTokenSent);
         let t = await marginTrade(contractISUSD, loanId, leverageAmount, loanTokenSent, collateralTokenSent, c.testTokenRBTC, window.acc, loanDataBytes);
-        let newLoanId = await parseLog(t);
-        resolve({ approved: a, trade: t });
+        //let newLoanId = await parseLog(t);
+        resolve({  trade: t });
     });
 }
 
@@ -85,7 +86,7 @@ function marginTrade(contractToken, loanId, leverageAmount, loanTokenSent, colla
             })
             .catch((err) => {
                 console.error("Error on creating a trade");
-                console.lerror(err);
+                console.error(err);
             });
     });
 }

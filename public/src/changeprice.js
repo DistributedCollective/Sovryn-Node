@@ -1,5 +1,5 @@
 import c from '../../config/config_testnet';
-import abiPriceFeed from '../../config/abiPriceFeed';
+import abiPriceFeed from '../../tests/abi/abiPriceFeed';
 
 var contractPriceFeed;
 const adrPriceFeed = "0xf2e9fD37912aB53D0FEC1eaCE86d6A14346Fb6dD";
