@@ -3,7 +3,7 @@
  */
 const axios = require('axios');
 
-class RouteController {
+class MonitorController {
 
     constructor(txCtrl) {
         this.txCtrl = txCtrl;
@@ -105,4 +105,4 @@ class RouteController {
     }
 }
 
-export default RouteController;
+export default MonitorController;
