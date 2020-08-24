@@ -7,7 +7,9 @@ If not, it keeps observing.
 If yes, it sends an error notification to a telegram group for manual processing.  
 If the tx was not confirmed after 10 minutes, it resends the transaction with a higher gas fee.  
 
-The liquidator needs considerable funds in both currencies to be able to liquidate a position. 
+The liquidator needs considerable funds in all currencies provided to be able to liquidate a position. He needs to allow the protocol contract to access his tokens in advance (Approve tokens) and have enough RBTC to cover transaction costs.
+
+
 
 ### Install
 
@@ -27,6 +29,4 @@ License
 ----
 
 MIT
-
-
 **Free Software, Hell Yeah!**
