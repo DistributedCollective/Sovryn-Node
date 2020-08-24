@@ -16,6 +16,7 @@
   "dependencies": {
     "@rsksmart/rsk3": "^0.3.4",
     "abi-decoder": "^2.3.0",
+    "api-telegram-bot": "^6.0.5",
     "axios": "^0.20.0",
     "esm": "^3.2.25",
     "socket.io": "^2.3.0",
