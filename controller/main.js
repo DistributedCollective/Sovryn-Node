@@ -14,7 +14,7 @@ class MainController {
             p.getSignals();
         });
         const txCtrl = new TransactionController();
-        //txCtrl.start();
+        txCtrl.start();
         this.mCtrl = new MonitorController(txCtrl);
     }
 
@@ -25,8 +25,8 @@ class MainController {
         });
        
 
-        this.socket.on('getSignals', async cb => { 
-            p.mCtrl.getSignals(cb);
+        this.socket.on('getSignals', async (data,cb) => { 
+            p.mCtrl.getSignals(data, cb);
         });
     }
 }

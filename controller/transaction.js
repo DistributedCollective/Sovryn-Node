@@ -50,6 +50,7 @@ class TransactionController {
         while (true) {
             const loans = await this.loadActiveLoans(from, to);
             if (loans) await this.addLoans(loans);
+            console.log(loans.length+" loans found");
 
             if (loans.length > 0) {
                 from = to;
@@ -60,6 +61,7 @@ class TransactionController {
             else {
                 from = 0;
                 to = conf.nrOfProcessingLoans;
+                this.positions={};
                 await U.wasteTime(10);
             }
         }
@@ -128,6 +130,7 @@ class TransactionController {
             console.log("trying to liquidate loan " + loanId);
             //console.log(this.positions[loanId]);
 
+            /*
             let contract = p.getTokenInstance(this.positions[loanId].loanToken);
             let approved;
             try {
@@ -143,6 +146,7 @@ class TransactionController {
                 console.error(e);
                 return resolve(false);
             }
+            */
             
             try {
                 p.contractBzx.methods.liquidate(loanId, owner.adr, this.positions[loanId].principal)

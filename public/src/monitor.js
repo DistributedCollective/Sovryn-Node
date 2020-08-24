@@ -1,7 +1,8 @@
 /**
  * App monitor
  */
-var socket = io();
+ var socket = io();
+
 
 class Monitor {
 
@@ -12,14 +13,19 @@ class Monitor {
     }
 
     getSignals() {
-        console.log("retrive signals");
+        console.log("retrieve signals");
         let p=this;
-        socket.emit("getSignals", (res) => {
+        let adr = window.acc;
+        if(!adr) adr = "0xAb242e50E95C2f539242763A4eD5Db1aEE5ce461"
+
+        $("#accBalance").text(adr);
+
+        socket.emit("getSignals", adr, (res) => {
             console.log("response");
             console.log(res);
 
             p.lastBlock(res.blockInfoPn, res.blockInfoLn);
-            p.accBalance(res.accBalance);
+            p.accBalance(res.accountInfo);
             p.cInfo(res.contractInfo);
         });
     }
@@ -32,8 +38,9 @@ class Monitor {
     }
 
     accBalance(ac) {
-        if (ac>0) $('#accBalance').addClass('alert alert-success');
-        else $('#accBalance').addClass('alert alert-danger');
+        $('#balance').text(ac+ " RBTC");
+        if (ac>0) $('#accInfo').addClass('alert alert-success');
+        else $('#accInfo').addClass('alert alert-danger');
     }
 
     cInfo(c) {
