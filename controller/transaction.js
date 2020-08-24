@@ -35,16 +35,17 @@ class TransactionController {
 
     /**
      * Wrapper for processing active loans
-     * Start endless loop loading old trades faster and then start polling in 10s interval
-     * todo: consider closed or liquidated loans change the size of active-loans
-     * todo2: read all over again, loan-ids can change(mining)
-     * solution: regularly query all open pos again. performance ??
+     * Start endless loop by loading all open positions from the contract until the end is reached, then start from scratch
+     * This is because trades in the list can be replaced with trades from another position
+     * 
+     * The performance of this overhead need to be tested and optimized if needed
+     * Known issues: new open positions can have a wrong LoanId
      */
     async processActiveLoans() {
         console.log("Start processing active loans");
 
         let from = 0;
-        let to = from + conf.nrOfProcessingLoans;
+        let to = conf.nrOfProcessingLoans;
 
         while (true) {
             const loans = await this.loadActiveLoans(from, to);
@@ -57,9 +58,9 @@ class TransactionController {
             }
             //reached current state
             else {
-                from += loans.length;
-                to = from + conf.nrOfProcessingLoans;
-                await U.wasteTime(10); //chance of missing a block?
+                from = 0;
+                to = conf.nrOfProcessingLoans;
+                await U.wasteTime(10);
             }
         }
     }
@@ -86,7 +87,7 @@ class TransactionController {
             catch(e){
                 console.error("error on retrieving active loans");
                 console.error(e);
-                resolve();
+                resolve([]);
             }
         });
     }
