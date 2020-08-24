@@ -73,14 +73,21 @@ class TransactionController {
         let p = this;
 
         return new Promise(resolve => {
-            p.contractBzx.methods.getActiveLoans(from, to, false).call((error, res) => {
-                if (error) {
-                    console.error("error receiving user loans");
-                    console.error(error);
-                    return resolve();
-                }
-                resolve(res)
-            });
+            try {
+                p.contractBzx.methods.getActiveLoans(from, to, false).call((error, res) => {
+                    if (error) {
+                        console.error("error receiving user loans");
+                        console.error(error);
+                        return resolve();
+                    }
+                    resolve(res)
+                });
+            }
+            catch(e){
+                console.error("error on retrieving active loans");
+                console.error(e);
+                resolve();
+            }
         });
     }
 
@@ -114,42 +121,56 @@ class TransactionController {
     * liquidates a position
     * if successful: removes trade from list
     */
-    async liquidate(loanId, contract) {
-        let p=this;
+    async liquidate(loanId) {
+        let p = this;
         return new Promise(async (resolve) => {
             console.log("trying to liquidate loan " + loanId);
-           
-            console.log(this.positions[loanId]);
-            
-            
-            SUSD.approve(bzx.address, this.positions[loanId].principal)
+            //console.log(this.positions[loanId]);
 
-            let approved = await this.approveToken();
-            if(!approved) {
-                console.error("error on approving tokens for loan "+loanId);
-                //todo: error handling
-                return;
+            let contract = p.getTokenInstance(this.positions[loanId].loanToken);
+            let approved;
+            try {
+                approved = await this.approveToken(contract, conf.bzxProtocolAdr, this.positions[loanId].principal);
+                if (!approved) {
+                    console.error("error on approving tokens for loan " + loanId);
+                    //todo: error handling
+                    return resolve(false);
+                }
             }
-
-            p.contractBzx.methods.liquidate(loanId, owner.adr, this.positions[loanId].principal)
-            .send({ from: owner.adr, gas: 2500000 })
-            .then(async (tx) => {
-                console.log("loan " + loanId + " liquidated!");
-                console.log(tx);
-                delete p.positions[loanId];
-            })
-            .catch((err) => {
-                console.error("Error on liquidating loan "+loanId);
-                console.error(err);
-                //todo: error handling
-            });
+            catch(e){
+                console.error("error on approving token for loan "+loanId);
+                console.error(e);
+                return resolve(false);
+            }
+            
+            try {
+                p.contractBzx.methods.liquidate(loanId, owner.adr, this.positions[loanId].principal)
+                .send({ from: owner.adr, gas: 2500000 })
+                .then(async (tx) => {
+                    console.log("loan " + loanId + " liquidated!");
+                    console.log(tx);
+                    delete p.positions[loanId];
+                    resolve(true);
+                })
+                .catch((err) => {
+                    console.error("Error on liquidating loan " + loanId);
+                    console.error(err);
+                    //todo: error handling
+                    resolve(false);
+                });
+            }
+            catch(e){
+                console.error("error on liquidating loan "+loanId);
+                console.error(e);
+                resolve(false);
+            }
         });
     }
 
 
     /**
      * Loads complete loan info from the Bzx contract
-     * Returns loan status: 0 = inactive, 1 = active, 2 = need to be liquidated
+     * Returns loan status: -1: error, 0: inactive, 1: active, 2: need to be liquidated
      * Liquidation status means current margin <= maintenance margin
      * todo: check actual result of inactive loans
      */
@@ -157,27 +178,33 @@ class TransactionController {
         let p = this;
 
         return new Promise(resolve => {
-            p.contractBzx.methods.getLoan(loanId).call((error, result) => {
-                if (error) {
-                    console.log(error);
-                    return resolve(0);
-                }
-
-                //console.log("checking loan "+loanId);
-                //console.log(result);
-                if (result.currentMargin && result.maintenanceMargin) {
-                    let curr = p.web3.utils.fromWei(result.currentMargin, 'ether'); //returns margin in %
-                    let mM = p.web3.utils.fromWei(result.maintenanceMargin, 'ether'); //returns margin in %
-
-                    //console.log("current margin: " + curr);
-                    //console.log("maintenance margin: " + mM);
-                    if (curr <= mM) {
-                        console.log("loan " + loanId + " need to be liquidated. Current margin (" + curr + ") <= maintenanceMargin (" + mM + ").");
-                        return resolve(2);
+            try {
+                p.contractBzx.methods.getLoan(loanId).call((error, result) => {
+                    if (error) {
+                        console.log(error);
+                        return resolve(0);
                     }
-                    resolve(1);
-                }
-            });
+                    //console.log("checking loan "+loanId);
+                    //console.log(result);
+                    if (result.currentMargin && result.maintenanceMargin) {
+                        let curr = p.web3.utils.fromWei(result.currentMargin, 'ether'); //returns margin in %
+                        let mM = p.web3.utils.fromWei(result.maintenanceMargin, 'ether'); //returns margin in %
+
+                        //console.log("current margin: " + curr);
+                        //console.log("maintenance margin: " + mM);
+                        if (curr <= mM) {
+                            console.log("loan " + loanId + " need to be liquidated. Current margin (" + curr + ") <= maintenanceMargin (" + mM + ").");
+                            return resolve(2);
+                        }
+                        resolve(1);
+                    }
+                });
+            }
+            catch (e) {
+                console.error("error on retrieving loan status for loan-id "+loanId);
+                console.error(e);
+                resolve(-1)
+            }
         });
     }
 
@@ -192,10 +219,18 @@ class TransactionController {
                 .then((tx) => {
                     console.log("Approved Transaction: ");
                     //console.log(tx);
-                    if(tx.transactionHash) resolve(tx.transactionHash);
+                    if (tx.transactionHash) resolve(tx.transactionHash);
                     else resolve();
                 });
         });
+    }
+
+    /**
+     * helper function
+     */
+    getTokenInstance(adr) {
+        if (adr == conf.testTokenSUSD) return this.contractTokenSUSD;
+        else if (adr == conf.testTokenRBTC) return this.contractTokenRBTC;
     }
 }
 

@@ -7,7 +7,7 @@ If not, it keeps observing.
 If yes, it sends an error notification to a telegram group for manual processing.  
 If the tx was not confirmed after 10 minutes, it resends the transaction with a higher gas fee.  
 
-
+The liquidator needs considerable funds in both currencies to be able to liquidate a position. 
 
 ### Install
 

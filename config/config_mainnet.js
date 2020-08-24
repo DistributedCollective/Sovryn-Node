@@ -1,6 +1,7 @@
 export default {
     serverPort: 3000,
     nodeProvider: 'http://13.251.148.208:4444', 
+    publicNodeProvider: 'https://public-node.rsk.co',
     network: "main",
     nrOfProcessingLoans: 100, //need to find appropriate nr
     testTokenSUSD: "0xE631653c4Dc6Fb98192b950BA0b598f90FA18B3E",

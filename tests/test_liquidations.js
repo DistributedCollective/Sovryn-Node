@@ -6,10 +6,8 @@ import abiTestToken from '../config/abiTestToken';
 import abiPriceFeed from './abi/abiPriceFeed';
 
 /**
- * 
  * Liquidation tester
  * todo: calc liquidation price 
- * 
  */
 
 //only owner can change the price
@@ -31,6 +29,8 @@ describe('Liquidation', async () => {
         before(() => {
             console.log("init");
             txCtrl.web3.eth.accounts.privateKeyToAccount(owner.pKey);
+
+            //take from transaction controller??
             contractISUSD = new txCtrl.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
             contractTokenSUSD = new txCtrl.web3.eth.Contract(abiTestToken, conf.testTokenSUSD);
             contractTokenRBTC = new txCtrl.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
@@ -42,7 +42,7 @@ describe('Liquidation', async () => {
             let a = await changePrice(conf.testTokenRBTC, conf.testTokenSUSD, 10000);
             assert(a.length == 66);
         });
-
+/*
         //should return loan-id, remaining margin, maintenance margin
         it('should create a position with 2x leverage)', async () => {
             let p = await openLongPosition("0.01", "2");
@@ -98,7 +98,7 @@ describe('Liquidation', async () => {
         it('should liquidate the low leverage position', async () => {
             let liquidated = await txCtrl.liquidate(loanIdLow);
             assert(liquidated);
-        });
+        });*/
     });
 });
 
@@ -125,7 +125,7 @@ async function openLongPosition(amount, leverage) {
         const collateralTokenSent = txCtrl.web3.utils.toWei(amount, 'ether');
         const loanDataBytes = "0x"; //need to be empty
 
-        let a = await trxCtrl.approveToken(contractTokenRBTC, conf.loanTokenSUSD, collateralTokenSent);
+        let a = await txCtrl.approveToken(contractTokenRBTC, conf.loanTokenSUSD, collateralTokenSent);
         let t = await marginTrade(contractISUSD, loanId, leverageAmount, loanTokenSent, collateralTokenSent, conf.testTokenRBTC, owner.adr, loanDataBytes);
         resolve(t);
     });

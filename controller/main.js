@@ -3,7 +3,7 @@
  * Starts transaction processing and provides the api to monitor open positions
  */
 import TransactionController from './transaction';
-import rCtrl from './routes';
+import RouteController from './routes';
 
 class MainController {
     
@@ -11,21 +11,22 @@ class MainController {
         const p=this;
         io.on('connection', (socket) => {
             p.socket=socket;
-            p.showOpenPositions();
+            p.getSignals();
         });
         const txCtrl = new TransactionController();
-        txCtrl.start();
+        //txCtrl.start();
+        this.rCtrl = new RouteController(txCtrl);
     }
 
-    async showOpenPositions() {
+    async getSignals() {
         const p=this;
-        this.socket.on('openPos', (msg, cb) => {
+        this.socket.on('openPos', cb => {
             if(cb) cb(p.txCtrl1.trades);
         });
+       
 
-        this.socket.on('getBlock', async (cb) => {
-            let res = await p.txCtrl1.getCurrentBlock(); 
-            if(cb) cb(res);
+        this.socket.on('getSignals', async cb => { 
+            p.rCtrl.getSignals(cb);
         });
     }
 }

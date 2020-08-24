@@ -23,3 +23,8 @@ setInterval(()=> {
 //curl http://18.138.223.132:4444 -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
 
 //curl http://localhost:4444 -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0xe2b59CD37D173D550D75e9891376bf21b3f996F1"],"id":1}'
+
+//curl http://18.138.223.132:4444 -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0xe2b59cd37d173d550d75e9891376bf21b3f996f1"],"id":1}'
+
+//curl https://public-node.testnet.rsk.co -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+
