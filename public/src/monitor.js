@@ -20,7 +20,7 @@ class Monitor {
 
             p.lastBlock(res.blockInfoPn, res.blockInfoLn);
             p.accBalance(res.accBalance);
-            p.cInfo(res.cInfo);
+            p.cInfo(res.contractInfo);
         });
     }
 
