@@ -11,6 +11,13 @@ import cMain from './config/config_mainnet';
 if(process.argv[2]=="mainnet") global.conf=cMain;
 else global.conf=cTest;
 
+
+const monitor = require('pm2-server-monitor');
+monitor({
+    name: 'liquidation-watcher',
+    port: conf.serverPort
+});
+
 import mainController from './controller/main';
 
 console.log("Hola. It is "+new Date(Date.now())+ ". Starting the app on "+process.argv[2]);

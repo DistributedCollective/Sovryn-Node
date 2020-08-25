@@ -2,3 +2,4 @@ node_modules
 public/dist
 secrets
 logs
+package-lock.json

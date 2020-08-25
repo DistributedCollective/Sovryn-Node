@@ -102,8 +102,7 @@ class MonitorController {
     checkSystem(){
         let p=this;
 
-        this.getSignals(owner.adr, (res)=> {
-            
+        this.getSignals(owner.adr, (res)=> {    
             if( Math.abs(res.blockInfoLn - res.blockInfoPn)>5) 
             return  p.telegramBotNode.sendMessage(conf.sovrynInternalTelegramId, conf.network+"-Node out of sync");
 
