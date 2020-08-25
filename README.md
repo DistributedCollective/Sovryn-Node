@@ -12,10 +12,10 @@ The liquidator needs considerable funds in all currencies provided to be able to
 
 ### Requirements
 
-NodeJs > 12.1
-Nodemon
-Webpack
-
+NodeJs > 12.1  
+Nodemon  
+Webpack  
+  
 Pm2 to see the monitor
 
 
@@ -26,7 +26,7 @@ Pm2 to see the monitor
 npm install
 npm run build-client
 create empty directory "logs"
-create directory "secrets" and within a file account.js with the credentials of the liquidator
+create directory "secrets" and within a file account.js with the credentials of the liquidator (owner of the sovryn smart contract)
 ```
 export default {
     adr: "0xcafecafe",
@@ -38,9 +38,9 @@ export default {
 ```sh
 npm run start:[mainnet || testnet]
 ```
-Check
-http://your-ip:3000/ to see some liquidation processing info and node-status
-http://your-ip:3000/monitor pm2-observer of the app
+Check  
+http://your-ip:3000/ to see some liquidation processing info and the current node-status  
+http://your-ip:3000/monitor pm2-observer of the app  
 
 
 License
