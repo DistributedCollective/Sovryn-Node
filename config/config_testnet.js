@@ -12,5 +12,6 @@ export default  {
     bzxProtocolAdr: "0xBAC609F5C8bb796Fa5A31002f12aaF24B7c35818",
     errorBotNodeTelegramToken: "1330614964:AAGK2vmqr61N-RS5e1YQ-vi_eryTzvU0WBM",
     errorBotWatcherTelegramToken: "1187325835:AAH-sH6F0znu2QAVgTNztXCRJVe0DpWy884",
-    sovrynInternalTelegramId: -1001308978723
+    sovrynInternalTelegramId: -1001308978723,
+    healthMonitorPort: 3001
 }
