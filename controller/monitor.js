@@ -4,18 +4,19 @@
  *  Assuming the public node from IOV labs is always right!
  */
 const axios = require('axios');
-//const TelegramBot = require('telegram-bot-api');
+const TelegramBot = require('node-telegram-bot-api');
+import owner from '../secrets/account';
 
 class MonitorController {
 
     constructor(txCtrl) {
         this.txCtrl = txCtrl;
-     //   this.telegramBotNode = new TelegramBot({ token: conf.errorBotNodeTelegramToken });
-      //  this.telegramBotWatcher = new TelegramBot({ token: conf.errorBotWatcherTelegramToken });
+        this.telegramBotNode = new TelegramBot(conf.errorBotNodeTelegramToken, {polling: false});
+        this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, {polling: false});
 
         let p=this;
         setInterval(()=>{
-            //p.checkSystem();
+            p.checkSystem();
         },10000);
     }
 
@@ -100,17 +101,17 @@ class MonitorController {
     */
     checkSystem(){
         let p=this;
-        let adr=this.txCtrl.web3.eth.accounts[0];
-        this.getSignals(adr, (res)=> {
+
+        this.getSignals(owner.adr, (res)=> {
             
             if( Math.abs(res.blockInfoLn - res.blockInfoPn)>5) 
-            return  p.telegramBotNode.sendMessage({ chat_id: -1001216925293, text: "Node out of sync" });
+            return  p.telegramBotNode.sendMessage(conf.sovrynInternalTelegramId, conf.network+"-Node out of sync");
 
             else if(res.accountInfo<=0) 
-            return  p.telegramBotNode.sendMessage({ chat_id: -1001216925293, text: "No money left on the wallet" });
+            return  p.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left on the wallet");
 
             else if(!res.contractInfo)
-            return  p.telegramBotNode.sendMessage({ chat_id: -1001216925293, text: "No open positions on the contract" });
+            return  p.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No open positions on the contract");
 
         });
     }

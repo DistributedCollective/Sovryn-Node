@@ -62,7 +62,7 @@ class TransactionController {
                 from = 0;
                 to = conf.nrOfProcessingLoans;
                 this.positions={};
-                await U.wasteTime(10);
+                await U.wasteTime(conf.waitBetweenRounds);
             }
         }
     }
@@ -131,6 +131,7 @@ class TransactionController {
             //console.log(this.positions[loanId]);
 
             /*
+            //wallet should have approved already enough tokens 
             let contract = p.getTokenInstance(this.positions[loanId].loanToken);
             let approved;
             try {
