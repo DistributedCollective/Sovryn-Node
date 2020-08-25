@@ -1,3 +1,4 @@
+//todo: move bot-tokens to secrets
 export default  {
     serverPort: 3000,
     nodeProvider: 'http://18.138.223.132:4444', 

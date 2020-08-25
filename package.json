@@ -9,7 +9,7 @@
     "dev": "nodemon -r esm ./tests/test_node_web3.js",
     "start:testnet": "nodemon -r esm start.js testnet",
     "start:mainnet": "nodemon -r esm start.js mainnet",
-    "build-client": "npx webpack --config ./public/webpack.config.ts"
+    "build-client": "npx webpack --config ./public/webpack.config.ts && cp public/src/index.html public/dist/index.html"
   },
   "author": "",
   "license": "ISC",

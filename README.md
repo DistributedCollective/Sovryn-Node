@@ -38,8 +38,9 @@ export default {
 ```sh
 npm run start:[mainnet || testnet]
 ```
-http://your-ip:port
-http://your-ip:port
+Check
+http://your-ip:3000/ to see some liquidation processing info and node-status
+http://your-ip:3000/monitor pm2-observer of the app
 
 
 License
