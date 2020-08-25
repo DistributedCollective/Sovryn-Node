@@ -10,11 +10,21 @@ If the tx was not confirmed after 10 minutes, it resends the transaction with a 
 The liquidator needs considerable funds in all currencies provided to be able to liquidate a position. He needs to allow the protocol contract to access his tokens in advance (Approve tokens) and have enough RBTC to cover transaction costs.
 
 
+### Requirements
+
+NodeJs > 12.1
+Nodemon
+Webpack
+
+Pm2 to see the monitor
+
+
 
 ### Install
 
 ```sh
 npm install
+npm run build-client
 create empty directory "logs"
 create directory "secrets" and within a file account.js with the credentials of the liquidator
 ```
@@ -26,9 +36,10 @@ export default {
 ### Start
 
 ```sh
-npm run start
+npm run start:[mainnet || testnet]
 ```
-
+http://your-ip:port
+http://your-ip:port
 
 
 License
