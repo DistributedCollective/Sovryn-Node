@@ -14,7 +14,7 @@ else global.conf=cTest;
 
 const monitor = require('pm2-server-monitor');
 monitor({
-    name: 'liquidation-watcher',
+    name: conf.network+"-server",
     port: conf.healthMonitorPort
 });
 
