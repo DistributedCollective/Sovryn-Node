@@ -15,7 +15,13 @@ The liquidator needs considerable funds in all currencies provided to be able to
 
 ```sh
 npm install
+create empty directory "logs"
+create directory "secrets" and within a file account.js with the credentials of the liquidator
 ```
+export default {
+    adr: "0xcafecafe",
+    pKey: "[your-private-key]"
+}
 
 ### Start
 
