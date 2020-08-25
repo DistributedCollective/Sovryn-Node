@@ -79,7 +79,7 @@ class MonitorController {
 
     async getAccountInfo(adr) {
         try {
-            let aInf = await this.txCtrl.web3.eth.getBalance(adr);
+            let aInf = await this.txCtrl.web3.eth.getBalance(adr.toLowerCase());
             aInf = this.txCtrl.web3.utils.fromWei(aInf, 'Ether');
             return parseFloat(aInf);
         }
@@ -107,10 +107,10 @@ class MonitorController {
             return  p.telegramBotNode.sendMessage(conf.sovrynInternalTelegramId, conf.network+"-Node out of sync");
 
             else if(res.accountInfo<=0) 
-            return  p.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left on the wallet");
+            return  p.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left on the wallet for liquidator on "+conf.network);
 
             else if(!res.contractInfo)
-            return  p.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No open positions on the contract");
+            return  p.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No open positions on the contract on "+conf.network);
 
         });
     }
