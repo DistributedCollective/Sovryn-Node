@@ -6,6 +6,7 @@
       "watch": false,
       "node_args": "-r esm",
       "args": "testnet",
+      "treekill": false,
       "out_file": "./logs/out.log",
       "error_file": "./logs/err.log",
       "env": {
@@ -14,4 +15,3 @@
     }
   ]
 }
-  
