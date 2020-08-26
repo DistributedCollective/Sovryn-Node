@@ -2,47 +2,42 @@ import c from '../config/config_testnet';
 global.conf = c;
 import abiComplete from '../config/abiComplete';
 import abiLoanToken from '../config/abiLoanToken';
-import abiTestToken from '../config/abiTestToken';
 import abiPriceFeed from './abi/abiPriceFeed';
 
 /**
  * Liquidation tester
  * todo: calc liquidation price 
+ * The liquidator account need to have sufficient tokens approved to be able to liquidate the open positions
  */
 
-//only owner can change the price
-import owner from '../secrets/account';
 const abiDecoder = require('abi-decoder');
 const assert = require('assert');
 
 import TransactionController from '../controller/transaction';
-
+import owner from '../secrets/account';
 const txCtrl = new TransactionController();
-var contractISUSD, contractTokenSUSD, contractTokenRBTC, contractPriceFeed;
+var contractPriceFeed, contractISUSD;
 const adrPriceFeed = "0xf2e9fD37912aB53D0FEC1eaCE86d6A14346Fb6dD";
 
-var loanIdHigh, loanIdLow;
 
+var loanIdHigh, loanIdLow;
+var from = owner.adr;
 
 describe('Liquidation', async () => {
     describe('#liquidate a position', async () => {
-        before(() => {
+        before(async () => {
             console.log("init");
-            txCtrl.web3.eth.accounts.privateKeyToAccount(owner.pKey);
-
-            //take from transaction controller??
-            contractISUSD = new txCtrl.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
-            contractTokenSUSD = new txCtrl.web3.eth.Contract(abiTestToken, conf.testTokenSUSD);
-            contractTokenRBTC = new txCtrl.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
             contractPriceFeed = new txCtrl.web3.eth.Contract(abiPriceFeed, adrPriceFeed);
+            contractISUSD = new txCtrl.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
             abiDecoder.addABI(abiComplete);
         });
 
+        
         it('should set the start price for btc to 10000', async () => {
             let a = await changePrice(conf.testTokenRBTC, conf.testTokenSUSD, 10000);
             assert(a.length == 66);
         });
-/*
+
         //should return loan-id, remaining margin, maintenance margin
         it('should create a position with 2x leverage)', async () => {
             let p = await openLongPosition("0.01", "2");
@@ -59,27 +54,38 @@ describe('Liquidation', async () => {
         it('should read the status of the open positions', async () => {
             let statusLow = await txCtrl.getLoanStatus(loanIdLow);
             let statusHigh = await txCtrl.getLoanStatus(loanIdHigh);
-            assert(statusLow, 1);
-            assert(statusHigh, 1);
+            assert(statusLow == 1);
+            assert(statusHigh == 1);
         });
 
         it('should change the rate at the price feed contract, so that remaining margin < maintenance of the high leverage position only', async () => {
-            let a = await changePrice(conf.testTokenRBTC, conf.testTokenSUSD, 9500);
+            //maxPriceMovement = 1 - (1 + maintenanceMargin) * leverage / (leverage + 1);
+            let maxPriceMovement = 1 - (1.15 * 4 / 5 );
+            let newPrice = 10000 *(1-maxPriceMovement)-1;
+            console.log("setting the price to "+newPrice);
+            let a = await changePrice(conf.testTokenRBTC, conf.testTokenSUSD, newPrice);
             assert(a.length == 66);
         });
 
         it('should read the status of the open positions again and make sure the high leverage position gets flagged for liquidation', async () => {
             let statusLow = await txCtrl.getLoanStatus(loanIdLow);
             let statusHigh = await txCtrl.getLoanStatus(loanIdHigh);
-            assert(statusLow, 1);
-            assert(statusHigh, 2);
+            assert.equal(statusLow, 1);
+            assert.equal(statusHigh, 2);
         });
 
-        it('should liquidate the high leverage position', async () => {
-            let liquidated = await txCtrl.liquidate(loanIdHigh);
-            assert(liquidated);
+        it('should wait for liquidation of the high leverage position', async () => {
+            console.log("waiting for the watcher to liquidate loanId "+loanIdHigh);
+            //amount bigger than principal -> will liquidate the maximum possible
+            //let liquidated = await txCtrl.liquidate(loanIdHigh, owner.adr, txCtrl.web3.utils.toWei("1", "ether"));
+            let statusHigh = 2;
+            for(let i = 0; i < 120; i++){
+                statusHigh = await txCtrl.getLoanStatus(loanIdHigh);
+                if(statusHigh < 2) break;
+            }
+            assert(statusHigh<2);
         });
-
+/*
         it('should fail to liquidate the low leverage position', async () => {
             let liquidated = await txCtrl.liquidate(loanIdHigh);
             assert(!liquidated);
@@ -125,8 +131,7 @@ async function openLongPosition(amount, leverage) {
         const collateralTokenSent = txCtrl.web3.utils.toWei(amount, 'ether');
         const loanDataBytes = "0x"; //need to be empty
 
-        let a = await txCtrl.approveToken(contractTokenRBTC, conf.loanTokenSUSD, collateralTokenSent);
-        let t = await marginTrade(contractISUSD, loanId, leverageAmount, loanTokenSent, collateralTokenSent, conf.testTokenRBTC, owner.adr, loanDataBytes);
+        let t = await marginTrade(contractISUSD, loanId, leverageAmount, loanTokenSent, collateralTokenSent, conf.testTokenRBTC, from, loanDataBytes);
         resolve(t);
     });
 }
@@ -149,7 +154,7 @@ function marginTrade(contractToken, loanId, leverageAmount, loanTokenSent, colla
             trader,
             loanDataBytes
         )
-            .send({ from: owner.adr, gas: 2500000 })
+            .send({ from: from, gas: 2500000 })
             .then(async (tx) => {
                 console.log("marginTrade Transaction: ");
                 //console.log(tx);
@@ -174,7 +179,8 @@ function changePrice(srcToken, destToken, rate) {
     console.log("change price to " + rate);
     return new Promise(resolve => {
         contractPriceFeed.methods.setRates(srcToken, destToken, txCtrl.web3.utils.toWei(rate.toString(), 'Ether'))
-            .send({ from: owner.adr })
+            .send({ from: from
+             })
             .then(async (tx) => {
                 //console.log("change price Transaction: ", tx);
                 resolve(tx.transactionHash);
@@ -195,10 +201,12 @@ function parseLog(txHash) {
     return new Promise(resolve => {
         txCtrl.web3.eth.getTransactionReceipt(txHash, function (e, receipt) {
             const decodedLogs = abiDecoder.decodeLogs(receipt.logs);
-            //console.log(decodedLogs);
+            
 
             for (let i = 0; i < decodedLogs.length; i++) {
+                
                 if (decodedLogs[i] && decodedLogs[i].events && decodedLogs[i].name && decodedLogs[i].name == "Trade") {
+                   // console.log(decodedLogs[i].events); principal _> [6]
                     return resolve(decodedLogs[i].events[2].value);
                 }
             }

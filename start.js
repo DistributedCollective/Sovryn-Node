@@ -14,7 +14,7 @@ else global.conf=cTest;
 
 const monitor = require('pm2-server-monitor');
 monitor({
-    name: conf.network+"-server",
+    name: conf.network,
     port: conf.healthMonitorPort
 });
 

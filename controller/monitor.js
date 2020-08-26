@@ -96,6 +96,25 @@ class MonitorController {
         return false;
     }
 
+    async getOpenPositions(cb) {
+        let l = await Object.keys(this.txCtrl.positions).length;
+        if (typeof cb === "function") cb(l);
+    }
+
+    //todo: add from-to
+    async getOpenPositionsDetails(cb) {
+        if (typeof cb === "function") cb(this.txCtrl.positions);
+    }
+
+    async getOpenLiquidations(cb) {
+        let l = await Object.keys(this.txCtrl.liquidations).length;
+        if (typeof cb === "function") cb(l);
+    }
+    //todo: add from-to
+    async getOpenLiquidationsDetails(cb) {
+        if (typeof cb === "function") cb(this.txCtrl.liquidations);
+    }
+
     /** 
     * todo: find more params
     */

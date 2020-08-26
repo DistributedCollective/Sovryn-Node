@@ -7,9 +7,11 @@
 class Monitor {
 
     start() {
+        this.getSignals();
+        
         setInterval(() => {
             this.getSignals();
-        }, 5000);
+        }, 15000);
     }
 
     getSignals() {
@@ -26,7 +28,20 @@ class Monitor {
 
             p.lastBlock(res.blockInfoPn, res.blockInfoLn);
             p.accBalance(res.accountInfo);
-            p.cInfo(res.contractInfo);
+            p.contractInfo(res.contractInfo);
+        });
+
+        socket.emit("openPos", (res) => {
+            p.setOpenPositions(res);
+        });
+
+        socket.emit("getOpenLiquidations", (res) => {
+            p.setOpenLiquidations(res);
+        });
+
+        socket.emit("getOpenLiquidationsDetails", (res) => {
+            console.log("liquidating positions");
+            console.log(res)
         });
     }
 
@@ -45,10 +60,18 @@ class Monitor {
         else $('#accInfo').addClass('alert alert-danger');
     }
 
-    cInfo(c) {
+    contractInfo(c) {
         $("#cInfo").removeClass();
         if (c>0) $('#cInfo').addClass('alert alert-success');
         else $('#cInfo').addClass('alert alert-danger');
+    }
+
+    setOpenPositions(oP) {
+        $('#openPosQueue').text(oP);
+    }
+
+    setOpenLiquidations(oP) {
+        $('#openLiqQueue').text(oP);
     }
 }
 

@@ -76,15 +76,3 @@ describe('Process blocks', () => {
   });
 
 });
-
-
-/*
-//next step:
-
-interval (1/minute)
-for every openpos in queue:
-check if loan healthy ()
-= call getLoan(loanId)
-//decode return struct with abi????
-
-*/

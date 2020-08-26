@@ -33,6 +33,8 @@ export default {
     pKey: "[your-private-key]"
 }
 
+Set the server ip in monitor/config.js  
+
 ### Start
 
 ```sh
