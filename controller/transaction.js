@@ -4,11 +4,6 @@
  * positions flagged for liquidation in "liquidations".
  * Monitors every position on the loantoken contract and checks if it is still open and if it needs to be liquidated or not.
  * 
- * It is necessary to re-read from position 0 on every run because the position of open positions can change on the contract.
- * Poosible optimization: parse the event logs after reaching current state instead of quering of "getActiveLoans".
- *  
- * todo: consider partly liquidated positions
- * 
  */
 
 import Web3 from 'web3';
@@ -33,24 +28,24 @@ class TransactionController {
 
 
     /**
-     * Start processing active loans and liquidation
+     * Start processing active positions and liquidation
      */
     async start() {
         const b = await this.web3.eth.getBlockNumber();
         console.log("Connected to rsk " + conf.network + "-network. Current block " + b);
-        this.processActiveLoans();
+        this.processPositions();
         this.checkPositions();
     }
 
     /**
-     * Wrapper for processing active loans
      * Start endless loop by loading all open positions from the contract until the end is reached, then start from scratch
-     * This is because trades in the list can be replaced with trades from another position
+     * It is necessary to re-read from position 0 on every run because the position of open positions can change on the contract.
+     * Poosible optimization: parse the event logs after reaching current state instead of quering of "getActiveLoans".
      * 
      * The performance of this overhead need to be tested and optimized if needed
-     * Known issues: new open positions can have a wrong LoanId
+     * Known issues: new open positions can have a different LoanId after some blocks got mined
      */
-    async processActiveLoans() {
+    async processPositions() {
         console.log("Start processing active loans");
 
         let from = 0;
@@ -142,25 +137,6 @@ class TransactionController {
         let p = this;
         return new Promise(async (resolve) => {
             console.log("trying to liquidate loan " + loanId);
-
-            /*
-            //wallet should have approved already enough tokens 
-            let contract = p.getTokenInstance(this.positions[loanId].loanToken);
-            let approved;
-            try {
-                approved = await this.approveToken(contract, conf.bzxProtocolAdr, this.positions[loanId].principal);
-                if (!approved) {
-                    console.error("error on approving tokens for loan " + loanId);
-                    //todo: error handling
-                    return resolve(false);
-                }
-            }
-            catch(e){
-                console.error("error on approving token for loan "+loanId);
-                console.error(e);
-                return resolve(false);
-            }
-            */
             
             try {
                 p.contractBzx.methods.liquidate(loanId, receiver, amount)
@@ -206,7 +182,7 @@ class TransactionController {
 
     /**
     * Tokenholder approves the loan token contract to spend tokens on his behalf
-    * This is needed in order to be able to liquidate a position
+    * This is needed in order to be able to liquidate a position and should be executed once in the beginning
     */
     approveToken(tokenCtr, receiver, amount) {
         return new Promise(resolve => {
