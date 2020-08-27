@@ -1,7 +1,14 @@
 /**
  * Transaction controller
- * Reads all open positions from the blockchain by quereing "active loans" in a loop. Stores open positions in a queue
- * Monitors every position on the loantoken contract and checks if positions are open or closed and if they need to be liquidated or not
+ * Reads all open positions from the blockchain by quereing "active loans" in a loop. Stores open positions in a queue "positions" and
+ * positions flagged for liquidation in "liquidations".
+ * Monitors every position on the loantoken contract and checks if it is still open and if it needs to be liquidated or not.
+ * 
+ * It is necessary to re-read from position 0 on every run because the position of open positions can change on the contract.
+ * Poosible optimization: parse the event logs after reaching current state instead of quering of "getActiveLoans".
+ *  
+ * todo: consider partly liquidated positions
+ * 
  */
 
 import Web3 from 'web3';
@@ -32,7 +39,7 @@ class TransactionController {
         const b = await this.web3.eth.getBlockNumber();
         console.log("Connected to rsk " + conf.network + "-network. Current block " + b);
         this.processActiveLoans();
-        this.watchLiquidations();
+        this.checkPositions();
     }
 
     /**
@@ -50,13 +57,13 @@ class TransactionController {
         let to = conf.nrOfProcessingLoans;
 
         while (true) {
-            const loans = await this.loadActiveLoans(from, to);
-            if (loans) await this.addLoans(loans);
-            console.log(loans.length+" loans found");
+            const pos = await this.loadActivePositions(from, to);
+            if (pos) this.addPosition(pos);
+            console.log(pos.length+" positions found");
 
-            if (loans.length > 0) {
+            if (pos.length > 0) {
                 from = to;
-                to = from + conf.nrOfProcessingLoans;
+                to = from + conf.nrOfProcessingPositions;
                 await U.wasteTime(1);
             }
             //reached current state
@@ -70,11 +77,11 @@ class TransactionController {
     }
 
     /**
-     * Loading active loans from the contract
+     * Loading active positions from the contract
      * check order (0-10 = first 10 or last 10??)
      */
-    loadActiveLoans(from, to) {
-        console.log("loading active loans from id " + from + " to " + to);
+    loadActivePosition(from, to) {
+        console.log("loading active positions from id " + from + " to " + to);
         let p = this;
 
         return new Promise(resolve => {
@@ -97,13 +104,18 @@ class TransactionController {
     }
 
     /**
-     * Adding new loans to the queue
+     * Adding new positions to the positions queue, 
+     * positions ready for liquidation to the liquidations queue
      */
-    addLoans(loans) {
+    addPosition(loans) {
         for (let l of loans) {
             if (!l.loanId) continue;
 
-            if (!this.positions[l.loanId]) this.positions[l.loanId] = l;
+            if (!this.positions[l.loanId]) {
+                this.positions[l.loanId] = l;
+
+                if (this.getLoanStatus(this.positions[p])) this.liquidations[p] = this.positions[p];
+            }
             else console.log("found duplicate loan-id " + l.loanId);
         }
     }
@@ -111,30 +123,22 @@ class TransactionController {
     /**
      * Wrapper for position liquidating
      */
-    async watchLiquidations() {
-        while (true) {
-            for (let p in this.positions) {
-                let status = await this.getLoanStatus(p);
-                if (status == 2) {
-                    this.liquidations[p] = this.positions[p];
-                    console.log("adding pos to liq list");
-                    console.log(p);
-                    console.log(this.positions[p])
-                    const liquidated = await this.liquidate(p, owner.adr, this.positions[p].principal);
-                    //todo error handling
-                }
-                else if (status == 0) delete this.positions[p];
+    async checkPositions() {
+        for (let p in this.positions) {
+            if (this.getLoanStatus(this.positions[p])) {
+                this.liquidations[p] = this.positions[p];
+                const liquidated = await this.liquidate(p, owner.adr, this.positions[p].principal);
+                //todo error handling
             }
-            console.log("completed liquidation watching round at " + new Date(Date.now()));
-            await U.wasteTime(60);
         }
+        console.log("completed liquidation watching round at " + new Date(Date.now()));
     }
 
     /*
     * liquidates a position
-    * if successful: removes trade from list
+    * if successful: removes position from liquidation list
     */
-    liquidate(loanId, receiver, principal) {
+    liquidate(loanId, receiver, amount) {
         let p = this;
         return new Promise(async (resolve) => {
             console.log("trying to liquidate loan " + loanId);
@@ -159,7 +163,7 @@ class TransactionController {
             */
             
             try {
-                p.contractBzx.methods.liquidate(loanId, receiver, principal)
+                p.contractBzx.methods.liquidate(loanId, receiver, amount)
                 .send({ from: owner.adr, gas: 2500000 })
                 .then(async (tx) => {
                     console.log("loan " + loanId + " liquidated!");
@@ -181,53 +185,28 @@ class TransactionController {
         });
     }
 
-
     /**
-     * Loads complete loan info from the Bzx contract
-     * Returns loan status: -1: error, 0: inactive, 1: active, 2: need to be liquidated
+     * Returns loan status true if it needs to be liquidated, false otherwise
      * Liquidation status means current margin <= maintenance margin
-     * todo: check actual result of inactive loans
      */
-    async getLoanStatus(loanId) {
-        let p = this;
+    async getLoanStatus(loan) {
+        if (loan.currentMargin && loan.maintenanceMargin) {
+            const curr = p.web3.utils.fromWei(loan.currentMargin, 'ether'); //returns margin in %
+            const mM = p.web3.utils.fromWei(loan.maintenanceMargin, 'ether'); //returns margin in %
 
-        return new Promise(resolve => {
-            try {
-                p.contractBzx.methods.getLoan(loanId).call((error, result) => {
-                    if (error) {
-                        console.log(error);
-                        return resolve(-1);
-                    }
-                    //console.log("checking loan "+loanId);
-                    //console.log(result);
-                    if (result.currentMargin && result.maintenanceMargin) {
-                        let curr = p.web3.utils.fromWei(result.currentMargin, 'ether'); //returns margin in %
-                        let mM = p.web3.utils.fromWei(result.maintenanceMargin, 'ether'); //returns margin in %
-
-                        //maintenance margin == 0 => loan does not exist
-                        if(mM == 0) return resolve(0);
-
-                        //console.log("current margin: " + curr);
-                        //console.log("maintenance margin: " + mM);
-                        if (curr <= mM) {
-                            console.log("loan " + loanId + " needs to be liquidated. Current margin (" + curr + ") <= maintenanceMargin (" + mM + ").");
-                            return resolve(2);
-                        }
-                        resolve(1);
-                    }
-                });
+            //console.log("current margin: " + curr);
+            //console.log("maintenance margin: " + mM);
+            if (curr <= mM) {
+                console.log("loan " + loan.loanId + " needs to be liquidated. Current margin (" + curr + ") <= maintenanceMargin (" + mM + ").");
+                return true;
             }
-            catch (e) {
-                console.error("error on retrieving loan status for loan-id "+loanId);
-                console.error(e);
-                resolve(-1)
-            }
-        });
+        }
+        return false;
     }
 
     /**
     * Tokenholder approves the loan token contract to spend tokens on his behalf
-    * This is need in order to be able to liquidate a position
+    * This is needed in order to be able to liquidate a position
     */
     approveToken(tokenCtr, receiver, amount) {
         return new Promise(resolve => {

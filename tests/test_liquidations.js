@@ -6,7 +6,6 @@ import abiPriceFeed from './abi/abiPriceFeed';
 
 /**
  * Liquidation tester
- * todo: calc liquidation price 
  * The liquidator account need to have sufficient tokens approved to be able to liquidate the open positions
  */
 
@@ -31,7 +30,6 @@ describe('Liquidation', async () => {
             contractISUSD = new txCtrl.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
             abiDecoder.addABI(abiComplete);
         });
-
         
         it('should set the start price for btc to 10000', async () => {
             let a = await changePrice(conf.testTokenRBTC, conf.testTokenSUSD, 10000);
@@ -171,10 +169,9 @@ function marginTrade(contractToken, loanId, leverageAmount, loanTokenSent, colla
 
 
 /*
-* Change the conversion rate usd/btc on the contract (?)
+* Change the conversion rate usd/btc on the pricefeed contract
 * only owner
 */
-
 function changePrice(srcToken, destToken, rate) {
     console.log("change price to " + rate);
     return new Promise(resolve => {

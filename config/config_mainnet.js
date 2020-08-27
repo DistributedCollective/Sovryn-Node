@@ -3,7 +3,7 @@ export default {
     nodeProvider: 'http://13.251.148.208:4444', 
     publicNodeProvider: 'https://public-node.rsk.co',
     network: "main",
-    nrOfProcessingLoans: 100, //need to find appropriate nr
+    nrOfProcessingPositions: 100, //need to find appropriate nr
     waitBetweenRounds: 60,
     testTokenSUSD: "0xE631653c4Dc6Fb98192b950BA0b598f90FA18B3E",
     testTokenRBTC: "0xE53d858A78D884659BF6955Ea43CBA67c0Ae293F",
