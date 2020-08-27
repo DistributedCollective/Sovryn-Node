@@ -23,7 +23,7 @@ class TransactionController {
         this.contractBzx = new this.web3.eth.Contract(abiComplete, conf.bzxProtocolAdr);
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.testTokenSUSD);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
-        this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, {polling: false});
+        this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, { polling: false });
         this.positions = {};
         this.liquidations = {};
     }
@@ -55,9 +55,9 @@ class TransactionController {
 
         while (true) {
             const pos = await this.loadActivePositions(from, to);
-            if(pos) {
+            if (pos) {
                 this.addPosition(pos);
-                console.log(pos.length+" active positions found");
+                console.log(pos.length + " active positions found");
             }
 
             if (pos.length > 0) {
@@ -70,7 +70,7 @@ class TransactionController {
                 await U.wasteTime(conf.waitBetweenRounds);
                 from = 0;
                 to = conf.nrOfProcessingPositions;
-                this.positions={};
+                this.positions = {};
             }
         }
     }
@@ -81,7 +81,7 @@ class TransactionController {
      */
     loadActivePositions(from, to) {
         //console.log("loading active positions from id " + from + " to " + to);
-        
+
         let p = this;
         return new Promise(resolve => {
             try {
@@ -94,7 +94,7 @@ class TransactionController {
                     resolve(res)
                 });
             }
-            catch(e){
+            catch (e) {
                 console.error("error on retrieving active loans");
                 console.error(e);
                 resolve(false);
@@ -113,7 +113,7 @@ class TransactionController {
             if (!this.positions[l.loanId]) {
                 this.positions[l.loanId] = l;
 
-                if (this.getLiquidationStatus(this.positions[l.loanId])) this.liquidations[l.loanId] = l;
+                if (l.maxLiquidatable > 0) this.liquidations[l.loanId] = l;
             }
             else console.log("found duplicate loan-id " + l.loanId);
         }
@@ -127,25 +127,26 @@ class TransactionController {
      * Todo: If the tx was not confirmed after some time (10 minutes), resend the transaction with a higher (double) gas fee.
      */
     async checkPositions() {
-        while(true) {
+        while (true) {
             console.log("started liquidation round at " + new Date(Date.now()));
-            console.log(Object.keys(this.liquidations).length+" positions need to be liquidated");
-            
+            console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
+
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-                const liquidated = await this.liquidate(p, owner.adr, pos.principal);
-                if(liquidated) delete this.liquidations[p];
+
+                const liquidated = await this.liquidate(p, owner.adr, pos.maxLiquidatable);
+                if (liquidated) delete this.liquidations[p];
                 else {
-                    console.error("error liquidating loan "+p);
+                    console.error("error liquidating loan " + p);
                     console.error(pos);
                     const updatedLoan = await this.getPositionStatus(p)
-                    if (this.getLiquidationStatus(updatedLoan)) {
-                        console.log("loan "+p+ " should still be liquidated. Please check manually");
-                        this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network+"net-liquidation of loan "+p+" failed.");
+                    if (pos.maxLiquidatable > 0) {
+                        console.log("loan " + p + " should still be liquidated. Please check manually");
+                        this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + p + " failed.");
                     }
                     delete this.liquidations[p];
                 }
-                
+
             }
             console.log("completed liquidation round at " + new Date(Date.now()));
             await U.wasteTime(conf.waitBetweenRounds);
@@ -159,39 +160,20 @@ class TransactionController {
         let p = this;
         return new Promise(async (resolve) => {
             console.log("trying to liquidate loan " + loanId);
-            
+
             p.contractBzx.methods.liquidate(loanId, receiver, amount)
-            .send({ from: owner.adr, gas: 2500000 })
-            .then(async (tx) => {
-                console.log("loan " + loanId + " liquidated!");
-                console.log(tx);
-                resolve(true);
-            })
-            .catch((err) => {
-                console.error("Error on liquidating loan " + loanId);
-                console.error(err);
-                resolve(false);
-            });
+                .send({ from: owner.adr, gas: 2500000 })
+                .then(async (tx) => {
+                    console.log("loan " + loanId + " liquidated!");
+                    console.log(tx);
+                    resolve(true);
+                })
+                .catch((err) => {
+                    console.error("Error on liquidating loan " + loanId);
+                    console.error(err);
+                    resolve(false);
+                });
         });
-    }
-
-    /**
-     * Returns loan status true if it needs to be liquidated, false otherwise
-     * Liquidation status means current margin <= maintenance margin
-     */
-    getLiquidationStatus(loan) {
-        if (loan.currentMargin && loan.maintenanceMargin) {
-            const curr = this.web3.utils.fromWei(loan.currentMargin, 'ether'); //returns margin in %
-            const mM = this.web3.utils.fromWei(loan.maintenanceMargin, 'ether'); //returns margin in %
-
-            //console.log("current margin: " + curr);
-            //console.log("maintenance margin: " + mM);
-            if (curr <= mM) {
-                console.log("loan " + loan.loanId + " needs to be liquidated. Current margin (" + curr + ") <= maintenanceMargin (" + mM + ").");
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -203,7 +185,7 @@ class TransactionController {
             try {
                 p.contractBzx.methods.getLoan(loanId).call((error, result) => {
                     if (error) {
-                        console.error("error loading loan "+loanId);
+                        console.error("error loading loan " + loanId);
                         console.error(error);
                         return resolve(false);
                     }
@@ -211,7 +193,7 @@ class TransactionController {
                 });
             }
             catch (e) {
-                console.error("error on retrieving loan status for loan-id "+loanId);
+                console.error("error on retrieving loan status for loan-id " + loanId);
                 console.error(e);
                 resolve(false)
             }
