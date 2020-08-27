@@ -91,7 +91,7 @@ class MonitorController {
     }
 
     async getContractInfo() {
-        let l = await this.txCtrl.loadActiveLoans(0, 10);
+        let l = await this.txCtrl.loadActivePositions(0, 10);
         if (l && l.length > 0) return true;
         return false;
     }

@@ -23,7 +23,7 @@ class Monitor {
         $("#accBalance").text(adr);
 
         socket.emit("getSignals", adr, (res) => {
-            console.log("response");
+            console.log("response signals");
             console.log(res);
 
             p.lastBlock(res.blockInfoPn, res.blockInfoLn);
@@ -31,17 +31,16 @@ class Monitor {
             p.contractInfo(res.contractInfo);
         });
 
-        socket.emit("openPos", (res) => {
-            p.setOpenPositions(res);
-        });
-
-        socket.emit("getOpenLiquidations", (res) => {
-            p.setOpenLiquidations(res);
+        socket.emit("getOpenPositionsDetails", (res) => {
+            console.log("open positions");
+            console.log(res);
+            p.showOpenPositions(res);
         });
 
         socket.emit("getOpenLiquidationsDetails", (res) => {
             console.log("liquidating positions");
             console.log(res)
+            p.showLiquidations(res);
         });
     }
 
@@ -66,12 +65,14 @@ class Monitor {
         else $('#cInfo').addClass('alert alert-danger');
     }
 
-    setOpenPositions(oP) {
-        $('#openPosQueue').text(oP);
+    showOpenPositions(oP) {
+        let nr = Object.keys(oP).length;
+        $('#openPosQueue').text(nr);
     }
 
-    setOpenLiquidations(oP) {
-        $('#openLiqQueue').text(oP);
+    showLiquidations(oL) {
+        let nr = Object.keys(oL).length;
+        $('#openLiqQueue').text(nr);
     }
 }
 

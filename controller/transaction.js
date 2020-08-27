@@ -11,6 +11,7 @@ import abiComplete from '../config/abiComplete';
 import abiTestToken from '../config/abiTestToken';
 import owner from '../secrets/account';
 import U from '../util/helper';
+const TelegramBot = require('node-telegram-bot-api');
 
 class TransactionController {
     /**
@@ -22,6 +23,7 @@ class TransactionController {
         this.contractBzx = new this.web3.eth.Contract(abiComplete, conf.bzxProtocolAdr);
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.testTokenSUSD);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
+        this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, {polling: false});
         this.positions = {};
         this.liquidations = {};
     }
@@ -49,12 +51,14 @@ class TransactionController {
         console.log("Start processing active loans");
 
         let from = 0;
-        let to = conf.nrOfProcessingLoans;
+        let to = conf.nrOfProcessingPositions;
 
         while (true) {
             const pos = await this.loadActivePositions(from, to);
-            if (pos) this.addPosition(pos);
-            console.log(pos.length+" positions found");
+            if(pos) {
+                this.addPosition(pos);
+                console.log(pos.length+" active positions found");
+            }
 
             if (pos.length > 0) {
                 from = to;
@@ -65,7 +69,7 @@ class TransactionController {
             else {
                 await U.wasteTime(conf.waitBetweenRounds);
                 from = 0;
-                to = conf.nrOfProcessingLoans;
+                to = conf.nrOfProcessingPositions;
                 this.positions={};
             }
         }
@@ -75,10 +79,10 @@ class TransactionController {
      * Loading active positions from the contract
      * check order (0-10 = first 10 or last 10??)
      */
-    loadActivePosition(from, to) {
-        console.log("loading active positions from id " + from + " to " + to);
+    loadActivePositions(from, to) {
+        //console.log("loading active positions from id " + from + " to " + to);
+        
         let p = this;
-
         return new Promise(resolve => {
             try {
                 p.contractBzx.methods.getActiveLoans(from, to, false).call((error, res) => {
@@ -93,7 +97,7 @@ class TransactionController {
             catch(e){
                 console.error("error on retrieving active loans");
                 console.error(e);
-                resolve([]);
+                resolve(false);
             }
         });
     }
@@ -109,55 +113,65 @@ class TransactionController {
             if (!this.positions[l.loanId]) {
                 this.positions[l.loanId] = l;
 
-                if (this.getLoanStatus(this.positions[p])) this.liquidations[p] = this.positions[p];
+                if (this.getLiquidationStatus(this.positions[l.loanId])) this.liquidations[l.loanId] = l;
             }
             else console.log("found duplicate loan-id " + l.loanId);
         }
     }
 
     /**
-     * Wrapper for position liquidating
+     * Wrapper for liquidations
+     * If liquidation successful removes position from liquidation list
+     * If it fails, check if the liquidation criteria are still met. 
+     * If no, delete it from the liquidation list. If yes, send an error notification to a telegram groupfor manual processing. 
+     * Todo: If the tx was not confirmed after some time (10 minutes), resend the transaction with a higher (double) gas fee.
      */
     async checkPositions() {
-        for (let p in this.positions) {
-            if (this.getLoanStatus(this.positions[p])) {
-                this.liquidations[p] = this.positions[p];
-                const liquidated = await this.liquidate(p, owner.adr, this.positions[p].principal);
-                //todo error handling
+        while(true) {
+            console.log("started liquidation round at " + new Date(Date.now()));
+            console.log(Object.keys(this.liquidations).length+" positions need to be liquidated");
+            
+            for (let p in this.liquidations) {
+                const pos = this.liquidations[p];
+                const liquidated = await this.liquidate(p, owner.adr, pos.principal);
+                if(liquidated) delete this.liquidations[p];
+                else {
+                    console.error("error liquidating loan "+p);
+                    console.error(pos);
+                    const updatedLoan = await this.getPositionStatus(p)
+                    if (this.getLiquidationStatus(updatedLoan)) {
+                        console.log("loan "+p+ " should still be liquidated. Please check manually");
+                        this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network+"net-liquidation of loan "+p+" failed.");
+                    }
+                    delete this.liquidations[p];
+                }
+                
             }
+            console.log("completed liquidation round at " + new Date(Date.now()));
+            await U.wasteTime(conf.waitBetweenRounds);
         }
-        console.log("completed liquidation watching round at " + new Date(Date.now()));
     }
 
     /*
-    * liquidates a position
-    * if successful: removes position from liquidation list
+    * Tries to liquidate a position
     */
     liquidate(loanId, receiver, amount) {
         let p = this;
         return new Promise(async (resolve) => {
             console.log("trying to liquidate loan " + loanId);
             
-            try {
-                p.contractBzx.methods.liquidate(loanId, receiver, amount)
-                .send({ from: owner.adr, gas: 2500000 })
-                .then(async (tx) => {
-                    console.log("loan " + loanId + " liquidated!");
-                    console.log(tx);
-                    resolve(true);
-                })
-                .catch((err) => {
-                    console.error("Error on liquidating loan " + loanId);
-                    console.error(err);
-                    //todo: error handling
-                    resolve(false);
-                });
-            }
-            catch(e){
-                console.error("error on liquidating loan "+loanId);
-                console.error(e);
+            p.contractBzx.methods.liquidate(loanId, receiver, amount)
+            .send({ from: owner.adr, gas: 2500000 })
+            .then(async (tx) => {
+                console.log("loan " + loanId + " liquidated!");
+                console.log(tx);
+                resolve(true);
+            })
+            .catch((err) => {
+                console.error("Error on liquidating loan " + loanId);
+                console.error(err);
                 resolve(false);
-            }
+            });
         });
     }
 
@@ -165,10 +179,10 @@ class TransactionController {
      * Returns loan status true if it needs to be liquidated, false otherwise
      * Liquidation status means current margin <= maintenance margin
      */
-    async getLoanStatus(loan) {
+    getLiquidationStatus(loan) {
         if (loan.currentMargin && loan.maintenanceMargin) {
-            const curr = p.web3.utils.fromWei(loan.currentMargin, 'ether'); //returns margin in %
-            const mM = p.web3.utils.fromWei(loan.maintenanceMargin, 'ether'); //returns margin in %
+            const curr = this.web3.utils.fromWei(loan.currentMargin, 'ether'); //returns margin in %
+            const mM = this.web3.utils.fromWei(loan.maintenanceMargin, 'ether'); //returns margin in %
 
             //console.log("current margin: " + curr);
             //console.log("maintenance margin: " + mM);
@@ -178,6 +192,30 @@ class TransactionController {
             }
         }
         return false;
+    }
+
+    /**
+     * Loads complete position info from the Sovryn contract
+     */
+    async getPositionStatus(loanId) {
+        let p = this;
+        return new Promise(resolve => {
+            try {
+                p.contractBzx.methods.getLoan(loanId).call((error, result) => {
+                    if (error) {
+                        console.error("error loading loan "+loanId);
+                        console.error(error);
+                        return resolve(false);
+                    }
+                    resolve(result);
+                });
+            }
+            catch (e) {
+                console.error("error on retrieving loan status for loan-id "+loanId);
+                console.error(e);
+                resolve(false)
+            }
+        });
     }
 
     /**

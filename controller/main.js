@@ -6,36 +6,23 @@ import TransactionController from './transaction';
 import MonitorController from './monitor';
 
 class MainController {
-    
+
     async start(io) {
-        const p=this;
-        io.on('connection', (socket) => {
-            p.socket=socket;
-            p.getSignals();
-        });
+
         const txCtrl = new TransactionController();
         txCtrl.start();
         this.mCtrl = new MonitorController(txCtrl);
-    }
 
-    async getSignals() {
-        const p=this;
-        this.socket.on('openPos', cb => {
-            p.mCtrl.getOpenPositions(cb);
-        });
-       
-        this.socket.on('openLiq', cb => {
-            cb(22);
-            //p.mCtrl.getOpenLiquidations(cb);
-        });
+        const p = this;
+        io.on('connection', (socket) => {
+            p.socket = socket;
 
-        this.socket.on('getSignals', async (data,cb) => { 
-            p.mCtrl.getSignals(data, cb);
+            socket.on('getSignals', async (data, cb) => p.mCtrl.getSignals(data, cb));
+            //socket.on('getOpenPositions', async(cb) => p.mCtrl.getOpenPositions(cb));
+            socket.on('getOpenPositionsDetails', async (cb) => p.mCtrl.getOpenPositionsDetails(cb));
+            //socket.on('getOpenLiquidations', async(cb) => p.mCtrl.getOpenLiquidations(cb));
+            socket.on('getOpenLiquidationsDetails', async (cb) => p.mCtrl.getOpenLiquidationsDetails(cb));
         });
-
-        this.socket.on('getOpenPositionsDetails', async(cb) => p.mCtrl.getOpenPositionsDetails(cb));
-        this.socket.on('getOpenLiquidations', async(cb) => p.mCtrl.getOpenLiquidations(cb));
-        this.socket.on('getOpenLiquidationsDetails', async(cb) => p.mCtrl.getOpenLiquidationsDetails(cb));
     }
 }
 

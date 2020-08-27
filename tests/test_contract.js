@@ -21,15 +21,30 @@ describe('Contract', async () => {
             assert(approved.length == 66);
         }); 
 
-        it('should approve the IToken contract to spend RBTC for the main account', async () => {
+        it('should approve the rBTC IToken contract to spend sUSD for the main account', async () => {
             const approved = await approveToken(txCtrl.contractTokenSUSD, conf.loanTokenRBTC);
             assert(approved.length == 66);
         }); 
 
-        it('should approve the IToken contract to spend SUSD for the main account', async () => {
+        it('should approve the rBTC IToken contract to spend rBTC for the main account', async () => {
+            const approved = await approveToken(txCtrl.contractTokenRBTC, conf.loanTokenRBTC);
+            assert(approved.length == 66);
+        }); 
+
+        it('should approve the sUSD IToken contract to spend rBTC for the main account', async () => {
             const approved = await approveToken(txCtrl.contractTokenRBTC, conf.loanTokenSUSD);
             assert(approved.length == 66);
         }); 
+
+        it('should approve the sUSD IToken contract to spend sUSD for the main account', async () => {
+            const approved = await approveToken(txCtrl.contractTokenSUSD, conf.loanTokenSUSD);
+            assert(approved.length == 66);
+        }); 
+
+        it('should check wheter the Itoken contract is allowed to spend sUSD for the main account', async() => {
+            //todo check wheter above tx have desired result
+            assert(true);
+        })
     });
 });
 
@@ -54,3 +69,22 @@ async function approveToken(contract, receiver) {
     });
 }
 
+async function checkAllowance(contract, adr, token) {
+    return new Promise(async (resolve) => {
+        try {
+            p.contractBzx.methods.getLoan(loanId).call((error, result) => {
+                if (error) {
+                    console.error("error loading loan "+loanId);
+                    console.error(error);
+                    return resolve(false);
+                }
+                resolve(result);
+            });
+        }
+        catch (e) {
+            console.error("error on retrieving loan status for loan-id "+loanId);
+            console.error(e);
+            resolve(false)
+        }
+    });
+}
