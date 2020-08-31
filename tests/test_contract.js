@@ -12,12 +12,12 @@ describe('Contract', async () => {
     describe('#basic function', async () => {
         
         it('should approve the Sovryn contract to spend RBTC for the main account', async () => {
-            const approved = await approveToken(txCtrl.contractTokenRBTC, conf.bzxProtocolAdr);
+            const approved = await approveToken(txCtrl.contractTokenRBTC, conf.sovrynProtocolAdr);
             assert(approved.length == 66);
         });    
 
         it('should approve the Sovryn contract to spend SUSD for the main account', async () => {
-            const approved = await approveToken(txCtrl.contractTokenSUSD, conf.bzxProtocolAdr);
+            const approved = await approveToken(txCtrl.contractTokenSUSD, conf.sovrynProtocolAdr);
             assert(approved.length == 66);
         }); 
 
@@ -72,7 +72,7 @@ async function approveToken(contract, receiver) {
 async function checkAllowance(contract, adr, token) {
     return new Promise(async (resolve) => {
         try {
-            p.contractBzx.methods.getLoan(loanId).call((error, result) => {
+            p.contractSovryn.methods.getLoan(loanId).call((error, result) => {
                 if (error) {
                     console.error("error loading loan "+loanId);
                     console.error(error);

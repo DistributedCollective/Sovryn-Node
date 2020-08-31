@@ -13,14 +13,14 @@ const abiDecoder = require('abi-decoder');
 const assert = require('assert');
 
 import TransactionController from '../controller/transaction';
-import owner from '../secrets/account';
+import A from '../secrets/accounts';
 const txCtrl = new TransactionController();
 var contractPriceFeed, contractISUSD;
 const adrPriceFeed = "0xf2e9fD37912aB53D0FEC1eaCE86d6A14346Fb6dD";
 
 
 var loanIdHigh, loanIdLow;
-var from = owner.adr;
+var from = A.owner.adr;
 
 describe('Liquidation', async () => {
     describe('#liquidate a position', async () => {
@@ -75,7 +75,7 @@ describe('Liquidation', async () => {
         it('should wait for liquidation of the high leverage position', async () => {
             console.log("waiting for the watcher to liquidate loanId "+loanIdHigh);
             //amount bigger than principal -> will liquidate the maximum possible
-            //let liquidated = await txCtrl.liquidate(loanIdHigh, owner.adr, txCtrl.web3.utils.toWei("1", "ether"));
+            //let liquidated = await txCtrl.liquidate(loanIdHigh, A.owner.adr, txCtrl.web3.utils.toWei("1", "ether"));
             let statusHigh = 2;
             for(let i = 0; i < 120; i++){
                 statusHigh = await txCtrl.getLoanStatus(loanIdHigh);
