@@ -14,5 +14,5 @@ export default  {
     errorBotNodeTelegramToken: "1330614964:AAGK2vmqr61N-RS5e1YQ-vi_eryTzvU0WBM",
     errorBotWatcherTelegramToken: "1187325835:AAH-sH6F0znu2QAVgTNztXCRJVe0DpWy884",
     sovrynInternalTelegramId: -1001308978723,
-    healthMonitorPort: 1 //results in 3001
+    healthMonitorPort: 3 //results in 3003
 }

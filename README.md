@@ -15,9 +15,6 @@ The liquidator needs considerable funds in all currencies provided to be able to
 NodeJs > 12.1  
 Nodemon  
 Webpack  
-  
-Pm2 to see the monitor
-
 
 
 ### Install
@@ -33,7 +30,6 @@ export default {
     pKey: "[your-private-key]"
 }
 
-Set the server ip in monitor/config.js  
 
 ### Start
 
@@ -41,8 +37,8 @@ Set the server ip in monitor/config.js
 npm run start:[mainnet || testnet]
 ```
 Check  
-http://your-ip:3000/ to see some liquidation processing info and the current node-status  
-http://your-ip:3000/monitor pm2-observer of the app  
+http://your-ip:3000/ to see some liquidation processing info
+
 
 
 License

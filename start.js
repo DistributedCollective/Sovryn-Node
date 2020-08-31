@@ -23,7 +23,7 @@ import mainController from './controller/main';
 console.log("Hola. It is "+new Date(Date.now())+ ". Starting the app on "+process.argv[2]);
        
 app.use('/', express.static('public/dist'));
-app.use('/monitor', express.static('monitor'));
+
 
 http.listen(conf.serverPort, () => {
     console.log('listening on *:'+conf.serverPort);
