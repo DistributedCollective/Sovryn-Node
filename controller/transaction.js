@@ -9,7 +9,7 @@
 import Web3 from 'web3';
 import abiComplete from '../config/abiComplete';
 import abiTestToken from '../config/abiTestToken';
-import owner from '../secrets/account';
+import {liquidator} from '../secrets/accounts';
 import U from '../util/helper';
 const TelegramBot = require('node-telegram-bot-api');
 
@@ -19,7 +19,7 @@ class TransactionController {
      */
     constructor() {
         this.web3 = new Web3(conf.nodeProvider);
-        this.web3.eth.accounts.privateKeyToAccount(owner.pKey);
+        this.web3.eth.accounts.privateKeyToAccount(liquidator.pKey);
         this.contractBzx = new this.web3.eth.Contract(abiComplete, conf.bzxProtocolAdr);
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.testTokenSUSD);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
@@ -134,7 +134,7 @@ class TransactionController {
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
 
-                const liquidated = await this.liquidate(p, owner.adr, pos.maxLiquidatable);
+                const liquidated = await this.liquidate(p, liquidator.adr, pos.maxLiquidatable);
                 if (liquidated) delete this.liquidations[p];
                 else {
                     console.error("error liquidating loan " + p);
@@ -162,7 +162,7 @@ class TransactionController {
             console.log("trying to liquidate loan " + loanId);
 
             p.contractBzx.methods.liquidate(loanId, receiver, amount)
-                .send({ from: owner.adr, gas: 2500000 })
+                .send({ from: liquidator.adr, gas: 2500000 })
                 .then(async (tx) => {
                     console.log("loan " + loanId + " liquidated!");
                     console.log(tx);
@@ -207,7 +207,7 @@ class TransactionController {
     approveToken(tokenCtr, receiver, amount) {
         return new Promise(resolve => {
             tokenCtr.methods.approve(receiver, amount)
-                .send({ from: owner.adr })
+                .send({ from: liquidator.adr })
                 .then((tx) => {
                     console.log("Approved Transaction: ");
                     //console.log(tx);
