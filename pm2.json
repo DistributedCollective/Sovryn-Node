@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "liquidation watcher",
+      "name": "Sovryn watcher",
       "script": "./start.js",
       "watch": false,
       "node_args": "-r esm",

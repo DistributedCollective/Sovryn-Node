@@ -1,8 +1,8 @@
 {
-  "name": "watcher",
+  "name": "Watcher",
   "private": true,
   "version": "1.0.0",
-  "description": "liquidation handler for sovryn smart contracts",
+  "description": "liquidation handler and rollover of open positions for sovryn smart contracts",
   "scripts": {
     "test-tx": "mocha -r esm ./tests/transaction.js",
     "test-lx": "mocha -r esm ./tests/test_liquidations.js --timeout 2500000",
