@@ -5,7 +5,9 @@ import abiLoanToken from '../config/abiLoanToken';
 import A from '../secrets/accounts';
 
 /**
- * Contract tester
+ * This test need to be executed in 2 steps
+ * Day1: create open loans. Wait 24h
+ * Day2: Execute it aign. It will load open and expired positions from Day1 and tries to roll them over.
 */
 const assert = require('assert');
 import TransactionController from '../controller/transaction';
@@ -16,9 +18,10 @@ const txCtrl = new TransactionController();
 const contractISUSD = new txCtrl.web3.eth.Contract(abiLoanToken, c.loanTokenSUSD);
 var requiredC=0;
 var loanId="";
+var rollover=[];
 
 describe('Contract', async () => {
-    describe('#rollover', async () => {
+    describe('#rollover open positions', async () => {
         
         it('should return required collateral for a loan', async () => {
             const withdrawAmount = txCtrl.web3.utils.toWei("10", 'ether');
@@ -48,12 +51,42 @@ describe('Contract', async () => {
             assert(b.length==66);
         });    
 
+        
+        it('should find open positions with expired date on the contract', async () => {
+            var pos = [1];
+            let from = 0;
+            let to = conf.nrOfProcessingPositions;
+            let totalPos=0;
+
+            while (pos.length>0) {
+                pos = await txCtrl.loadActivePositions(from, to);
+                if (pos) {
+                    from = to;
+                    to = from + conf.nrOfProcessingPositions;
+                    //console.log(pos.length + " active positions found");
+                    totalPos+=pos.length;
+
+                    for (let p in pos) {
+                        if(pos[p].endTimestamp < Date.now()/1000){
+                            console.log("Found expired open position. "+pos[p].loanId);
+                            rollover.push(pos[p].loanId);
+                        }
+                    }
+                }
+            }
+            console.log("Found "+totalPos+" open positions. "+rollover.length+" to rollover");
+            assert(true);
+        });   
+
+        if(rollover.length>0)
         //the position need to be expired (min time = 24h)
-        it('should rollover an existing loan', async () => {
+        it('should rollover all open but expired loans', async () => {
             const loanDataBytes = "0x"; //need to be empty
-            const r = await rollover(loanId, loanDataBytes);
-            console.log(r);
-            assert(r.length==66);
+            for(let i in rollover) {
+                const r = await rolloverPos(rollover[i], loanDataBytes);
+                console.log(r);
+                assert(r.length==66);
+            }
         });
     });
 });
@@ -128,7 +161,7 @@ function borrow(collateralTokenSent, withdrawAmount, collateralTokenAddress, adr
 /**
  * Extend deadline for open position (loan or trade)
  */
-function rollover(loanId, loanDataBytes) {
+function rolloverPos(loanId, loanDataBytes) {
     console.log("Rollover "+loanId);
     return new Promise(async (resolve) => {
         txCtrl.contractSovryn.methods.rollover(loanId, loanDataBytes)
@@ -141,7 +174,7 @@ function rollover(loanId, loanDataBytes) {
             .catch((err) => {
                 console.error("Error in rolling over a position from the contract");
                 console.error(err);
-            });
+        });
     });
 }
 

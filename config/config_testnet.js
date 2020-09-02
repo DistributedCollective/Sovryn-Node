@@ -1,4 +1,5 @@
-//todo: move bot-tokens to secrets
+import {errorBotNodeTelegramToken, errorBotWatcherTelegramToken} from '../secrets/telegram';
+
 export default  {
     serverPort: 3000,
     nodeProvider: 'http://18.138.223.132:4444', 
@@ -11,8 +12,8 @@ export default  {
     loanTokenSUSD: "0xD1A979EDE2c17FCD31800Bed859e5EC3DA178Cb9",
     loanTokenRBTC: "0x08118a219a4e34E06176cD0861fcDDB865771111",
     sovrynProtocolAdr: "0x74808B7a84327c66bA6C3013d06Ed3DD7664b0D4",
-    errorBotNodeTelegramToken: "1330614964:AAGK2vmqr61N-RS5e1YQ-vi_eryTzvU0WBM",
-    errorBotWatcherTelegramToken: "1187325835:AAH-sH6F0znu2QAVgTNztXCRJVe0DpWy884",
+    errorBotNodeTelegramToken: errorBotNodeTelegramToken,
+    errorBotWatcherTelegramToken: errorBotWatcherTelegramToken,
     sovrynInternalTelegramId: -1001308978723,
     healthMonitorPort: 3 //results in 3003
 }

@@ -36,7 +36,8 @@ class TransactionController {
         const b = await this.web3.eth.getBlockNumber();
         console.log("Connected to rsk " + conf.network + "-network. Current block " + b);
         this.processPositions();
-        this.checkPositions();
+        this.checkPositionsForLiquidations();
+        this.checkPositionsExpiration();
     }
 
     /**
@@ -126,7 +127,7 @@ class TransactionController {
      * If no, delete it from the liquidation list. If yes, send an error notification to a telegram groupfor manual processing. 
      * Todo: If the tx was not confirmed after some time (10 minutes), resend the transaction with a higher (double) gas fee.
      */
-    async checkPositions() {
+    async checkPositionsForLiquidations() {
         while (true) {
             console.log("started liquidation round at " + new Date(Date.now()));
             console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
@@ -149,6 +150,26 @@ class TransactionController {
 
             }
             console.log("completed liquidation round at " + new Date(Date.now()));
+            await U.wasteTime(conf.waitBetweenRounds);
+        }
+    }
+
+
+    /**
+     * Wrapper for rolling over open positions
+     * When the maximum loan duration has been exceeded the deadline of the open position need to be extended
+     */
+    async checkPositionsExpiration() {
+        while (true) {
+            console.log("started checking expired positions at " + new Date(Date.now()));
+            
+            for (let p in this.positions) {
+                if(this.positions[p].endTimestamp < Date.now()/1000){
+                    console.log("Found expired open position. Going to rollover "+this.positions[p].loanId);
+                    await this.rollover(this.positions[p].loanId);
+                }
+            }
+            console.log("completed rolling over at " + new Date(Date.now()));
             await U.wasteTime(conf.waitBetweenRounds);
         }
     }
@@ -176,10 +197,33 @@ class TransactionController {
         });
     }
 
+
+    /**
+     * Rollover the open position (loan or trade) to the next interval, currently 28 days  for margin-trades and 1 month for loans
+     * Rollover = extend deadline and pay interest
+     */
+    rollover(loanId) {
+        console.log("Rollover " + loanId);
+        return new Promise(async (resolve) => {
+            const loanDataBytes = "0x"; //need to be empty
+            txCtrl.contractSovryn.methods.rollover(loanId, loanDataBytes)
+                .send({ from: A.owner.adr, gas: 2500000 })
+                .then((tx) => {
+                    //console.log("Rollover Transaction: ");
+                    //console.log(tx);
+                    resolve(tx.transactionHash);
+                })
+                .catch((err) => {
+                    console.error("Error in rolling over a position from the contract");
+                    console.error(err);
+                });
+        });
+    }
+
     /**
      * Loads complete position info from the Sovryn contract
      */
-    async getPositionStatus(loanId) {
+    getPositionStatus(loanId) {
         let p = this;
         return new Promise(resolve => {
             try {

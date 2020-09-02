@@ -5,7 +5,7 @@
  */
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
-import A from '../secrets/account';
+import A from '../secrets/accounts';
 
 class MonitorController {
 
