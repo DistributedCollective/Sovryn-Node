@@ -9,18 +9,18 @@
 import Web3 from 'web3';
 import abiComplete from '../config/abiComplete';
 import abiTestToken from '../config/abiTestToken';
-import {liquidator} from '../secrets/accounts';
+import A from '../secrets/accounts';
 import U from '../util/helper';
 const TelegramBot = require('node-telegram-bot-api');
 
 class TransactionController {
     /**
-     * Creates a Bzx contract intance to query current open positions
+     * Creates a Sovryn contract intance to query current open positions
      */
     constructor() {
         this.web3 = new Web3(conf.nodeProvider);
-        this.web3.eth.accounts.privateKeyToAccount(liquidator.pKey);
-        this.contractBzx = new this.web3.eth.Contract(abiComplete, conf.bzxProtocolAdr);
+        this.web3.eth.accounts.privateKeyToAccount(A.liquidator.pKey);
+        this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.testTokenSUSD);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
         this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, { polling: false });
@@ -85,7 +85,7 @@ class TransactionController {
         let p = this;
         return new Promise(resolve => {
             try {
-                p.contractBzx.methods.getActiveLoans(from, to, false).call((error, res) => {
+                p.contractSovryn.methods.getActiveLoans(from, to, false).call((error, res) => {
                     if (error) {
                         console.error("error receiving user loans");
                         console.error(error);
@@ -134,7 +134,7 @@ class TransactionController {
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
 
-                const liquidated = await this.liquidate(p, liquidator.adr, pos.maxLiquidatable);
+                const liquidated = await this.liquidate(p, A.liquidator.adr, pos.maxLiquidatable);
                 if (liquidated) delete this.liquidations[p];
                 else {
                     console.error("error liquidating loan " + p);
@@ -161,8 +161,8 @@ class TransactionController {
         return new Promise(async (resolve) => {
             console.log("trying to liquidate loan " + loanId);
 
-            p.contractBzx.methods.liquidate(loanId, receiver, amount)
-                .send({ from: liquidator.adr, gas: 2500000 })
+            p.contractSovryn.methods.liquidate(loanId, receiver, amount)
+                .send({ from: A.liquidator.adr, gas: 2500000 })
                 .then(async (tx) => {
                     console.log("loan " + loanId + " liquidated!");
                     console.log(tx);
@@ -183,7 +183,7 @@ class TransactionController {
         let p = this;
         return new Promise(resolve => {
             try {
-                p.contractBzx.methods.getLoan(loanId).call((error, result) => {
+                p.contractSovryn.methods.getLoan(loanId).call((error, result) => {
                     if (error) {
                         console.error("error loading loan " + loanId);
                         console.error(error);
@@ -207,7 +207,7 @@ class TransactionController {
     approveToken(tokenCtr, receiver, amount) {
         return new Promise(resolve => {
             tokenCtr.methods.approve(receiver, amount)
-                .send({ from: liquidator.adr })
+                .send({ from: A.liquidator.adr })
                 .then((tx) => {
                     console.log("Approved Transaction: ");
                     //console.log(tx);
