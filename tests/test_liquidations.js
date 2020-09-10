@@ -11,11 +11,9 @@ import abiPriceFeed from './abi/abiPriceFeed';
 import C from '../controller/contract';
 import Liquidator from '../controller/liquidator';
 
-
 const abiDecoder = require('abi-decoder');
 const assert = require('assert');
 
-import TransactionController from '../controller/scanner';
 import A from '../secrets/accounts';
 
 //const txCtrl = new TransactionController();

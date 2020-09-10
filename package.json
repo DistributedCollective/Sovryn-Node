@@ -21,7 +21,9 @@
     "node-telegram-bot-api": "^0.50.0",
     "pm2-server-monitor": "^1.0.0",
     "socket.io": "^2.3.0",
-    "web3": "^1.2.11"
+    "web3": "^1.2.11",
+    "web3-providers-ws": "^1.2.11",
+    "websocket": "^1.0.32"
   },
   "devDependencies": {
     "webpack": "^4.44.1",

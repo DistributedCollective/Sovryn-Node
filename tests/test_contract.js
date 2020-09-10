@@ -13,7 +13,6 @@ const from = "";
 
 describe('Contract', async () => {
     describe('#basic function', async () => {
-        
         it('should approve the Sovryn contract to spend RBTC for the main account', async () => {
             (tokenCtr, from, receiver, amount)
             const approved = await C.approveToken(C.contractTokenRBTC, from, conf.sovrynProtocolAdr, amount);
@@ -51,34 +50,3 @@ describe('Contract', async () => {
         })
     });
 });
-
-
-
-
-/*
-**************************************************************************
-********************helpers***********************************************
-**************************************************************************
-*/
-
-
-
-async function checkAllowance(contract, adr, token) {
-    return new Promise(async (resolve) => {
-        try {
-            C.contractSovryn.methods.getLoan(loanId).call((error, result) => {
-                if (error) {
-                    console.error("error loading loan "+loanId);
-                    console.error(error);
-                    return resolve(false);
-                }
-                resolve(result);
-            });
-        }
-        catch (e) {
-            console.error("error on retrieving loan status for loan-id "+loanId);
-            console.error(e);
-            resolve(false)
-        }
-    });
-}

@@ -12,6 +12,7 @@ class Contract {
      * Creates a Sovryn contract intance to query current open positions
      */
     init(conf) {
+        this.conf=conf;
         this.web3 = new Web3(conf.nodeProvider);
         //this.web3.eth.accounts.wallet.add(A.liquidator[0].pKey);
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
@@ -62,11 +63,88 @@ class Contract {
     }
 
     /**
+     * Returns wheter a wallet is ready to be used as liquidator
+     * todo: add correct threshold of balances
+     */
+    async completeWalletCheck(adr) {
+        let balRbtc = await this.getWalletBalance(adr);
+        let balRbtcToken = await this.getWalletTokenBalance(adr, this.conf.testTokenRBTC);
+        let balSusdToken = await this.getWalletTokenBalance(adr, this.conf.testTokenSUSD);
+        let allowanceSusd = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenSUSD);
+        let alllowanceRbtc = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenRBTC);
+        return balRbtc>0 && balRbtcToken>0 && balSusdToken>0 &&allowanceSusd>0 &&alllowanceRbtc>0;
+    }
+
+    /**
+     * Return the wallet RBtc balance
+     */
+    async getWalletBalance(adr) {
+        let bal = await this.web3.eth.getBalance(adr);
+        bal = this.web3.utils.fromWei(bal, 'Ether');
+        return bal;
+    }
+
+    /**
+     * Returns the wallet token balance
+     */
+    getWalletTokenBalance(adr, token) {
+        const tokenCtr = this.getTokenInstance(token);
+
+        return new Promise(async (resolve) => {
+            try {
+                tokenCtr.methods.balanceOf(adr).call((error, result) => {
+                    if (error) {
+                        console.error("error loading wallet token balance "+adr);
+                        console.error(error);
+                        return resolve(false);
+                    }
+
+                    let bal = this.web3.utils.fromWei(result, 'Ether');
+                    resolve(bal);
+                });
+            }
+            catch (e) {
+                console.error("error on retrieving wallet status for  "+adr);
+                console.error(e);
+                resolve(false)
+            }
+        });
+    }
+
+    /**
+     * Returns the allowance of token for address
+     */
+    getWalletTokenAllowance(adr1, adr2, token) {
+        const tokenCtr = this.getTokenInstance(token);
+
+        return new Promise(async (resolve) => {
+            try {
+                tokenCtr.methods.allowance(adr1, adr2).call((error, result) => {
+                    if (error) {
+                        console.error("error loading allowance "+adr);
+                        console.error(error);
+                        return resolve(false);
+                    }
+
+                    let bal = this.web3.utils.fromWei(result, 'Ether');
+                    resolve(bal);
+                });
+            }
+            catch (e) {
+                console.error("error on retrieving allowance for  "+adr);
+                console.error(e);
+                resolve(false)
+            }
+        });
+    }
+
+
+    /**
      * helper function
      */
     getTokenInstance(adr) {
-        if (adr == conf.testTokenSUSD) return this.contractTokenSUSD;
-        else if (adr == conf.testTokenRBTC) return this.contractTokenRBTC;
+        if (adr == this.conf.testTokenSUSD) return this.contractTokenSUSD;
+        else if (adr == this.conf.testTokenRBTC) return this.contractTokenRBTC;
     }
 }
 

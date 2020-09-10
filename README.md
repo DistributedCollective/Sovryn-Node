@@ -32,17 +32,13 @@ Webpack
 ### Install
 
 ```sh
-npm install
-npm run build-client
-create empty directory "logs"
-create directory "secrets" and within a file account.js with the credentials of the liquidator and rollover wallets 
+1. npm install
+2. npm run build-client
+3. Create empty directory "logs"
+4. Create directory "secrets" and within a file account.js with the credentials of the liquidator and rollover wallets 
 
 export default {
     liquidator: [{
-        adr: "",
-        pKey: ""
-    },
-    {
         adr: "",
         pKey: ""
     },
