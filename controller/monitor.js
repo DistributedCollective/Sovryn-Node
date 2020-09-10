@@ -6,13 +6,17 @@
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
 import A from '../secrets/accounts';
+import C from './contract';
 
 class MonitorController {
 
-    constructor(txCtrl) {
-        this.txCtrl = txCtrl;
+    start(conf, positions, liquidations, posScanner) {
+        this.conf=conf;
+        this.positions=positions;
+        this.liquidations=liquidations;
         this.telegramBotNode = new TelegramBot(conf.errorBotNodeTelegramToken, {polling: false});
         this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, {polling: false});
+        this.posScanner = posScanner;
 
         let p=this;
         setInterval(()=>{
@@ -38,10 +42,11 @@ class MonitorController {
     }
 
     getCurrentBlockPublicNode() {
+        let p=this;
         return new Promise(resolve => {
             axios({
                 method: 'post',
-                url: conf.publicNodeProvider,
+                url: p.conf.publicNodeProvider,
                 data: {
                     method: 'eth_blockNumber',
                     jsonrpc: "2.0",
@@ -66,7 +71,7 @@ class MonitorController {
 
     async getCurrentBlockPrivateNode() {
         try {
-            let bNr = await this.txCtrl.web3.eth.getBlockNumber();
+            let bNr = await C.web3.eth.getBlockNumber();
             bNr = parseInt(bNr);
             return bNr;
         }
@@ -79,8 +84,8 @@ class MonitorController {
 
     async getAccountInfo(adr) {
         try {
-            let aInf = await this.txCtrl.web3.eth.getBalance(adr.toLowerCase());
-            aInf = this.txCtrl.web3.utils.fromWei(aInf, 'Ether');
+            let aInf = await C.web3.eth.getBalance(adr.toLowerCase());
+            aInf = C.web3.utils.fromWei(aInf, 'Ether');
             return parseFloat(aInf);
         }
         catch(e) {
@@ -91,28 +96,28 @@ class MonitorController {
     }
 
     async getContractInfo() {
-        let l = await this.txCtrl.loadActivePositions(0, 10);
+        let l = await this.posScanner.loadActivePositions(0, 10);
         if (l && l.length > 0) return true;
         return false;
     }
 
     async getOpenPositions(cb) {
-        let l = await Object.keys(this.txCtrl.positions).length;
+        let l = await Object.keys(this.positions).length;
         if (typeof cb === "function") cb(l);
     }
 
     //todo: add from-to
     async getOpenPositionsDetails(cb) {
-        if (typeof cb === "function") cb(this.txCtrl.positions);
+        if (typeof cb === "function") cb(this.positions);
     }
 
     async getOpenLiquidations(cb) {
-        let l = await Object.keys(this.txCtrl.liquidations).length;
+        let l = await Object.keys(this.liquidations).length;
         if (typeof cb === "function") cb(l);
     }
     //todo: add from-to
     async getOpenLiquidationsDetails(cb) {
-        if (typeof cb === "function") cb(this.txCtrl.liquidations);
+        if (typeof cb === "function") cb(this.liquidations);
     }
 
     /** 
@@ -121,18 +126,17 @@ class MonitorController {
     checkSystem(){
         let p=this;
 
-        this.getSignals(A.owner.adr, (res)=> {    
+        this.getSignals(A.liquidator[0].adr, (res)=> {    
             if( Math.abs(res.blockInfoLn - res.blockInfoPn)>5) 
-            return  p.telegramBotNode.sendMessage(conf.sovrynInternalTelegramId, conf.network+"-Node out of sync");
+            return  p.telegramBotNode.sendMessage(p.conf.sovrynInternalTelegramId, p.conf.network+"-Node out of sync");
 
             else if(res.accountInfo<=0) 
-            return  p.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left on the wallet for liquidator on "+conf.network);
+            return  p.telegramBotWatcher.sendMessage(p.conf.sovrynInternalTelegramId, "No money left on the wallet for liquidator on "+conf.network);
 
             else if(!res.contractInfo)
-            return  p.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No open positions on the contract on "+conf.network);
-
+            return  p.telegramBotWatcher.sendMessage(p.conf.sovrynInternalTelegramId, "No open positions on the contract on "+conf.network);
         });
     }
 }
 
-export default MonitorController;
+export default new MonitorController();

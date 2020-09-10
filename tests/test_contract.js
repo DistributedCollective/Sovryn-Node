@@ -1,43 +1,47 @@
-import c from '../config/config_testnet';
-global.conf = c;
-
 /**
  * Contract tester
+ * These approvals should be executed for every liquidator wallet once
 */
 const assert = require('assert');
-import TransactionController from '../controller/transaction';
-const txCtrl = new TransactionController();
+import conf from '../config/config_testnet';
+import C from './contract';
+
+C.init(conf);
+const amount = txCtrl.web3.utils.toWei("1000000000", 'ether');
+//todo: define wallet, gas and gasprice
+const from = "";
 
 describe('Contract', async () => {
     describe('#basic function', async () => {
         
         it('should approve the Sovryn contract to spend RBTC for the main account', async () => {
-            const approved = await approveToken(txCtrl.contractTokenRBTC, conf.sovrynProtocolAdr);
+            (tokenCtr, from, receiver, amount)
+            const approved = await C.approveToken(C.contractTokenRBTC, from, conf.sovrynProtocolAdr, amount);
             assert(approved.length == 66);
         });    
 
         it('should approve the Sovryn contract to spend SUSD for the main account', async () => {
-            const approved = await approveToken(txCtrl.contractTokenSUSD, conf.sovrynProtocolAdr);
+            const approved = await C.approveToken(C.contractTokenSUSD, from, conf.sovrynProtocolAdr, amount);
             assert(approved.length == 66);
         }); 
 
         it('should approve the rBTC IToken contract to spend sUSD for the main account', async () => {
-            const approved = await approveToken(txCtrl.contractTokenSUSD, conf.loanTokenRBTC);
+            const approved = await C.approveToken(C.contractTokenSUSD, from, conf.loanTokenRBTC, amount);
             assert(approved.length == 66);
         }); 
 
         it('should approve the rBTC IToken contract to spend rBTC for the main account', async () => {
-            const approved = await approveToken(txCtrl.contractTokenRBTC, conf.loanTokenRBTC);
+            const approved = await C.approveToken(C.contractTokenRBTC, from, conf.loanTokenRBTC, amount);
             assert(approved.length == 66);
         }); 
 
         it('should approve the sUSD IToken contract to spend rBTC for the main account', async () => {
-            const approved = await approveToken(txCtrl.contractTokenRBTC, conf.loanTokenSUSD);
+            const approved = await C.approveToken(C.contractTokenRBTC, from, conf.loanTokenSUSD, amount);
             assert(approved.length == 66);
         }); 
 
         it('should approve the sUSD IToken contract to spend sUSD for the main account', async () => {
-            const approved = await approveToken(txCtrl.contractTokenSUSD, conf.loanTokenSUSD);
+            const approved = await C.approveToken(C.contractTokenSUSD, from, conf.loanTokenSUSD, amount);
             assert(approved.length == 66);
         }); 
 
@@ -57,22 +61,12 @@ describe('Contract', async () => {
 **************************************************************************
 */
 
-/**
- * Opens a long position on the loan token contract 
- * @amount, @leverage = strings
- */
-async function approveToken(contract, receiver) {
-    return new Promise(async (resolve) => {
-        const amount = txCtrl.web3.utils.toWei("1000000000", 'ether');
-        let a = await txCtrl.approveToken(contract, receiver, amount);
-        resolve(a);
-    });
-}
+
 
 async function checkAllowance(contract, adr, token) {
     return new Promise(async (resolve) => {
         try {
-            p.contractSovryn.methods.getLoan(loanId).call((error, result) => {
+            C.contractSovryn.methods.getLoan(loanId).call((error, result) => {
                 if (error) {
                     console.error("error loading loan "+loanId);
                     console.error(error);

@@ -1,17 +1,30 @@
 /**
  * Main controller
- * Starts transaction processing and provides the api to monitor open positions
+ * Starts observing the contract and liquidation and rollover processing
+ * Also provides the api to monitor open positions/liquidations
  */
-import TransactionController from './transaction';
-import MonitorController from './monitor';
+import PosScanner from './scanner';
+import Liquidator from './liquidator';
+import Rollover from './rollover';
+import C from './contract';
+import Monitor from './monitor';
 
 class MainController {
+    constructor() {
+        this.positions={}
+        this.liquidations={};
+    }
 
-    async start(io) {
+    async start(conf, io) {
+        C.init(conf);
 
-        const txCtrl = new TransactionController();
-        txCtrl.start();
-        this.mCtrl = new MonitorController(txCtrl);
+        const b = await C.web3.eth.getBlockNumber();
+        console.log("Connected to rsk " + conf.network + "-network. Current block " + b);
+ 
+        PosScanner.start(conf, this.positions, this.liquidations);
+        Liquidator.start(conf, this.liquidations);
+        Rollover.start(conf, this.positions);
+        Monitor.start(conf, this.positions, this.liquidations, PosScanner);
 
         const p = this;
         io.on('connection', (socket) => {

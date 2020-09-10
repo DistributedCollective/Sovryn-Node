@@ -35,10 +35,25 @@ Webpack
 npm install
 npm run build-client
 create empty directory "logs"
-create directory "secrets" and within a file account.js with the credentials of the liquidator (owner of the sovryn smart contract)
+create directory "secrets" and within a file account.js with the credentials of the liquidator and rollover wallets 
+
 export default {
-    adr: "0xcafecafe",
-    pKey: "[your-private-key]"
+    liquidator: [{
+        adr: "",
+        pKey: ""
+    },
+    {
+        adr: "",
+        pKey: ""
+    },
+    ...
+    ],
+    rollover: [{
+        adr: "",
+        pKey: ""
+    },
+    ...
+    ]
 }
 ```
 

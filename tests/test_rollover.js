@@ -42,14 +42,14 @@ describe('Contract', async () => {
             assert(true);
         }); */  
         
-        
+        /*
         it('should borrow 10 usd from the contract', async () => {
             const withdrawAmount = txCtrl.web3.utils.toWei("10", 'ether');
             const b = await borrow(requiredC, withdrawAmount, conf.testTokenRBTC, A.owner.adr, A.liquidator.adr);
             loanId = await parseLog(b);
             console.log("Borrowing successful. Loan-id: "+loanId);
             assert(b.length==66);
-        });    
+        }); */
 
         
         it('should find open positions with expired date on the contract', async () => {
@@ -63,7 +63,7 @@ describe('Contract', async () => {
                 if (pos) {
                     from = to;
                     to = from + conf.nrOfProcessingPositions;
-                    //console.log(pos.length + " active positions found");
+                    console.log(pos.length + " active positions found");
                     totalPos+=pos.length;
 
                     for (let p in pos) {
@@ -78,9 +78,13 @@ describe('Contract', async () => {
             assert(true);
         });   
 
-        if(rollover.length>0)
         //the position need to be expired (min time = 24h)
         it('should rollover all open but expired loans', async () => {
+            if(rollover.length==0) {
+                console.log("Nothing todo here");
+                return assert(true);
+            }
+            console.log("start rollover");
             const loanDataBytes = "0x"; //need to be empty
             for(let i in rollover) {
                 const r = await rolloverPos(rollover[i], loanDataBytes);
@@ -202,7 +206,7 @@ function getAvgInterestRate(amn) {
 
 
 /**
- * parse the loan event log and returns the loan-id
+ * Parse the loan event log and returns the loan-id
  */
 function parseLog(txHash) {
     console.log("parsing log");

@@ -21,7 +21,7 @@ describe('Api', async () => {
             assert(res >0);
         });
 
-        it('should return return position details', async () => {
+        it('should return position details', async () => {
             let res = await emitReq("getOpenPositionsDetails");
             let arr = Object.keys(res);
             console.log("Last open positions");

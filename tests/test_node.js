@@ -4,8 +4,8 @@
 
 import c from '../config/config_testnet';
 import abiComplete from '../config/abiComplete';
-import abiLoanToken from '../config/abiLoanToken';
-import abiLoanOpeningEvents from '../config/abiLoanOpeningEvents';
+import abiLoanToken from './abi/abiLoanToken';
+import abiLoanOpeningEvents from './abi/abiLoanOpeningEvents';
 import Web3 from 'web3';
 const abiDecoder = require('abi-decoder');
 var assert = require('assert');
