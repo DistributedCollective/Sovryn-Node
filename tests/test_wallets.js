@@ -6,6 +6,7 @@ const assert = require('assert');
 import conf from '../config/config_testnet';
 import C from '../controller/contract';
 import A from '../secrets/accounts';
+import Wallet from '../controller/wallet';
 
 C.init(conf);
 
@@ -58,5 +59,8 @@ describe('Wallet', async () => {
                 assert(checked);
             }
         });
+
+        //it('should return a tx hash', async()=>
+
     });
 });

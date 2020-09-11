@@ -1,6 +1,5 @@
 /**
- * 
- * 
+ * Provides a web3- and contract instance for the Liquidation handler and rollover controllers 
  */
 
 import Web3 from 'web3';
@@ -9,15 +8,22 @@ import abiTestToken from '../config/abiTestToken';
 
 class Contract {
     /**
-     * Creates a Sovryn contract intance to query current open positions
+     * Creates all the contract intances to query open positions, balances
      */
     init(conf) {
         this.conf=conf;
         this.web3 = new Web3(conf.nodeProvider);
-        //this.web3.eth.accounts.wallet.add(A.liquidator[0].pKey);
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.testTokenSUSD);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
+   }
+
+   /**
+   * Add wallets to web3, so they are ready for sending transactions
+   */
+   addWallets(wallets) {
+       for(w of wallets)
+       this.web3.eth.accounts.wallet.add(w.pKey);
    }
 
     /**
@@ -67,12 +73,17 @@ class Contract {
      * todo: add correct threshold of balances
      */
     async completeWalletCheck(adr) {
-        let balRbtc = await this.getWalletBalance(adr);
-        let balRbtcToken = await this.getWalletTokenBalance(adr, this.conf.testTokenRBTC);
-        let balSusdToken = await this.getWalletTokenBalance(adr, this.conf.testTokenSUSD);
-        let allowanceSusd = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenSUSD);
-        let alllowanceRbtc = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenRBTC);
-        return balRbtc>0 && balRbtcToken>0 && balSusdToken>0 &&allowanceSusd>0 &&alllowanceRbtc>0;
+        const balRbtc = await this.getWalletBalance(adr);
+        if(balRbtc<=0) return false;
+        const balRbtcToken = await this.getWalletTokenBalance(adr, this.conf.testTokenRBTC);
+        if(balRbtcToken<=0) return false;
+        const balSusdToken = await this.getWalletTokenBalance(adr, this.conf.testTokenSUSD);
+        if(balSusdToken<=0) return false;
+        const allowanceSusd = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenSUSD);
+        if(allowanceSusd<=0) return false;
+        const alllowanceRbtc = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenRBTC);
+        if(alllowanceRbtc<=0) return false;
+        return true;
     }
 
     /**

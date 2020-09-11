@@ -8,8 +8,8 @@
 
 const TelegramBot = require('node-telegram-bot-api');
 import C from './contract';
-import A from '../secrets/accounts';
 import U from '../util/helper';
+import Wallet from './wallet';
 
 class Liquidator {
     start(conf, liquidations) {
@@ -29,20 +29,8 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-
-                const liquidated = await this.liquidate(p, A.liquidator[0].adr, pos.maxLiquidatable);
-                if (liquidated) delete this.liquidations[p];
-                else {
-                    console.error("error liquidating loan " + p);
-                    console.error(pos);
-                    const updatedLoan = await C.getPositionStatus(p)
-                    if (updatedLoan.maxLiquidatable > 0) {
-                        console.log("loan " + p + " should still be liquidated. Please check manually");
-                        this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + p + " failed.");
-                    }
-                    delete this.liquidations[p];
-                }
-
+                const w = Wallet.getLiquidationWallet();
+                this.liquidate(p, w.adr, pos.maxLiquidatable);                
             }
             console.log("completed liquidation round at " + new Date(Date.now()));
             await U.wasteTime(this.conf.waitBetweenRounds);
@@ -52,23 +40,36 @@ class Liquidator {
     /*
     * Tries to liquidate a position
     */
-    liquidate(loanId, receiver, amount) {
-        return new Promise(async (resolve) => {
-            console.log("trying to liquidate loan " + loanId);
+    liquidate(loanId, wallet, receiver, amount) {
+        console.log("trying to liquidate loan " + loanId);
+        Wallet.addToQueue("liq", wallet, p);
 
-            C.contractSovryn.methods.liquidate(loanId, receiver, amount)
-                .send({ from: A.liquidator[0].adr, gas: 2500000 })
-                .then(async (tx) => {
-                    console.log("loan " + loanId + " liquidated!");
-                    console.log(tx);
-                    resolve(true);
-                })
-                .catch((err) => {
-                    console.error("Error on liquidating loan " + loanId);
-                    console.error(err);
-                    resolve(false);
-                });
-        });
+        C.contractSovryn.methods.liquidate(loanId, receiver, amount)
+            .send({ from: wallet, gas: 2500000 })
+            .then(async (tx) => {
+                console.log("loan " + loanId + " liquidated!");
+                console.log(tx);
+                this.handleSuccess(wallet, loanId);
+            })
+            .catch((err) => {
+                console.error("Error on liquidating loan " + loanId);
+                console.error(err);
+                
+            });
+    }
+
+    handleSuccess(wallet, loanId){
+        Wallet.removeFromQueue("liq", wallet, loanId);
+        delete this.liquidations[loanId];
+    }
+
+    handleError(loanId){
+        const updatedLoan = await C.getPositionStatus(loanId)
+        if (updatedLoan.maxLiquidatable > 0) {
+            console.log("loan " + p + " should still be liquidated. Please check manually");
+            this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + p + " failed.");
+        }
+        delete this.liquidations[p];
     }
 }
 
