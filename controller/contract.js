@@ -22,8 +22,7 @@ class Contract {
    * Add wallets to web3, so they are ready for sending transactions
    */
    addWallets(wallets) {
-       for(w of wallets)
-       this.web3.eth.accounts.wallet.add(w.pKey);
+       for(let w of wallets) this.web3.eth.accounts.wallet.add(w.pKey);
    }
 
     /**

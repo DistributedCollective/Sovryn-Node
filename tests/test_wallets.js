@@ -7,11 +7,14 @@ import conf from '../config/config_testnet';
 import C from '../controller/contract';
 import A from '../secrets/accounts';
 import Wallet from '../controller/wallet';
+import U from '../util/helper';
 
 C.init(conf);
 
+
 describe('Wallet', async () => {
-    describe('#basic function', async () => {
+    /*
+    describe('#Read wallet', async () => {
         it('should return all liquidator rbtc wallet balances', async () => {
             for(var w of A.liquidator) {
                 let bal = await C.getWalletBalance(w.adr);
@@ -59,8 +62,39 @@ describe('Wallet', async () => {
                 assert(checked);
             }
         });
+    });*/
 
-        //it('should return a tx hash', async()=>
-
+    describe('#Send tx', async () => {
+        it('should send 4 tx at once', async () => {
+            const w = Wallet.getLiquidationWallet();
+            C.addWallets([w]);
+            const to = "0xe2b59CD37D173D550D75e9891376bf21b3f996F1";
+            
+            for (let i = 0; i < 4; i++) {
+                const amount = 0.001*(i+1);
+                let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
+                sendTransaction(w.adr, w.adr, amount, nonce);
+                await U.wasteTime(1);
+            }
+            assert(true);
+        });
     });
 });
+
+
+
+/**
+ * Helper
+ */
+
+async function sendTransaction(from, to, amount, nonce) {
+    console.log("Send tx with nonce: " + nonce+", amount: "+amount);
+    let tx = await C.web3.eth.sendTransaction({
+        from: from,
+        to: to,
+        value: C.web3.utils.toWei(amount.toString(), "Ether"),
+        gas: 100000,
+        nonce: nonce
+    });
+    console.log(tx);
+}

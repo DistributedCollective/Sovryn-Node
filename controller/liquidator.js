@@ -30,7 +30,8 @@ class Liquidator {
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
                 const w = Wallet.getLiquidationWallet();
-                this.liquidate(p, w.adr, pos.maxLiquidatable);                
+                let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
+                this.liquidate(p, w.adr, pos.maxLiquidatable, nonce);                
             }
             console.log("completed liquidation round at " + new Date(Date.now()));
             await U.wasteTime(this.conf.waitBetweenRounds);
@@ -40,12 +41,12 @@ class Liquidator {
     /*
     * Tries to liquidate a position
     */
-    liquidate(loanId, wallet, receiver, amount) {
+    liquidate(loanId, wallet, receiver, amount, nonce) {
         console.log("trying to liquidate loan " + loanId);
         Wallet.addToQueue("liq", wallet, p);
 
         C.contractSovryn.methods.liquidate(loanId, receiver, amount)
-            .send({ from: wallet, gas: 2500000 })
+            .send({ from: wallet, gas: 2500000, nonce:nonce })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx);
