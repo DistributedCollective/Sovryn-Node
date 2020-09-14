@@ -29,11 +29,11 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-                const w = Wallet.getLiquidationWallet();
+                const w = Wallet.getWallet("liquidator");
                 let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
                 this.liquidate(p, w.adr, pos.maxLiquidatable, nonce);                
             }
-            console.log("completed liquidation round at " + new Date(Date.now()));
+            console.log("Completed liquidation round at " + new Date(Date.now()));
             await U.wasteTime(this.conf.waitBetweenRounds);
         }
     }

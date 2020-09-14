@@ -66,7 +66,7 @@ describe('Wallet', async () => {
 
     describe('#Send tx', async () => {
         it('should send 4 tx at once', async () => {
-            const w = Wallet.getLiquidationWallet();
+            const w = Wallet.getWallet("liquidator");
             C.addWallets([w]);
             const to = "0xe2b59CD37D173D550D75e9891376bf21b3f996F1";
             

@@ -16,22 +16,23 @@ class Wallet{
             rolloverQueue[rWallet.adr] = []
 
         this.queue = {
-            'liq': liquidationQueue,
-            'rol': rolloverQueue
+            'liquidator': liquidationQueue,
+            'rollover': rolloverQueue
         };
     }
 
     /**
      * 
-     * returns the next available liquidation wallet. False if none could be found
+     * returns the next available liquidation/rollover wallet. False if none could be found
      */
-    getLiquidationWallet(){
-        for(let wallet of A.liquidator){
-            if(this.queue.liq[wallet.adr].length < 4)//todo check sufficient funds
+    getWallet(type){
+        for(let wallet of A[type]){
+            if(this.queue[type][wallet.adr].length < 4)//todo check sufficient funds
                 return wallet;
         }
         return false;
     }
+
 
     /**
      * adds a transaction to the queue
@@ -51,18 +52,6 @@ class Wallet{
      */
     removeFromQueue(which, address, loanId){
         this.queue[which][address] = removeLoan(this.queue[which][address], loanId);
-    }
-
-    /**
-     * 
-     * returns the next available rollover wallet. False if none could be found
-     */
-    getRolloverWallet(){
-        for(let wallet of A.rollover){
-            if(this.queue.rol[wallet.adr].length < 4)//todo check sufficient funds
-                return wallet;
-        }
-        return false;
     }
 
     removeLoan(queue, loanId) {

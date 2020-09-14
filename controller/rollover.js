@@ -5,6 +5,7 @@
 import C from './contract';
 import A from '../secrets/accounts';
 import U from '../util/helper';
+import Wallet from './wallet';
 
 class Rollover {
     start(conf, positions) {
@@ -23,10 +24,12 @@ class Rollover {
             for (let p in this.positions) {
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
                     console.log("Found expired open position. Going to rollover " + this.positions[p].loanId);
-                    await this.rollover(this.positions[p].loanId);
+                    const w = Wallet.getWallet("rollover");
+                    let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
+                    await this.rollover(this.positions[p].loanId, w.adr, nonce);
                 }
             }
-            console.log("completed rollover at " + new Date(Date.now()));
+            console.log("Completed rollover at " + new Date(Date.now()));
             await U.wasteTime(this.conf.waitBetweenRounds);
         }
     }
@@ -34,12 +37,12 @@ class Rollover {
     /**
      * Tries to rollover a position
      */
-    rollover(loanId) {
+    rollover(loanId, wallet, nonce) {
         console.log("Rollover " + loanId);
         return new Promise(async (resolve) => {
             const loanDataBytes = "0x"; //need to be empty
             C.contractSovryn.methods.rollover(loanId, loanDataBytes)
-                .send({ from: A.owner.adr, gas: 2500000 })
+                .send({ from: A.owner.adr, gas: 2500000, nonce })
                 .then((tx) => {
                     //console.log("Rollover Transaction: ");
                     //console.log(tx);
