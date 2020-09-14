@@ -4,6 +4,7 @@
  */
 
 import A from '../secrets/accounts';
+import C from './contract';
 
 class Wallet{
     constructor(){
@@ -22,13 +23,18 @@ class Wallet{
     }
 
     /**
-     * 
-     * returns the next available liquidation/rollover wallet. False if none could be found
+     * Returns the next available liquidation/rollover wallet with sufficient funds. 
+     * False if none could be found
      */
-    getWallet(type){
+    async getWallet(type, reqBalance, token){
         for(let wallet of A[type]){
-            if(this.queue[type][wallet.adr].length < 4)//todo check sufficient funds
-                return wallet;
+            if(this.queue[type][wallet.adr].length < 4){
+                if(type=="rollover") return wallet;
+
+                let bal = await C.getWalletTokenBalance(wallet.adr, token);
+                bal=C.web3.utils.fromWei(bal, "Ether");
+                if(bal>=reqBalance) return wallet;
+            }
         }
         return false;
     }

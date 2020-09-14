@@ -13,7 +13,6 @@ C.init(conf);
 
 
 describe('Wallet', async () => {
-    /*
     describe('#Read wallet', async () => {
         it('should return all liquidator rbtc wallet balances', async () => {
             for(var w of A.liquidator) {
@@ -62,7 +61,7 @@ describe('Wallet', async () => {
                 assert(checked);
             }
         });
-    });*/
+    });
 
     describe('#Send tx', async () => {
         it('should send 4 tx at once', async () => {
@@ -73,10 +72,16 @@ describe('Wallet', async () => {
             for (let i = 0; i < 4; i++) {
                 const amount = 0.001*(i+1);
                 let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
-                sendTransaction(w.adr, w.adr, amount, nonce);
+                try {
+                    sendTransaction(w.adr, w.adr, amount, nonce);
+                    assert(true);
+                }
+                catch(e){
+                    console.log("error sending tx");
+                    assert(false);
+                }
                 await U.wasteTime(1);
             }
-            assert(true);
         });
     });
 });

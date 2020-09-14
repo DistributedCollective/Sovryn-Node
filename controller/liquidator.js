@@ -2,7 +2,7 @@
  * Liquidation handler
  * If liquidation successful removes position from liquidation list
  * If it fails, check if the liquidation criteria are still met. 
- * If no, delete it from the liquidation list. If yes, send an error notification to a telegram groupfor manual processing. 
+ * If no, delete it from the liquidation list. If yes, send an error notification to a telegram group for manual processing. 
  * Todo: If the tx was not confirmed after some time (10 minutes), resend the transaction with a higher (double) gas fee.
  */
 
@@ -21,6 +21,8 @@ class Liquidator {
 
     /**
      * Wrapper for liquidations
+     * 1. Get wallet with enough funds in required tokens and not busy atm, then 
+     * 2. Try to liquidate position
      */
     async checkPositionsForLiquidations() {
         while (true) {
@@ -29,9 +31,11 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-                const w = Wallet.getWallet("liquidator");
+                const w = await Wallet.getWallet("liquidator", pos.maxLiquidatable, pos.loanToken);
+                if(!w) return handleNoWalletError(p);
                 let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
-                this.liquidate(p, w.adr, pos.maxLiquidatable, nonce);                
+                this.liquidate(p, w.adr, pos.maxLiquidatable, nonce);
+                await U.wasteTime(1); //1 second break to avoid rejection from node                
             }
             console.log("Completed liquidation round at " + new Date(Date.now()));
             await U.wasteTime(this.conf.waitBetweenRounds);
@@ -50,27 +54,32 @@ class Liquidator {
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx);
-                this.handleSuccess(wallet, loanId);
+                this.handleLiqSuccess(wallet, loanId);
             })
             .catch((err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                
+                this.handleLiqError(loanId);
             });
     }
 
-    handleSuccess(wallet, loanId){
+    handleLiqSuccess(wallet, loanId){
         Wallet.removeFromQueue("liq", wallet, loanId);
         delete this.liquidations[loanId];
     }
 
-    handleError(loanId){
+    async handleLiqError(loanId){
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
-            console.log("loan " + p + " should still be liquidated. Please check manually");
+            console.log("loan " + loanId + " should still be liquidated. Please check manually");
             this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + p + " failed.");
         }
         delete this.liquidations[p];
+    }
+
+    handleNoWalletError(loanId) {
+        this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + p + " failed because no wallet with enough funds was found.");
+        delete this.liquidations[loanId];
     }
 }
 

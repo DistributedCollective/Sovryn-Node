@@ -6,7 +6,7 @@ export default  {
     publicNodeProvider: 'https://public-node.testnet.rsk.co', 
     network: "test",
     nrOfProcessingPositions: 10, //need to find appropriate nr
-    waitBetweenRounds: 60,
+    waitBetweenRounds: 60, //in seconds
     testTokenSUSD: "0xE631653c4Dc6Fb98192b950BA0b598f90FA18B3E",
     testTokenRBTC: "0xE53d858A78D884659BF6955Ea43CBA67c0Ae293F",
     loanTokenSUSD: "0xD1A979EDE2c17FCD31800Bed859e5EC3DA178Cb9",

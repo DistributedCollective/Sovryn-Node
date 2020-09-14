@@ -10,11 +10,11 @@ import abiLoanToken from './abi/abiLoanToken';
 import abiPriceFeed from './abi/abiPriceFeed';
 import C from '../controller/contract';
 import Liquidator from '../controller/liquidator';
+import A from '../secrets/accounts';
 
 const abiDecoder = require('abi-decoder');
 const assert = require('assert');
 
-import A from '../secrets/accounts';
 
 //const txCtrl = new TransactionController();
 var contractPriceFeed, contractISUSD;

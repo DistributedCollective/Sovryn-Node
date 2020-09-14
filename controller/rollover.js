@@ -3,7 +3,6 @@
  * Rollover = extend deadline and pay interest
  */
 import C from './contract';
-import A from '../secrets/accounts';
 import U from '../util/helper';
 import Wallet from './wallet';
 
@@ -24,7 +23,7 @@ class Rollover {
             for (let p in this.positions) {
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
                     console.log("Found expired open position. Going to rollover " + this.positions[p].loanId);
-                    const w = Wallet.getWallet("rollover");
+                    const w = await Wallet.getWallet("rollover");
                     let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
                     await this.rollover(this.positions[p].loanId, w.adr, nonce);
                 }
@@ -38,11 +37,11 @@ class Rollover {
      * Tries to rollover a position
      */
     rollover(loanId, wallet, nonce) {
-        console.log("Rollover " + loanId);
         return new Promise(async (resolve) => {
             const loanDataBytes = "0x"; //need to be empty
+            
             C.contractSovryn.methods.rollover(loanId, loanDataBytes)
-                .send({ from: A.owner.adr, gas: 2500000, nonce })
+                .send({ from: wallet, gas: 2500000, nonce })
                 .then((tx) => {
                     //console.log("Rollover Transaction: ");
                     //console.log(tx);
