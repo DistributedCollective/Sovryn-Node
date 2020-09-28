@@ -15,20 +15,17 @@ abiDecoder.addABI(abiComplete);
 
 describe('Process blocks', () => {
   describe('#events', () => {
-
-    //also a pre-condition
-    it('should instanciate web3 and connect to the node', async () => {
-      web3 = new Web3('http://18.138.223.132:4444');
+    before('should instanciate web3 and connect to the node', async () => {
+      web3 = new Web3(c.nodeProvider);
       contractISUSD = new web3.eth.Contract(abiLoanToken.concat(abiLoanOpeningEvents), c.loanTokenSUSD);
       const b = await web3.eth.getBlockNumber();
       console.log("current block " + b);
       assert(b > 0);
     });
 
-    //todo: check error
     it('should return some events', () => {
       contractISUSD.getPastEvents('Transfer', {
-        fromBlock: 1130764,
+        fromBlock: 1205639,
         toBlock: 'latest'
       }, (error, events) => {
         if (error) {

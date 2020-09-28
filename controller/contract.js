@@ -14,7 +14,7 @@ class Contract {
         this.conf=conf;
         this.web3 = new Web3(conf.nodeProvider);
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
-        this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.testTokenSUSD);
+        this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.docToken); 
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
    }
 
@@ -52,12 +52,11 @@ class Contract {
     /**
     * Tokenholder approves the loan token contract to spend tokens on his behalf
     * This is needed in order to be able to liquidate a position and should be executed once in the beginning
-    * todo: add wallet to web3 first, gas and gasPrice is missing
     */
     approveToken(tokenCtr, from, receiver, amount) {
         return new Promise(resolve => {
             tokenCtr.methods.approve(receiver, amount)
-                .send({ from: from })
+                .send({ from: from, gas:200000 })
                 .then((tx) => {
                     console.log("Approved Transaction: ");
                     //console.log(tx);
@@ -74,12 +73,12 @@ class Contract {
     async completeWalletCheck(adr) {
         const balRbtc = await this.getWalletBalance(adr);
         if(balRbtc<=0) return false;
-        const balRbtcToken = await this.getWalletTokenBalance(adr, this.conf.testTokenRBTC);
-        if(balRbtcToken<=0) return false;
-        const balSusdToken = await this.getWalletTokenBalance(adr, this.conf.testTokenSUSD);
-        if(balSusdToken<=0) return false;
-        const allowanceSusd = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenSUSD);
-        if(allowanceSusd<=0) return false;
+        //const balRbtcToken = await this.getWalletTokenBalance(adr, this.conf.testTokenRBTC);
+        //if(balRbtcToken<=0) return false;
+        const balDocToken = await this.getWalletTokenBalance(adr, this.conf.docToken);
+        if(balDocToken<=0) return false;
+        const allowanceDoc = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.docToken);
+        if(allowanceDoc<=0) return false;
         const alllowanceRbtc = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenRBTC);
         if(alllowanceRbtc<=0) return false;
         return true;
@@ -109,8 +108,8 @@ class Contract {
                         return resolve(false);
                     }
 
-                    let bal = this.web3.utils.fromWei(result, 'Ether');
-                    resolve(bal);
+                    //let bal = this.web3.utils.fromWei(result, 'Ether');
+                    resolve(result);
                 });
             }
             catch (e) {
@@ -153,7 +152,7 @@ class Contract {
      * helper function
      */
     getTokenInstance(adr) {
-        if (adr == this.conf.testTokenSUSD) return this.contractTokenSUSD;
+        if (adr == this.conf.docToken) return this.contractTokenSUSD;
         else if (adr == this.conf.testTokenRBTC) return this.contractTokenRBTC;
     }
 }

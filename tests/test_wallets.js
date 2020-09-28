@@ -22,26 +22,28 @@ describe('Wallet', async () => {
             }
         });    
 
+        /*
+        //not needed anymore, new contracts working with real rbtc
         it('should return all liquidator rbtc-token wallet balances', async () => {
             for(var w of A.liquidator) {
                 let bal = await C.getWalletTokenBalance(w.adr, conf.testTokenRBTC);
                 console.log("RBTC testtoken balance of "+w.adr+":"+ bal);
                 assert(bal>0);
             }
-        }); 
+        });*/
 
-        it('should return all liquidator susd-token wallet balances', async () => {
+        it('should return all liquidator doc-token wallet balances', async () => {
             for(var w of A.liquidator) {
-                let bal = await C.getWalletTokenBalance(w.adr, conf.testTokenSUSD);
-                console.log("SUSD testtoken balance of "+w.adr+":"+ bal);
+                let bal = await C.getWalletTokenBalance(w.adr, conf.docToken);
+                console.log("Doc testtoken balance of "+w.adr+":"+ bal);
                 assert(bal>0);
             }
         });   
 
-        it('should verify all liquidator wallets approved the sovryn contract to spend susd-token on their behalf', async () => {
+        it('should verify all liquidator wallets approved the sovryn contract to spend doc-token on their behalf', async () => {
             for(var w of A.liquidator) {
-                let bal = await C.getWalletTokenAllowance(w.adr, conf.sovrynProtocolAdr, conf.testTokenSUSD);
-                console.log("SUSD allowance for sovryn contract:"+ bal);
+                let bal = await C.getWalletTokenAllowance(w.adr, conf.sovrynProtocolAdr, conf.docToken);
+                console.log("Doc allowance for sovryn contract:"+ bal);
                 assert(bal>0);
             }
         });
@@ -65,7 +67,7 @@ describe('Wallet', async () => {
 
     describe('#Send tx', async () => {
         it('should send 4 tx at once', async () => {
-            const w = Wallet.getWallet("liquidator");
+            const w = await Wallet.getWallet("liquidator", 0.1);
             C.addWallets([w]);
             const to = "0xe2b59CD37D173D550D75e9891376bf21b3f996F1";
             

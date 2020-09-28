@@ -4,22 +4,22 @@
 */
 const assert = require('assert');
 import conf from '../config/config_testnet';
-import C from './contract';
-
+import C from '../controller/contract';
+import W from '../secrets/accounts';
 C.init(conf);
-const amount = txCtrl.web3.utils.toWei("1000000000", 'ether');
-//todo: define wallet, gas and gasprice
-const from = "";
+C.addWallets(W.liquidator);
+
+const amount = C.web3.utils.toWei("1000000000", 'ether');
+const from = W.liquidator[0].adr;
 
 describe('Contract', async () => {
     describe('#basic function', async () => {
         it('should approve the Sovryn contract to spend RBTC for the main account', async () => {
-            (tokenCtr, from, receiver, amount)
             const approved = await C.approveToken(C.contractTokenRBTC, from, conf.sovrynProtocolAdr, amount);
             assert(approved.length == 66);
         });    
-
-        it('should approve the Sovryn contract to spend SUSD for the main account', async () => {
+        
+        it('should approve the Sovryn contract to spend SUSD (doc) for the main account', async () => {
             const approved = await C.approveToken(C.contractTokenSUSD, from, conf.sovrynProtocolAdr, amount);
             assert(approved.length == 66);
         }); 

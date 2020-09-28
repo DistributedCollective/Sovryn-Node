@@ -3,7 +3,9 @@
  * If liquidation successful removes position from liquidation list
  * If it fails, check if the liquidation criteria are still met. 
  * If no, delete it from the liquidation list. If yes, send an error notification to a telegram group for manual processing. 
- * Todo: If the tx was not confirmed after some time (10 minutes), resend the transaction with a higher (double) gas fee.
+ * 
+ * todo: If the contract returns WRBTC when liquidating long positions -> swap the WRBTC For RBTC to avoid bankrupcy of the wallet
+ * alternative: liquidate only with wrbtc
  */
 
 const TelegramBot = require('node-telegram-bot-api');
@@ -31,10 +33,12 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-                const w = await Wallet.getWallet("liquidator", pos.maxLiquidatable, pos.loanToken);
+                const w = await Wallet.getWallet("liquidator", 0.001, pos.maxLiquidatable, pos.loanToken);
                 if(!w) return handleNoWalletError(p);
-                let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
-                this.liquidate(p, w.adr, pos.maxLiquidatable, nonce);
+                const nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
+                const rBtc= pos.loanToken == this.conf.loanTokenRBTC? true:false;  //need to change later to wRBTC
+
+                this.liquidate(p, w.adr, pos.maxLiquidatable, rBtc, nonce);
                 await U.wasteTime(1); //1 second break to avoid rejection from node                
             }
             console.log("Completed liquidation round at " + new Date(Date.now()));
@@ -44,13 +48,15 @@ class Liquidator {
 
     /*
     * Tries to liquidate a position
+    * If Loan token == WRBTC -> pass value
     */
-    liquidate(loanId, wallet, receiver, amount, nonce) {
+    liquidate(loanId, wallet, receiver, amount, rBtc, nonce) {
         console.log("trying to liquidate loan " + loanId);
-        Wallet.addToQueue("liq", wallet, p);
+        Wallet.addToQueue("liquidator", wallet, loanId);
+        const val = rBtc?amount:0;
 
         C.contractSovryn.methods.liquidate(loanId, receiver, amount)
-            .send({ from: wallet, gas: 2500000, nonce:nonce })
+            .send({ from: wallet, gas: 2500000, nonce:nonce, value:val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx);
@@ -64,7 +70,7 @@ class Liquidator {
     }
 
     handleLiqSuccess(wallet, loanId){
-        Wallet.removeFromQueue("liq", wallet, loanId);
+        Wallet.removeFromQueue("liquidator", wallet, loanId);
         delete this.liquidations[loanId];
     }
 
@@ -78,6 +84,7 @@ class Liquidator {
     }
 
     handleNoWalletError(loanId) {
+        console.error("Liquidation of loan "+loanId+" failed because no wallet with enough funds was available");
         this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + p + " failed because no wallet with enough funds was found.");
         delete this.liquidations[loanId];
     }

@@ -23,17 +23,23 @@ class Wallet{
     }
 
     /**
-     * Returns the next available liquidation/rollover wallet with sufficient funds. 
+     * Returns the next available liquidation/rollover wallet with sufficient funds (RBTC and token)
      * False if none could be found
+     * todo: define min wallet balance for sending tx
      */
-    async getWallet(type, reqBalance, token){
+    async getWallet(type, reqBalance, reqTokenBalance, token){
         for(let wallet of A[type]){
             if(this.queue[type][wallet.adr].length < 4){
+
+                let rBtcBal = await C.web3.eth.getBalance(wallet.adr);
+                rBtcBal = C.web3.utils.fromWei(rBtcBal, "Ether");
+                if(rBtcBal<=reqBalance) continue;
                 if(type=="rollover") return wallet;
+                if(!reqTokenBalance) return wallet;
 
                 let bal = await C.getWalletTokenBalance(wallet.adr, token);
                 bal=C.web3.utils.fromWei(bal, "Ether");
-                if(bal>=reqBalance) return wallet;
+                if(bal>=reqTokenBalance) return wallet;
             }
         }
         return false;

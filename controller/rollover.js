@@ -23,7 +23,7 @@ class Rollover {
             for (let p in this.positions) {
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
                     console.log("Found expired open position. Going to rollover " + this.positions[p].loanId);
-                    const w = await Wallet.getWallet("rollover");
+                    const w = await Wallet.getWallet("rollover", 0.001);
                     let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
                     await this.rollover(this.positions[p].loanId, w.adr, nonce);
                 }

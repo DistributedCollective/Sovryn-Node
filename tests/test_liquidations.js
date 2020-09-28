@@ -1,10 +1,10 @@
 /**
  * Liquidation tester
  * The liquidator account need to have sufficient tokens approved to be able to liquidate the open positions
- * todo: add wallets
+ * This tests only works with the old contracts where the price can be changed manually
  */
 
-import conf from '../config/config_testnet';
+import conf from '../config/config_testnet_testcontracts';
 import abiComplete from '../config/abiComplete';
 import abiLoanToken from './abi/abiLoanToken';
 import abiPriceFeed from './abi/abiPriceFeed';
@@ -14,14 +14,14 @@ import A from '../secrets/accounts';
 
 const abiDecoder = require('abi-decoder');
 const assert = require('assert');
+const adrPriceFeed = "0xE30352CDaa15E4ce5a03583b521DA7aD3C29ff4a";
 
-
-//const txCtrl = new TransactionController();
 var contractPriceFeed, contractISUSD;
-const adrPriceFeed = "0xf2e9fD37912aB53D0FEC1eaCE86d6A14346Fb6dD";
 var loanIdHigh, loanIdLow, loanHigh, loanLow;
 C.init(conf);
-
+C.addWallets(A.liquidator);
+C.addWallets([A.owner]);
+        
 
 describe('Liquidation', async () => {
     describe('#liquidate a position', async () => {
@@ -31,11 +31,11 @@ describe('Liquidation', async () => {
             contractISUSD = new C.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
             abiDecoder.addABI(abiComplete);
         });
-        
-        it('should set the start price for btc to 10000', async () => {
-            let a = await changePrice(conf.testTokenRBTC, conf.testTokenSUSD, 10000);
+        /*
+       it('should set the start price for btc to 10000', async () => {
+            let a = await changePrice(conf.testTokenRBTC, conf.docToken, 10000);
             assert(a.length == 66);
-        });
+        });*/
 
         it('should create a position with 2x leverage)', async () => {
             let p = await openLongPosition("0.01", "2");
@@ -43,7 +43,7 @@ describe('Liquidation', async () => {
             console.log("loan id low "+loanIdLow)
             assert(p.length == 66);
         });
-
+/*
         it('should create a position with 4x leverage)', async () => {
             let p = await openLongPosition("0.01", "4");
             loanIdHigh = await parseLog(p);
@@ -71,7 +71,7 @@ describe('Liquidation', async () => {
             let maxPriceMovement = 1 - (1.15 * 4 / 5 );
             let newPrice = 10000 *(1-maxPriceMovement)-1;
             console.log("setting the price to "+newPrice);
-            let a = await changePrice(conf.testTokenRBTC, conf.testTokenSUSD, newPrice);
+            let a = await changePrice(conf.testTokenRBTC, conf.docToken, newPrice);
             assert(a.length == 66);
         });
 
@@ -109,7 +109,7 @@ describe('Liquidation', async () => {
                 console.log("loanId of loan changed");
                 return assert(true);
             }
-            let a = await changePrice(conf.testTokenRBTC, conf.testTokenSUSD, 8000);
+            let a = await changePrice(conf.testTokenRBTC, conf.docToken, 8000);
             assert(a.length == 66);
         });
 
@@ -120,7 +120,7 @@ describe('Liquidation', async () => {
             }
             let liquidated = await Liquidator.liquidate(loanIdLow, A.liquidator[0].adr, loanLow.maxLiquidatable);
             assert(liquidated);
-        });
+        });*/
     });
 });
 
@@ -197,7 +197,7 @@ async function changePrice(srcToken, destToken, rate) {
     const gasPrice = await C.web3.eth.getGasPrice();
 
     return new Promise(resolve => {
-        contractPriceFeed.methods.setRates(srcToken, destToken, txCtrl.web3.utils.toWei(rate.toString(), 'Ether'))
+        contractPriceFeed.methods.setRates(srcToken, destToken, C.web3.utils.toWei(rate.toString(), 'Ether'))
             .send({ from: A.owner.adr, gas:2500000, gasPrice:gasPrice })
             .then(async (tx) => {
                 //console.log("change price Transaction: ", tx);
