@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "description": "liquidation handler and rollover of open positions for sovryn smart contracts",
   "scripts": {
-    "test-tx": "mocha -r esm ./tests/transaction.js",
     "test-lx": "mocha -r esm ./tests/test_liquidations.js --timeout 2500000",
     "dev": "nodemon -r esm ./tests/test_node_web3.js",
     "start:testnet": "nodemon -r esm start.js testnet",
@@ -14,16 +13,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@rsksmart/rsk3": "^0.3.4",
     "abi-decoder": "^2.3.0",
     "axios": "^0.20.0",
     "esm": "^3.2.25",
     "node-telegram-bot-api": "^0.50.0",
     "pm2-server-monitor": "^1.0.0",
     "socket.io": "^2.3.0",
-    "web3": "^1.2.11",
-    "web3-providers-ws": "^1.2.11",
-    "websocket": "^1.0.32"
+    "web3": "^1.2.11"
   },
   "devDependencies": {
     "webpack": "^4.44.1",
