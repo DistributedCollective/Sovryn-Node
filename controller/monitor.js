@@ -127,10 +127,7 @@ class MonitorController {
         let p=this;
 
         this.getSignals(A.liquidator[0].adr, (res)=> {    
-            if( Math.abs(res.blockInfoLn - res.blockInfoPn)>5) 
-            return  p.telegramBotNode.sendMessage(p.conf.sovrynInternalTelegramId, p.conf.network+"-Node out of sync. Last block Sovryn node: "+res.blockInfoLn+", last block Iov node: "+res.blockInfoPn);
-
-            else if(res.accountInfo<=0) 
+            if(res.accountInfo<=0) 
             return  p.telegramBotWatcher.sendMessage(p.conf.sovrynInternalTelegramId, "No money left on the wallet for liquidator on "+conf.network);
 
             else if(!res.contractInfo)
