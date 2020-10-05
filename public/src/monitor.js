@@ -15,7 +15,6 @@ class Monitor {
     }
 
     getSignals() {
-        console.log("retrieve signals");
         let p=this;
 
         socket.emit("getSignals", (res) => {
@@ -25,7 +24,7 @@ class Monitor {
             p.lastBlock(res.blockInfoPn, res.blockInfoLn);
             p.accBalances(res.accountInfoLiq, res.accountInfoRoll);
             p.showOpenPositions(res.positionInfo);
-            p.showOpenPositions(res.liqInfo);
+            p.showLiquidations(res.liqInfo);
         });
 
         /*

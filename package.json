@@ -5,7 +5,7 @@
   "description": "liquidation handler and rollover of open positions for sovryn smart contracts",
   "scripts": {
     "test-lx": "mocha -r esm ./tests/test_liquidations.js --timeout 2500000",
-    "dev": "nodemon -r esm ./tests/test_node_web3.js",
+    "test-network": "node -r esm ./tests/network.js",
     "start:testnet": "nodemon -r esm start.js testnet",
     "start:mainnet": "nodemon -r esm start.js mainnet",
     "build-client": "npx webpack --config ./public/webpack.config.ts && cp public/src/index.html public/dist/index.html"
