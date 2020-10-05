@@ -17,20 +17,18 @@ class Monitor {
     getSignals() {
         console.log("retrieve signals");
         let p=this;
-        let adr = window.acc;
-        if(!adr) adr = "0xd51128F302755666C42E3920D72fF2fE632856a9"
 
-        $("#accBalance").text(adr);
-
-        socket.emit("getSignals", adr, (res) => {
+        socket.emit("getSignals", (res) => {
             console.log("response signals");
             console.log(res);
 
             p.lastBlock(res.blockInfoPn, res.blockInfoLn);
-            p.accBalance(res.accountInfo);
-            p.contractInfo(res.contractInfo);
+            p.accBalances(res.accountInfoLiq, res.accountInfoRoll);
+            p.showOpenPositions(res.positionInfo);
+            p.showOpenPositions(res.liqInfo);
         });
 
+        /*
         socket.emit("getOpenPositionsDetails", (res) => {
             console.log("open positions");
             console.log(res);
@@ -42,6 +40,7 @@ class Monitor {
             console.log(res)
             p.showLiquidations(res);
         });
+        */
     }
 
     lastBlock(pubN, localN){
@@ -52,27 +51,31 @@ class Monitor {
         else $('#lastBlock').addClass('alert alert-success');
     }
 
-    accBalance(ac) {
-        $('#balance').text(ac+ " RBTC");
-        $("#accInfo").removeClass();
-        if (ac>0) $('#accInfo').addClass('alert alert-success');
-        else $('#accInfo').addClass('alert alert-danger');
+    accBalances(liq, roll) {
+        let i=1;
+        for(let b in liq) {
+            $("#balanceL"+i).text(b+": "+liq[b]+ " RBTC");
+            $("#accInfoL"+i).removeClass();
+            if (liq[b]>0) $('#accInfoL'+i).addClass('alert alert-success');
+            else $('#accInfoL'+i).addClass('alert alert-danger');
+            i++;
+        }
+       
+        for(let b in roll) {
+            $('#balanceR1').text(b+ ": "+roll[b]+" RBTC");
+            $("#accInfoR1").removeClass();
+            if (roll[b]>0) $('#accInfoR1').addClass('alert alert-success');
+            else $('#accInfoR1').addClass('alert alert-danger');
+        }
     }
 
-    contractInfo(c) {
-        $("#cInfo").removeClass();
-        if (c>0) $('#cInfo').addClass('alert alert-success');
-        else $('#cInfo').addClass('alert alert-danger');
-    }
 
     showOpenPositions(oP) {
-        let nr = Object.keys(oP).length;
-        $('#openPosQueue').text(nr);
+        $('#openPosQueue').text(oP);
     }
 
     showLiquidations(oL) {
-        let nr = Object.keys(oL).length;
-        $('#openLiqQueue').text(nr);
+        $('#openLiqQueue').text(oL);
     }
 }
 

@@ -9,6 +9,7 @@ const io = require('socket.io')(http);
 import mainController from './controller/main';
 import cTest from './config/config_testnet';
 import cMain from './config/config_mainnet';
+
 let conf = process.argv[2]=="mainnet"?cMain:cTest;
 
 const monitor = require('pm2-server-monitor');

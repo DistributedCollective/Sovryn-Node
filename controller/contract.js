@@ -23,6 +23,7 @@ class Contract {
    */
    addWallets(wallets) {
        for(let w of wallets) this.web3.eth.accounts.wallet.add(w.pKey);
+       return;
    }
 
     /**

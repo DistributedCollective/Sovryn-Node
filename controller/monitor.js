@@ -21,23 +21,38 @@ class MonitorController {
         let p=this;
         setInterval(()=>{
             p.checkSystem();
-        },10000);
+        },1000*60);
     }
 
     /**
-     * Wrapper for health signals
+     * Wrapper for health signals, called from client
      */
-    async getSignals(data, cb) {
-        const localNode = await this.getCurrentBlockPrivateNode();
-        const pNode = await this.getCurrentBlockPublicNode();
-        const aInfo = await this.getAccountInfo(data);
-        const cInfo = await this.getContractInfo();
+    async getSignals(cb) {
+        if(typeof cb!=="function") return;
+        const resp = 
+        {
+            blockInfoLn: await this.getCurrentBlockPrivateNode(),
+            blockInfoPn: await this.getCurrentBlockPublicNode(),
+            accountInfoLiq: await this.getAccountInfo(A.liquidator),
+            accountInfoRoll: await this.getAccountInfo(A.rollover),
+            positionInfo: await this.getOpenPositions(),
+            liqInfo: await this.getOpenLiquidations()
+        }
+        cb(resp);
+    }
 
-        if (typeof cb === "function") cb({
-            blockInfoLn: localNode,
-            blockInfoPn: pNode,
-            accountInfo: aInfo,
-            contractInfo: cInfo
+    /** 
+    * Internal check
+    */
+   checkSystem(){
+        let p=this;
+
+        this.getSignals(A.liquidator, (res)=> {    
+            if(res.accountInfo<=0) 
+            return  p.telegramBotWatcher.sendMessage(p.conf.sovrynInternalTelegramId, "No money left on the wallet for liquidator on "+p.conf.network);
+
+            else if(!res.contractInfo)
+            return  p.telegramBotWatcher.sendMessage(p.conf.sovrynInternalTelegramId, "No open positions on the contract on "+p.conf.network);
         });
     }
 
@@ -82,57 +97,39 @@ class MonitorController {
         }
     }
 
-    async getAccountInfo(adr) {
-        try {
-            let aInf = await C.web3.eth.getBalance(adr.toLowerCase());
-            aInf = C.web3.utils.fromWei(aInf, 'Ether');
-            return parseFloat(aInf);
-        }
-        catch(e) {
-            console.error("error on retrieving account balance");
-            console.error(e);
-            return -1;
-        }
-    }
+    async getAccountInfo(accounts) {
+        let accBalances={};
 
-    async getContractInfo() {
-        let l = await this.posScanner.loadActivePositions(0, 10);
-        if (l && l.length > 0) return true;
-        return false;
+        for(let a of accounts) {
+            try {
+                let aInf = await C.web3.eth.getBalance(a.adr.toLowerCase());
+                aInf = C.web3.utils.fromWei(aInf, 'Ether');
+                accBalances[a.adr] = parseFloat(aInf);
+            }
+            catch(e) {
+                console.error("error on retrieving account balance");
+                console.error(e);
+                return -1;
+            }
+        }        
+        return accBalances;
     }
 
     async getOpenPositions(cb) {
-        let l = await Object.keys(this.positions).length;
-        if (typeof cb === "function") cb(l);
+        return await Object.keys(this.positions).length;
     }
 
-    //todo: add from-to
+    //todo: add from-to, to be called from cliet
     async getOpenPositionsDetails(cb) {
         if (typeof cb === "function") cb(this.positions);
     }
 
     async getOpenLiquidations(cb) {
-        let l = await Object.keys(this.liquidations).length;
-        if (typeof cb === "function") cb(l);
+        return await Object.keys(this.liquidations).length;
     }
-    //todo: add from-to
+    //todo: add from-to, to be called from client
     async getOpenLiquidationsDetails(cb) {
         if (typeof cb === "function") cb(this.liquidations);
-    }
-
-    /** 
-    * todo: find more params
-    */
-    checkSystem(){
-        let p=this;
-
-        this.getSignals(A.liquidator[0].adr, (res)=> {    
-            if(res.accountInfo<=0) 
-            return  p.telegramBotWatcher.sendMessage(p.conf.sovrynInternalTelegramId, "No money left on the wallet for liquidator on "+conf.network);
-
-            else if(!res.contractInfo)
-            return  p.telegramBotWatcher.sendMessage(p.conf.sovrynInternalTelegramId, "No open positions on the contract on "+conf.network);
-        });
     }
 }
 

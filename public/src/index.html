@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
     integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-  <title>Sovryn app- and node monitor</title>
+  <title>Sovryn watcher</title>
 </head>
 
 <body>
@@ -17,10 +17,8 @@
 
       <div class="col">
         <h2>Node monitor</h2>
-        <div role="alert" id="lastBlock">Last block: <span id="lastBlockLn"></span> local node, <span
-            id="lastBlockPn"></span> public node</div>
-        <div role="alert" id="accInfo">Balance of <span id="accBalance"></span><br /><span id="balance"> </span></div>
-        <div role="alert" id="cInfo">Retrieve contract info</div>
+        <div role="alert" id="lastBlock">Last block: <span id="lastBlockLn"></span> Sovryn node, <span
+            id="lastBlockPn"></span> Iov node</div>
       </div>
 
       <div class="col">
@@ -32,20 +30,19 @@
 
     <div class="row">
       <div class="col">
-        <h2>
-          <!--Not assigned yet-->
-        </h2>
+        <h2>Wallet info</h2>
+        <h4>Liquidaton wallets</h4>
+        <div role="alert" id="accInfoL1">Balance of <span id="accBalanceL1"></span><br /><span id="balanceL1"> </span></div>
+        <div role="alert" id="accInfoL2">Balance of <span id="accBalanceL2"></span><br /><span id="balanceL2"> </span></div>
+        <div role="alert" id="accInfoL3">Balance of <span id="accBalanceL3"></span><br /><span id="balanceL3"> </span></div>
+        <div role="alert" id="accInfoL4">Balance of <span id="accBalanceL4"></span><br /><span id="balanceL4"> </span></div>
+        <br />
+        <h4>Rollover wallet</h4>
+        <div role="alert" id="accInfoR1">Balance of <span id="accBalanceR1"></span><br /><span id="balanceR1"> </span></div>
       </div>
 
       <div class="col">
-        <!--
-        <h2>Some test functions</h2>
-        <button type="button" onclick="start()">Create positions</button><br />
-        <input type="text" id="price" />
-        <button type="button" onclick="changeP()">Change price</button><br />
-        <button type="button" onclick="liquidate()">Liquidate</button><br />
-        <button type="button" onclick="getLoan()">Get Loan</button>
-      </div>-->
+       <h2>Not assigned yet</h2>
     </div>
   </div>
 

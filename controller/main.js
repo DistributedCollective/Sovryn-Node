@@ -31,10 +31,8 @@ class MainController {
 
         const p = this;
         io.on('connection', (socket) => {
-            socket.on('getSignals', async (data, cb) => Monitor.getSignals(data, cb));
-            //socket.on('getOpenPositions', async(cb) => Monitor.getOpenPositions(cb));
+            socket.on('getSignals', async (cb) => Monitor.getSignals(cb));
             socket.on('getOpenPositionsDetails', async (cb) => Monitor.getOpenPositionsDetails(cb));
-            //socket.on('getOpenLiquidations', async(cb) => Monitor.getOpenLiquidations(cb));
             socket.on('getOpenLiquidationsDetails', async (cb) => Monitor.getOpenLiquidationsDetails(cb));
         });
     }

@@ -31,11 +31,11 @@ describe('Liquidation', async () => {
             contractISUSD = new C.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
             abiDecoder.addABI(abiComplete);
         });
-        /*
+        
        it('should set the start price for btc to 10000', async () => {
             let a = await changePrice(conf.testTokenRBTC, conf.docToken, 10000);
             assert(a.length == 66);
-        });*/
+        });
 
         it('should create a position with 2x leverage)', async () => {
             let p = await openLongPosition("0.01", "2");
@@ -43,7 +43,7 @@ describe('Liquidation', async () => {
             console.log("loan id low "+loanIdLow)
             assert(p.length == 66);
         });
-/*
+
         it('should create a position with 4x leverage)', async () => {
             let p = await openLongPosition("0.01", "4");
             loanIdHigh = await parseLog(p);
@@ -120,7 +120,7 @@ describe('Liquidation', async () => {
             }
             let liquidated = await Liquidator.liquidate(loanIdLow, A.liquidator[0].adr, loanLow.maxLiquidatable);
             assert(liquidated);
-        });*/
+        });
     });
 });
 
@@ -146,7 +146,7 @@ async function openLongPosition(amount, leverage) {
 
         const collateralTokenSent = C.web3.utils.toWei(amount, 'ether');
         const loanDataBytes = "0x"; //need to be empty
-        const from = A.liquidator[0].adr;
+        const from = A.liquidator[0].adr.toLowerCase();
         let t = await marginTrade(contractISUSD, loanId, leverageAmount, loanTokenSent, collateralTokenSent, conf.testTokenRBTC, from, loanDataBytes);
         resolve(t);
     });

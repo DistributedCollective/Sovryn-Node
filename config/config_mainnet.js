@@ -2,18 +2,18 @@ import {errorBotNodeTelegramToken, errorBotWatcherTelegramToken} from '../secret
 
 export default {
     serverPort: 3000,
-    nodeProvider: 'http://13.251.148.208:4444', 
+    nodeProvider: 'https://mainnet.sovryn.app/rpc', 
     publicNodeProvider: 'https://public-node.rsk.co',
     network: "main",
     nrOfProcessingPositions: 100, //need to find appropriate nr
     waitBetweenRounds: 60, //in seconds
-    testTokenSUSD: "0xE631653c4Dc6Fb98192b950BA0b598f90FA18B3E",
-    testTokenRBTC: "0xE53d858A78D884659BF6955Ea43CBA67c0Ae293F",
-    loanTokenSUSD: "0xC6Aa9E9C18021Db79eDa87a8E58dD3c146A6b1E5",
-    loanTokenRBTC: "0xc4F9857B4bb568C10aD68C092D058Fc8d36Ce4b0",
-    bzxProtocolAdr: "0xBAC609F5C8bb796Fa5A31002f12aaF24B7c35818",
+    testTokenRBTC: "0xa9DcDC63eaBb8a2b6f39D7fF9429d88340044a7A", //wrbtc
+    loanTokenSUSD: "0xd8D25f03EBbA94E15Df2eD4d6D38276B595593c1", //underlying token = doc
+    loanTokenRBTC: "0xb01f116199C5eE8e2977b0a9280fE392c4162838",
+    docToken: "0xe700691da7b9851f2f35f8b8182c69c53ccad9db", //former susd
+    sovrynProtocolAdr: "0x5A0D867e0D70Fcc6Ade25C3F1B89d618b5B4Eaa7",
     errorBotNodeTelegramToken: errorBotNodeTelegramToken,
     errorBotWatcherTelegramToken: errorBotWatcherTelegramToken,
     sovrynInternalTelegramId: -1001308978723,
-    healthMonitorPort: 3 //results in 3003
+    healthMonitorPort: 10 //results in 3010
 }
