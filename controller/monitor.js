@@ -1,5 +1,5 @@
 /**
- *  Accepts client requests and checks the health of the watcher and node in 10s interval
+ *  Accepts client requests and checks the health of the watcher and node in 60s interval
  *  If the system is not healthy it sends a message to the telegram group
  *  Assuming the public node from IOV labs is always right!
  */
@@ -28,7 +28,6 @@ class MonitorController {
      * Wrapper for health signals, called from client
      */
     async getSignals(cb) {
-        if(typeof cb!=="function") return;
         const resp = 
         {
             blockInfoLn: await this.getCurrentBlockPrivateNode(),
@@ -38,22 +37,28 @@ class MonitorController {
             positionInfo: await this.getOpenPositions(),
             liqInfo: await this.getOpenLiquidations()
         }
-        cb(resp);
+        if(typeof cb==="function") cb(resp);
+        else return resp;
     }
 
     /** 
     * Internal check
     */
-   checkSystem(){
-        let p=this;
+   async checkSystem(){
+        const sInfo = await this.getSignals();
+        for(let b in sInfo.accountInfoLiq){
+            if(sInfo.accountInfoLiq[b]<0.001) 
+                this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for liquidator "+b+ " on "+this.conf.network+" network");
+        }
 
-        this.getSignals(A.liquidator, (res)=> {    
-            if(res.accountInfo<=0) 
-            return  p.telegramBotWatcher.sendMessage(p.conf.sovrynInternalTelegramId, "No money left on the wallet for liquidator on "+p.conf.network);
+        for(let b in sInfo.accountInfoRoll){
+            if(sInfo.accountInfoRoll[b]<0.001) 
+            this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for rollover-wallet "+b+ " on "+this.conf.network+" network");
+        }
 
-            else if(!res.contractInfo)
-            return  p.telegramBotWatcher.sendMessage(p.conf.sovrynInternalTelegramId, "No open positions on the contract on "+p.conf.network);
-        });
+       if(sInfo.positionInfo==0){
+            this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No open positions on the contract on "+this.conf.network+ " network");
+        }
     }
 
     getCurrentBlockPublicNode() {
