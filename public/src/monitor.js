@@ -22,7 +22,7 @@ class Monitor {
             console.log(res);
 
             p.lastBlock(res.blockInfoPn, res.blockInfoLn);
-            p.accBalances(res.accountInfoLiq, res.accountInfoRoll);
+            p.accBalances(res.accountInfoLiq, res.accountInfoRoll, res.accountInfoFbr, res.accountInfoOg);
             p.showOpenPositions(res.positionInfo);
             p.showLiquidations(res.liqInfo);
         });
@@ -50,12 +50,13 @@ class Monitor {
         else $('#lastBlock').addClass('alert alert-success');
     }
 
-    accBalances(liq, roll) {
+    accBalances(liq, roll, fbr, og) {
         let i=1;
+        const threshold = 0.001;
         for(let b in liq) {
             $("#balanceL"+i).text(b+": "+liq[b]+ " RBTC");
             $("#accInfoL"+i).removeClass();
-            if (liq[b]>0) $('#accInfoL'+i).addClass('alert alert-success');
+            if (liq[b]>threshold) $('#accInfoL'+i).addClass('alert alert-success');
             else $('#accInfoL'+i).addClass('alert alert-danger');
             i++;
         }
@@ -63,8 +64,22 @@ class Monitor {
         for(let b in roll) {
             $('#balanceR1').text(b+ ": "+roll[b]+" RBTC");
             $("#accInfoR1").removeClass();
-            if (roll[b]>0) $('#accInfoR1').addClass('alert alert-success');
+            if (roll[b]>threshold) $('#accInfoR1').addClass('alert alert-success');
             else $('#accInfoR1').addClass('alert alert-danger');
+        }
+
+        for(let b in fbr) {
+            $('#balanceFbr').text(b+ ": "+fbr[b]+" RBTC");
+            $("#accInfoFbr").removeClass();
+            if (fbr[b]>threshold) $('#accInfoFbr').addClass('alert alert-success');
+            else $('#accInfoFbr').addClass('alert alert-danger');
+        }
+
+        for(let b in og) {
+            $('#balanceOg').text(b+ ": "+og[b]+" RBTC");
+            $("#accInfoOg").removeClass();
+            if (og[b]>threshold) $('#accInfoOg').addClass('alert alert-success');
+            else $('#accInfoOg').addClass('alert alert-danger');
         }
     }
 

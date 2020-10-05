@@ -10,7 +10,7 @@ C.init(conf);
 
 
 const amount = C.web3.utils.toWei("1000000000", 'ether');
-const from = W.liquidator[0].adr.toLowerCase();
+const from = W.liquidator[2].adr.toLowerCase();
 
 describe('Contract', async () => {
     describe('#basic function', async () => {
@@ -18,13 +18,15 @@ describe('Contract', async () => {
             console.log("start")
             await C.addWallets(W.liquidator);
         });
-        it('should approve the Sovryn contract to spend RBTC for the main account', async () => {
+       /* it('should approve the Sovryn contract to spend RBTC for the main account', async () => {
             console.log("approving "+from+ " "+conf.sovrynProtocolAdr+" for "+amount)
             const approved = await C.approveToken(C.contractTokenRBTC, from, conf.sovrynProtocolAdr, amount);
             assert(approved.length == 66);
-        });    
+        });  */  
         
         it('should approve the Sovryn contract to spend SUSD (doc) for the main account', async () => {
+            console.log("approving "+from+ " "+conf.sovrynProtocolAdr+" for "+amount)
+            
             const approved = await C.approveToken(C.contractTokenSUSD, from, conf.sovrynProtocolAdr, amount);
             assert(approved.length == 66);
         }); 
@@ -33,7 +35,7 @@ describe('Contract', async () => {
             const approved = await C.approveToken(C.contractTokenSUSD, from, conf.loanTokenRBTC, amount);
             assert(approved.length == 66);
         }); 
-
+/*
         it('should approve the rBTC IToken contract to spend rBTC for the main account', async () => {
             const approved = await C.approveToken(C.contractTokenRBTC, from, conf.loanTokenRBTC, amount);
             assert(approved.length == 66);
@@ -42,7 +44,7 @@ describe('Contract', async () => {
         it('should approve the sUSD IToken contract to spend rBTC for the main account', async () => {
             const approved = await C.approveToken(C.contractTokenRBTC, from, conf.loanTokenSUSD, amount);
             assert(approved.length == 66);
-        }); 
+        }); */
 
         it('should approve the sUSD IToken contract to spend sUSD for the main account', async () => {
             const approved = await C.approveToken(C.contractTokenSUSD, from, conf.loanTokenSUSD, amount);

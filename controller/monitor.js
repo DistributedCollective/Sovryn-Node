@@ -34,6 +34,8 @@ class MonitorController {
             blockInfoPn: await this.getCurrentBlockPublicNode(),
             accountInfoLiq: await this.getAccountInfo(A.liquidator),
             accountInfoRoll: await this.getAccountInfo(A.rollover),
+            accountInfoFbr: await this.getAccountInfo([{adr:"0x896110899237409f6de4151c54cd48e4d3c84190"}]),
+            accountInfoOg: await this.getAccountInfo([{adr:"0x417621fC0035893FDcD5dd09CaF2f081345bfB5C"}]),
             positionInfo: await this.getOpenPositions(),
             liqInfo: await this.getOpenLiquidations()
         }

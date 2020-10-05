@@ -33,6 +33,7 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
+                //replace 0.001 with correct needed amount
                 const w = await Wallet.getWallet("liquidator", 0.001, pos.maxLiquidatable, pos.loanToken);
                 if(!w) return handleNoWalletError(p);
                 const nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
@@ -66,7 +67,7 @@ class Liquidator {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
                 this.handleLiqError(loanId);
-            });
+        });
     }
 
     handleLiqSuccess(wallet, loanId){
