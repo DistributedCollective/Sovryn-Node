@@ -52,7 +52,8 @@ class PositionScanner {
                 await U.wasteTime(this.conf.waitBetweenRounds);
                 from = 0;
                 to = this.conf.nrOfProcessingPositions;
-                this.positions = {};
+                
+                for (let k in this.positions) if (this.positions.hasOwnProperty(k)) delete this.positions[k];
             }
         }
     }

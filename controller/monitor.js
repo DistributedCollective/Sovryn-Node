@@ -120,8 +120,8 @@ class MonitorController {
         return accBalances;
     }
 
-    async getOpenPositions(cb) {
-        return await Object.keys(this.positions).length;
+    getOpenPositions(cb) {
+        return Object.keys(this.positions).length;
     }
 
     //todo: add from-to, to be called from cliet
@@ -129,8 +129,8 @@ class MonitorController {
         if (typeof cb === "function") cb(this.positions);
     }
 
-    async getOpenLiquidations(cb) {
-        return await Object.keys(this.liquidations).length;
+    getOpenLiquidations(cb) {
+        return Object.keys(this.liquidations).length;
     }
     //todo: add from-to, to be called from client
     async getOpenLiquidationsDetails(cb) {
