@@ -10,13 +10,14 @@ import U from '../util/helper';
 
 class PositionScanner {
     /**
-     * Start processing active positions and liquidation
+     * Set positions and liquidations
+     * Start watching the contract if start=true
      */
-    async start(conf, positions, liquidations) {
+    start(conf, positions, liquidations, start) {
         this.conf=conf;
         this.positions=positions;
         this.liquidations=liquidations;
-        this.processPositions();
+        if(start) this.processPositions();
     }
 
     /**
@@ -35,18 +36,15 @@ class PositionScanner {
 
         while (true) {
             const pos = await this.loadActivePositions(from, to);
-            if (pos) {
+            if (pos && pos.length>0) {
                 this.addPosition(pos);
                 //console.log(pos.length + " active positions found");
-            }
-
-            if (pos.length > 0) {
                 from = to;
                 to = from + this.conf.nrOfProcessingPositions;
                 await U.wasteTime(1);
             }
             //reached current state
-            else {
+            else if(pos && pos.length==0) {
                 console.log(Object.keys(this.positions).length+" active positions found");
                 
                 await U.wasteTime(this.conf.waitBetweenRounds);
@@ -55,12 +53,19 @@ class PositionScanner {
                 
                 for (let k in this.positions) if (this.positions.hasOwnProperty(k)) delete this.positions[k];
             }
+            //error retrieving pos for this interval
+            else {
+                from = to;
+                to = from + this.conf.nrOfProcessingPositions;
+                await U.wasteTime(1);
+            }
         }
     }
 
     /**
      * Loading active positions from the contract
-     * check order (0-10 = first 10 or last 10??)
+     * Returns 
+     * todo: check order (0-10 = first 10 or last 10??)
      */
     loadActivePositions(from, to) {
         //console.log("loading active positions from id " + from + " to " + to);
@@ -69,15 +74,15 @@ class PositionScanner {
             try {
                 C.contractSovryn.methods.getActiveLoans(from, to, false).call((error, res) => {
                     if (error) {
-                        console.error("error receiving user loans");
+                        console.error(new Date(Date.now())+"error receiving user loans from "+from+" to: "+to);
                         console.error(error);
-                        return resolve();
+                        return resolve(false);
                     }
                     resolve(res)
                 });
             }
             catch (e) {
-                console.error("error on retrieving active loans");
+                console.error(new Date(Date.now())+"error on retrieving active loans from "+from+" to: "+to);
                 console.error(e);
                 resolve(false);
             }

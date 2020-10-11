@@ -53,6 +53,7 @@ class Monitor {
     accBalances(liq, roll, fbr, og) {
         let i=1;
         const threshold = 0.001;
+        
         for(let b in liq) {
             $("#balanceL"+i).text(b+": "+liq[b]+ " RBTC");
             $("#accInfoL"+i).removeClass();

@@ -59,7 +59,7 @@ class MonitorController {
         }
 
        if(sInfo.positionInfo==0){
-            this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No open positions on the contract on "+this.conf.network+ " network");
+           // this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No open positions on the contract on "+this.conf.network+ " network");
         }
     }
 
@@ -122,7 +122,7 @@ class MonitorController {
         return accBalances;
     }
 
-    getOpenPositions(cb) {
+    getOpenPositions() {
         return Object.keys(this.positions).length;
     }
 
