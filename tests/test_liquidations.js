@@ -189,7 +189,7 @@ async function marginTrade(contractToken, loanId, leverageAmount, loanTokenSent,
 
 /*
 * Change the conversion rate usd/btc on the pricefeed contract
-* only owner
+* only owner, only on old contracts
 */
 async function changePrice(srcToken, destToken, rate) {
     console.log("change price to " + rate);

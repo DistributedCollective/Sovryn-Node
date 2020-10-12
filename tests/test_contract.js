@@ -3,14 +3,14 @@
  * These approvals should be executed for every liquidator wallet once
 */
 const assert = require('assert');
-import conf from '../config/config_mainnet';
+import conf from '../config/config_testnet';
 import C from '../controller/contract';
 import W from '../secrets/accounts';
 C.init(conf);
 
 
 const amount = C.web3.utils.toWei("1000000000", 'ether');
-const from = W.liquidator[2].adr.toLowerCase();
+const from = W.liquidator[0].adr.toLowerCase();
 
 describe('Contract', async () => {
     describe('#basic function', async () => {
