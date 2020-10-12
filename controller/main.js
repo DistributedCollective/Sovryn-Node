@@ -24,7 +24,7 @@ class MainController {
         const b = await C.web3.eth.getBlockNumber();
         console.log("Connected to rsk " + conf.network + "-network. Current block " + b);
  
-        PosScanner.start(conf, this.positions, this.liquidations);
+        PosScanner.start(conf, this.positions, this.liquidations, true);
         Liquidator.start(conf, this.liquidations);
         Rollover.start(conf, this.positions);
         Monitor.start(conf, this.positions, this.liquidations, PosScanner);

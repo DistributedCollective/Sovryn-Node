@@ -6,7 +6,7 @@ export default {
     publicNodeProvider: 'https://public-node.rsk.co',
     network: "main",
     nrOfProcessingPositions: 100, //need to find appropriate nr
-    waitBetweenRounds: 60, //in seconds
+    waitBetweenRounds: 20, //in seconds
     testTokenRBTC: "0x542fDA317318eBF1d3DEAf76E0b632741A7e677d", //wrbtc
     loanTokenSUSD: "0xd8D25f03EBbA94E15Df2eD4d6D38276B595593c1", //underlying token = doc
     loanTokenRBTC: "0xa9DcDC63eaBb8a2b6f39D7fF9429d88340044a7A",
