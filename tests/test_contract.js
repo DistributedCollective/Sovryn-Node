@@ -10,7 +10,7 @@ C.init(conf);
 
 
 const amount = C.web3.utils.toWei("1000000000", 'ether');
-const from = W.liquidator[0].adr.toLowerCase();
+const from = W.liquidator[1].adr.toLowerCase();
 
 describe('Contract', async () => {
     describe('#basic function', async () => {
@@ -25,7 +25,7 @@ describe('Contract', async () => {
         });  */  
         
         it('should approve the Sovryn contract to spend SUSD (doc) for the main account', async () => {
-            console.log("approving "+from+ " "+conf.sovrynProtocolAdr+" for "+amount)
+            console.log(from+ " approving "+conf.sovrynProtocolAdr+" for "+amount)
             
             const approved = await C.approveToken(C.contractTokenSUSD, from, conf.sovrynProtocolAdr, amount);
             assert(approved.length == 66);

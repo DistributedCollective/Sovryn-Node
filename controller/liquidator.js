@@ -35,7 +35,7 @@ class Liquidator {
                 const pos = this.liquidations[p];
                 //replace 0.001 with correct needed amount
                 const w = await Wallet.getWallet("liquidator", 0.001, pos.maxLiquidatable, pos.loanToken);
-                if(!w) return handleNoWalletError(p);
+                if(!w) return this.handleNoWalletError(p);
                 const nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
                 const rBtc= pos.loanToken == this.conf.loanTokenRBTC? true:false;  //need to change later to wRBTC
 
@@ -50,13 +50,14 @@ class Liquidator {
     /*
     * Tries to liquidate a position
     * If Loan token == WRBTC -> pass value
+    * wallet = sender and receiver address
     */
-    liquidate(loanId, wallet, receiver, amount, rBtc, nonce) {
-        console.log("trying to liquidate loan " + loanId);
+    liquidate(loanId, wallet, amount, rBtc, nonce) {
+        console.log("trying to liquidate loan " + loanId+" from wallet "+wallet);
         Wallet.addToQueue("liquidator", wallet, loanId);
         const val = rBtc?amount:0;
 
-        C.contractSovryn.methods.liquidate(loanId, receiver, amount)
+        C.contractSovryn.methods.liquidate(loanId, wallet, amount)
             .send({ from: wallet, gas: 2500000, nonce:nonce, value:val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");

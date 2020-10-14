@@ -21,7 +21,7 @@ var loanIdHigh, loanIdLow, loanHigh, loanLow;
 C.init(conf);
 C.addWallets(A.liquidator);
 C.addWallets([A.owner]);
-        
+
 
 describe('Liquidation', async () => {
     describe('#liquidate a position', async () => {
@@ -31,8 +31,8 @@ describe('Liquidation', async () => {
             contractISUSD = new C.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
             abiDecoder.addABI(abiComplete);
         });
-        
-       it('should set the start price for btc to 10000', async () => {
+
+        it('should set the start price for btc to 10000', async () => {
             let a = await changePrice(conf.testTokenRBTC, conf.docToken, 10000);
             assert(a.length == 66);
         });
@@ -40,21 +40,21 @@ describe('Liquidation', async () => {
         it('should create a position with 2x leverage)', async () => {
             let p = await openLongPosition("0.01", "2");
             loanIdLow = await parseLog(p);
-            console.log("loan id low "+loanIdLow)
+            console.log("loan id low " + loanIdLow)
             assert(p.length == 66);
         });
 
         it('should create a position with 4x leverage)', async () => {
             let p = await openLongPosition("0.01", "4");
             loanIdHigh = await parseLog(p);
-            console.log("loan id high "+loanIdHigh)
+            console.log("loan id high " + loanIdHigh)
             assert(p.length == 66);
         });
 
         it('should read the status of the open positions', async () => {
             loanLow = await C.getPositionStatus(loanIdLow);
             loanHigh = await C.getPositionStatus(loanIdHigh);
-            if(loanLow.loanToken=="0x0000000000000000000000000000000000000000" || loanHigh.loanToken=="0x0000000000000000000000000000000000000000") {
+            if (loanLow.loanToken == "0x0000000000000000000000000000000000000000" || loanHigh.loanToken == "0x0000000000000000000000000000000000000000") {
                 console.log("loanId of loan changed");
                 return assert(true);
             }
@@ -64,13 +64,13 @@ describe('Liquidation', async () => {
 
         it('should change the rate at the price feed contract, so that remaining margin < maintenance of the high leverage position only', async () => {
             //maxPriceMovement = 1 - (1 + maintenanceMargin) * leverage / (leverage + 1);
-            if(loanLow.loanToken=="0x0000000000000000000000000000000000000000" || loanHigh.loanToken=="0x0000000000000000000000000000000000000000") {
+            if (loanLow.loanToken == "0x0000000000000000000000000000000000000000" || loanHigh.loanToken == "0x0000000000000000000000000000000000000000") {
                 console.log("loanId of loan changed");
                 return assert(true);
             }
-            let maxPriceMovement = 1 - (1.15 * 4 / 5 );
-            let newPrice = 10000 *(1-maxPriceMovement)-1;
-            console.log("setting the price to "+newPrice);
+            let maxPriceMovement = 1 - (1.15 * 4 / 5);
+            let newPrice = 10000 * (1 - maxPriceMovement) - 1;
+            console.log("setting the price to " + newPrice);
             let a = await changePrice(conf.testTokenRBTC, conf.docToken, newPrice);
             assert(a.length == 66);
         });
@@ -78,7 +78,7 @@ describe('Liquidation', async () => {
         it('should read the status of the open positions again and make sure the high leverage position is flagged for liquidation', async () => {
             loanLow = await C.getPositionStatus(loanIdLow);
             loanHigh = await C.getPositionStatus(loanIdHigh);
-            if(loanLow.loanToken=="0x0000000000000000000000000000000000000000" || loanHigh.loanToken=="0x0000000000000000000000000000000000000000") {
+            if (loanLow.loanToken == "0x0000000000000000000000000000000000000000" || loanHigh.loanToken == "0x0000000000000000000000000000000000000000") {
                 console.log("loanId of loan changed");
                 return assert(true);
             }
@@ -87,7 +87,7 @@ describe('Liquidation', async () => {
         });
 
         it('should fail to liquidate the low leverage position', async () => {
-            if(loanLow.loanToken=="0x0000000000000000000000000000000000000000" || loanHigh.loanToken=="0x0000000000000000000000000000000000000000") {
+            if (loanLow.loanToken == "0x0000000000000000000000000000000000000000" || loanHigh.loanToken == "0x0000000000000000000000000000000000000000") {
                 console.log("loanId of loan changed");
                 return assert(true);
             }
@@ -96,16 +96,16 @@ describe('Liquidation', async () => {
         });
 
         it('should read the status of the open position again and make sure the low leverage position is flagged for liquidation', async () => {
-            if(loanLow.loanToken=="0x0000000000000000000000000000000000000000" || loanHigh.loanToken=="0x0000000000000000000000000000000000000000") {
+            if (loanLow.loanToken == "0x0000000000000000000000000000000000000000" || loanHigh.loanToken == "0x0000000000000000000000000000000000000000") {
                 console.log("loanId of loan changed");
                 return assert(true);
             }
             let statusLow = await C.getPositionStatus(loanIdLow);
-            assert(parseInt(statusLow.maxLiquidatable)>0);
+            assert(parseInt(statusLow.maxLiquidatable) > 0);
         });
 
         it('should change the rate at the price feed contract, so that remaining margin < maintenance of the low leverage position', async () => {
-            if(loanLow.loanToken=="0x0000000000000000000000000000000000000000" || loanHigh.loanToken=="0x0000000000000000000000000000000000000000") {
+            if (loanLow.loanToken == "0x0000000000000000000000000000000000000000" || loanHigh.loanToken == "0x0000000000000000000000000000000000000000") {
                 console.log("loanId of loan changed");
                 return assert(true);
             }
@@ -114,7 +114,7 @@ describe('Liquidation', async () => {
         });
 
         it('should liquidate the low leverage position', async () => {
-            if(loanLow.loanToken=="0x0000000000000000000000000000000000000000" || loanHigh.loanToken=="0x0000000000000000000000000000000000000000") {
+            if (loanLow.loanToken == "0x0000000000000000000000000000000000000000" || loanHigh.loanToken == "0x0000000000000000000000000000000000000000") {
                 console.log("loanId of loan changed");
                 return assert(true);
             }
@@ -171,7 +171,7 @@ async function marginTrade(contractToken, loanId, leverageAmount, loanTokenSent,
             trader,
             loanDataBytes
         )
-            .send({ from: trader, gas: 2500000, gasPrice: gasPrice*2 })
+            .send({ from: trader, gas: 2500000, gasPrice: gasPrice * 2 })
             .then(async (tx) => {
                 //console.log("marginTrade Transaction: ");
                 //console.log(tx);
@@ -198,7 +198,7 @@ async function changePrice(srcToken, destToken, rate) {
 
     return new Promise(resolve => {
         contractPriceFeed.methods.setRates(srcToken, destToken, C.web3.utils.toWei(rate.toString(), 'Ether'))
-            .send({ from: A.owner.adr, gas:2500000, gasPrice:gasPrice })
+            .send({ from: A.owner.adr, gas: 2500000, gasPrice: gasPrice })
             .then(async (tx) => {
                 //console.log("change price Transaction: ", tx);
                 resolve(tx.transactionHash);
@@ -219,10 +219,10 @@ function parseLog(txHash) {
     return new Promise(resolve => {
         C.web3.eth.getTransactionReceipt(txHash, function (e, receipt) {
             const decodedLogs = abiDecoder.decodeLogs(receipt.logs);
-            
+
             for (let i = 0; i < decodedLogs.length; i++) {
                 if (decodedLogs[i] && decodedLogs[i].events && decodedLogs[i].name && decodedLogs[i].name == "Trade") {
-                   // console.log(decodedLogs[i].events); principal _> [6]
+                    // console.log(decodedLogs[i].events); principal _> [6]
                     return resolve(decodedLogs[i].events[2].value);
                 }
             }
