@@ -52,7 +52,7 @@ class Monitor {
 
     accBalances(liq, roll, fbr, og) {
         let i=1;
-        const threshold = 0.001;
+        const threshold = 0.002;
         
         for(let b in liq) {
             $("#balanceL"+i).text(b+": "+liq[b]+ " RBTC");
@@ -72,7 +72,7 @@ class Monitor {
         for(let b in fbr) {
             $('#balanceFbr').text(b+ ": "+fbr[b]+" RBTC");
             $("#accInfoFbr").removeClass();
-            if (fbr[b]>threshold) $('#accInfoFbr').addClass('alert alert-success');
+            if (fbr[b]>0.01) $('#accInfoFbr').addClass('alert alert-success');
             else $('#accInfoFbr').addClass('alert alert-danger');
         }
 
