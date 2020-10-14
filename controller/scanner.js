@@ -99,7 +99,6 @@ class PositionScanner {
 
             if (!this.positions[l.loanId]) {
                 this.positions[l.loanId] = l;
-
                 if (l.maxLiquidatable > 0) this.liquidations[l.loanId] = l;
             }
         }

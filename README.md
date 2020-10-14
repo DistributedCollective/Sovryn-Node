@@ -63,6 +63,10 @@ Check
 http://your-ip:3000/ to see some liquidation processing info
 
 
+### Logging
+The watcher uses pm2 for log handling.
+Install: pm2 install pm2-logrotate
+Setup: pm2 set pm2-logrotate:max_size 100K
 
 License
 ----

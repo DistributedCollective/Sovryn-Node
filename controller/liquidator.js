@@ -33,9 +33,12 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-                //replace 0.001 with correct needed amount
+                //replace 0.001 with correct amount needed
                 const w = await Wallet.getWallet("liquidator", 0.001, pos.maxLiquidatable, pos.loanToken);
-                if(!w) return this.handleNoWalletError(p);
+                if(!w) {
+                    this.handleNoWalletError(p);
+                    continue;
+                }
                 const nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
                 const rBtc= pos.loanToken == this.conf.loanTokenRBTC? true:false;  //need to change later to wRBTC
 
@@ -74,20 +77,21 @@ class Liquidator {
     handleLiqSuccess(wallet, loanId){
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         delete this.liquidations[loanId];
+        this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + loanId + " successful.");
     }
 
     async handleLiqError(loanId){
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + p + " failed.");
+            this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + loanId + " failed.");
         }
-        delete this.liquidations[p];
+        delete this.liquidations[loanId];
     }
 
     handleNoWalletError(loanId) {
         console.error("Liquidation of loan "+loanId+" failed because no wallet with enough funds was available");
-        this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + p + " failed because no wallet with enough funds was found.");
+        this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
         delete this.liquidations[loanId];
     }
 }
