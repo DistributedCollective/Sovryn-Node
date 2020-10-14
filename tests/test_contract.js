@@ -3,14 +3,14 @@
  * These approvals should be executed for every liquidator wallet once
 */
 const assert = require('assert');
-import conf from '../config/config_mainnet';
+import conf from '../config/config_testnet';
 import C from '../controller/contract';
 import W from '../secrets/accounts';
 C.init(conf);
 
 
 const amount = C.web3.utils.toWei("1000000000", 'ether');
-const from = W.liquidator[2].adr.toLowerCase();
+const from = W.liquidator[1].adr.toLowerCase();
 
 describe('Contract', async () => {
     describe('#basic function', async () => {
@@ -25,7 +25,7 @@ describe('Contract', async () => {
         });  */  
         
         it('should approve the Sovryn contract to spend SUSD (doc) for the main account', async () => {
-            console.log("approving "+from+ " "+conf.sovrynProtocolAdr+" for "+amount)
+            console.log(from+ " approving "+conf.sovrynProtocolAdr+" for "+amount)
             
             const approved = await C.approveToken(C.contractTokenSUSD, from, conf.sovrynProtocolAdr, amount);
             assert(approved.length == 66);

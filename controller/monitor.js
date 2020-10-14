@@ -11,51 +11,53 @@ import C from './contract';
 class MonitorController {
 
     start(conf, positions, liquidations, posScanner) {
-        this.conf=conf;
-        this.positions=positions;
-        this.liquidations=liquidations;
-        this.telegramBotNode = new TelegramBot(conf.errorBotNodeTelegramToken, {polling: false});
-        this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, {polling: false});
+        this.conf = conf;
+        this.positions = positions;
+        this.liquidations = liquidations;
+        this.telegramBotNode = new TelegramBot(conf.errorBotNodeTelegramToken, { polling: false });
+        this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, { polling: false });
         this.posScanner = posScanner;
 
-        let p=this;
-        setInterval(()=>{
+        let p = this;
+        setInterval(() => {
             p.checkSystem();
-        },1000*60);
+        }, 1000 * 60);
     }
 
     /**
      * Wrapper for health signals, called from client
      */
     async getSignals(cb) {
-        const resp = 
+        const resp =
         {
             blockInfoLn: await this.getCurrentBlockPrivateNode(),
             blockInfoPn: await this.getCurrentBlockPublicNode(),
             accountInfoLiq: await this.getAccountInfo(A.liquidator),
             accountInfoRoll: await this.getAccountInfo(A.rollover),
-            accountInfoFbr: await this.getAccountInfo([{adr:"0x896110899237409f6de4151c54cd48e4d3c84190"}]),
-            accountInfoOg: await this.getAccountInfo([{adr:"0x417621fC0035893FDcD5dd09CaF2f081345bfB5C"}]),
+            accountInfoFbr: await this.getAccountInfo([{ adr: "0x896110899237409f6de4151c54cd48e4d3c84190" }]),
+            accountInfoOg: await this.getAccountInfo([{ adr: "0x417621fC0035893FDcD5dd09CaF2f081345bfB5C" }]),
             positionInfo: await this.getOpenPositions(),
             liqInfo: await this.getOpenLiquidations()
         }
-        if(typeof cb==="function") cb(resp);
+        if (typeof cb === "function") cb(resp);
         else return resp;
     }
 
     /** 
     * Internal check
     */
-   async checkSystem(){
+    async checkSystem() {
+        if (this.conf.network == "test") return;
+
         const sInfo = await this.getSignals();
-        for(let b in sInfo.accountInfoLiq){
-            if(sInfo.accountInfoLiq[b]<0.001) 
-                this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for liquidator "+b+ " on "+this.conf.network+" network");
+        for (let b in sInfo.accountInfoLiq) {
+            if (sInfo.accountInfoLiq[b] < 0.001)
+                this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for liquidator " + b + " on " + this.conf.network + " network");
         }
 
-        for(let b in sInfo.accountInfoRoll){
-            if(sInfo.accountInfoRoll[b]<0.001) 
-            this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for rollover-wallet "+b+ " on "+this.conf.network+" network");
+        for (let b in sInfo.accountInfoRoll) {
+            if (sInfo.accountInfoRoll[b] < 0.001)
+                this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for rollover-wallet " + b + " on " + this.conf.network + " network");
         }
 
        if(sInfo.positionInfo==0){
@@ -64,7 +66,7 @@ class MonitorController {
     }
 
     getCurrentBlockPublicNode() {
-        let p=this;
+        let p = this;
         return new Promise(resolve => {
             axios({
                 method: 'post',
@@ -83,11 +85,11 @@ class MonitorController {
                 }
                 else resolve(-1);
             })
-            .catch((e) => {
-                console.error("error getting block-nr from public node");
-                console.error(e);
-                resolve(-1);
-            });
+                .catch((e) => {
+                    console.error("error getting block-nr from public node");
+                    console.error(e);
+                    resolve(-1);
+                });
         });
     }
 
@@ -105,20 +107,20 @@ class MonitorController {
     }
 
     async getAccountInfo(accounts) {
-        let accBalances={};
+        let accBalances = {};
 
-        for(let a of accounts) {
+        for (let a of accounts) {
             try {
                 let aInf = await C.web3.eth.getBalance(a.adr.toLowerCase());
                 aInf = C.web3.utils.fromWei(aInf, 'Ether');
                 accBalances[a.adr] = parseFloat(aInf);
             }
-            catch(e) {
+            catch (e) {
                 console.error("error on retrieving account balance");
                 console.error(e);
                 return -1;
             }
-        }        
+        }
         return accBalances;
     }
 
