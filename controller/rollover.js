@@ -23,13 +23,13 @@ class Rollover {
             for (let p in this.positions) {
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
                     console.log("Found expired open position. Going to rollover " + this.positions[p].loanId);
-                    const w = await Wallet.getWallet("rollover", 0.001);
+                    const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
                     await this.rollover(this.positions[p].loanId, w.adr, nonce);
                 }
             }
             console.log("Completed rollover at " + new Date(Date.now()));
-            await U.wasteTime(this.conf.waitBetweenRounds);
+            await U.wasteTime(this.conf.waitBetweenRounds*4);
         }
     }
 
