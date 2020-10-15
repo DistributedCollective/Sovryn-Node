@@ -41,7 +41,6 @@ class Liquidator {
                 }
                 const nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
                 
-
                 this.liquidate(p, w.adr, pos.maxLiquidatable, pos.loanToken, nonce);
                 await U.wasteTime(1); //1 second break to avoid rejection from node                
             }

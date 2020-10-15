@@ -30,7 +30,7 @@ class Wallet{
      * @reqTokenBalance in wei
      */
     async getWallet(type, reqTokenBalance, token){
-        console.log("Checking wallet of type "+type+", required balance: "+reqBalance+", tokenBalance: "+reqTokenBalance+", for token: "+token);
+        console.log("Checking wallet of type "+type+", required token Balance: "+reqTokenBalance+", for token: "+token);
         for(let wallet of A[type]){
             if(this.queue[type][wallet.adr].length < 4){
 
@@ -57,7 +57,7 @@ class Wallet{
 
     /**
      * removes a transaction from the queue
-     * @param which either 'liq' or 'rol'
+     * @param which either 'liquidator' or 'rollover'
      * @param address the wallet address
      * @param loanId the loan Id
      */
