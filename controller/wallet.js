@@ -8,6 +8,8 @@ import C from './contract';
 
 class Wallet{
     constructor(){
+        this.txFee = 1e14;
+
         let liquidationQueue = {};
         for(let liqWallet of A.liquidator)
             liquidationQueue[liqWallet.adr] = []
@@ -23,23 +25,20 @@ class Wallet{
     }
 
     /**
-     * Returns the next available liquidation/rollover wallet with sufficient funds (RBTC and token)
+     * Returns the next available wallet with sufficient funds (RBTC and token)
      * False if none could be found
-     * todo: define min wallet balance for sending tx
+     * @reqTokenBalance in wei
      */
-    async getWallet(type, reqBalance, reqTokenBalance, token){
+    async getWallet(type, reqTokenBalance, token){
+        console.log("Checking wallet of type "+type+", required token Balance: "+reqTokenBalance+", for token: "+token);
         for(let wallet of A[type]){
             if(this.queue[type][wallet.adr].length < 4){
 
-                let rBtcBal = await C.web3.eth.getBalance(wallet.adr);
-                rBtcBal = C.web3.utils.fromWei(rBtcBal, "Ether");
-                if(rBtcBal<=reqBalance) continue;
-                if(type=="rollover") return wallet;
-                if(!reqTokenBalance) return wallet;
-
-                let bal = await C.getWalletTokenBalance(wallet.adr, token);
-                bal=C.web3.utils.fromWei(bal, "Ether");
-                if(bal>=reqTokenBalance) return wallet;
+                let wBalance;
+                if(token=="rBtc") wBalance = await C.web3.eth.getBalance(wallet.adr);
+                else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
+                
+                if(wBalance>=(reqTokenBalance+this.txFee)) return wallet;
             }
         }
         return false;
@@ -58,7 +57,7 @@ class Wallet{
 
     /**
      * removes a transaction from the queue
-     * @param which either 'liq' or 'rol'
+     * @param which either 'liquidator' or 'rollover'
      * @param address the wallet address
      * @param loanId the loan Id
      */
