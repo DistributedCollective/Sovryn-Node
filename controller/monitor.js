@@ -4,7 +4,7 @@
  *  Assuming the public node from IOV labs is always right!
  */
 const axios = require('axios');
-const TelegramBot = require('node-telegram-bot-api');
+const Telegram = require('telegraf/telegram');
 import A from '../secrets/accounts';
 import C from './contract';
 
@@ -14,8 +14,8 @@ class MonitorController {
         this.conf = conf;
         this.positions = positions;
         this.liquidations = liquidations;
-        this.telegramBotNode = new TelegramBot(conf.errorBotNodeTelegramToken, { polling: false });
-        this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, { polling: false });
+        this.telegramBotNode = new Telegram(conf.errorBotNodeTelegramToken);
+        this.telegramBotWatcher = new Telegram(conf.errorBotWatcherTelegramToken);
         this.posScanner = posScanner;
 
         let p = this;

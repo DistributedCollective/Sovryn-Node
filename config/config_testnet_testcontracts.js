@@ -11,7 +11,9 @@ export default  {
     publicNodeProvider: 'https://public-node.testnet.rsk.co', 
     network: "test",
     nrOfProcessingPositions: 10, //need to find appropriate nr
-    waitBetweenRounds: 60, //in seconds
+    scannerInterval: 60, //in seconds
+    rolloverScanInterval: 60, //in seconds
+    liquidatorScanInterval: 60, //in seconds
     testTokenRBTC: "0x21Fa1095205a37aDe78F394B3B984ea3f743bc70", //wrbtc
     loanTokenSUSD: "0x4a050817d9192A4E4a093ea6426D53417c5Eb1FC", //underlying token = susd
     loanTokenRBTC: "0x021Bc6f3c101fC1354A212583a5aF0347FE283Cf",
