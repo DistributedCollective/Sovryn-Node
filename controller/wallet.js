@@ -6,16 +6,16 @@
 import A from '../secrets/accounts';
 import C from './contract';
 
-class Wallet{
-    constructor(){
+class Wallet {
+    constructor() {
         this.txFee = 1e14;
 
         let liquidationQueue = {};
-        for(let liqWallet of A.liquidator)
+        for (let liqWallet of A.liquidator)
             liquidationQueue[liqWallet.adr] = []
 
         let rolloverQueue = {};
-        for(let rWallet of A.rollover)
+        for (let rWallet of A.rollover)
             rolloverQueue[rWallet.adr] = []
 
         this.queue = {
@@ -30,20 +30,16 @@ class Wallet{
      * @reqTokenBalance in wei
      * Careful: Consider decimals for tokens. Rbtc and doc have 18
      */
-    async getWallet(type, reqTokenBalance, token){
-        console.log("Checking wallet of type "+type+", required token Balance: "+reqTokenBalance+", for token: "+token);
-        for(let wallet of A[type]){
-            if(this.queue[type][wallet.adr].length >= 4) continue;
+    async getWallet(type, reqTokenBalance, token) {
+        console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + token);
+        for (let wallet of A[type]) {
+            if (this.queue[type][wallet.adr].length >= 4) continue;
 
             let wBalance;
-            if(token=="rBtc") wBalance = await C.web3.eth.getBalance(wallet.adr);
+            if (token == "rBtc") wBalance = await C.web3.eth.getBalance(wallet.adr);
             else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
-            
-            wBalance = parseFloat(wBalance)
-            reqTokenBalance = parseFloat(reqTokenBalance)
 
-            if(wBalance>=reqTokenBalance) return wallet;
-            
+            if (parseFloat(wBalance) >= parseFloat(reqTokenBalance)) return wallet;
         }
         return false;
     }
@@ -55,8 +51,15 @@ class Wallet{
      * @param address the wallet address
      * @param loanId the loan Id
      */
-    addToQueue(which, address, loanId){
+    addToQueue(which, address, loanId) {
         this.queue[which][address].push(loanId);
+    }
+
+    checkIfLoanExist(loanId) {
+        for(let p in this.queue["liquidator"]) {
+            if(this.queue["liquidator"][p].indexOf(loanId)!=-1) return true;
+        }
+        return false;
     }
 
     /**
@@ -65,17 +68,18 @@ class Wallet{
      * @param address the wallet address
      * @param loanId the loan Id
      */
-    removeFromQueue(which, address, loanId){
+    removeFromQueue(which, address, loanId) {
         this.queue[which][address] = this.removeLoan(this.queue[which][address], loanId);
+        if(this.queue[which][address].length==0) delete this.queue[which][address];
     }
 
     removeLoan(queue, loanId) {
         var index = queue.indexOf(loanId);
         if (index > -1) {
-          queue.splice(index, 1);
+            queue.splice(index, 1);
         }
         return queue;
-      }
+    }
 }
 
 export default new Wallet();

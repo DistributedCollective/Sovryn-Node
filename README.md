@@ -1,6 +1,6 @@
 # Sovryn watcher
 
-The app has two main functions: Liquidation and rollover of open positions. 
+The app has three main functions: Liquidation and rollover of open positions,  
 It reads all open positions from the Sovryn marginTrade contracts and continuosly monitors for changes. 
   
 
@@ -64,9 +64,8 @@ http://your-ip:3000/ to see some liquidation processing info
 
 
 ### Logging
-The watcher uses pm2 for log handling.
-Install: pm2 install pm2-logrotate
-Setup: pm2 set pm2-logrotate:max_size 100K
+The watcher uses pm2 for log handling.    
+To enable Log-rotationdo "pm2 install pm2-logrotate" and afterwards "pm2 set pm2-logrotate:max_size 100K"   
 
 License
 ----

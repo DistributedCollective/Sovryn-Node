@@ -34,6 +34,7 @@ class Liquidator {
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
                 const token = pos.loanToken == this.conf.testTokenRBTC? "rBtc":pos.loanToken;
+                
                 const w = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
                 if(!w) {
                     this.handleNoWalletError(p);
@@ -63,8 +64,8 @@ class Liquidator {
             .send({ from: wallet, gas: 2500000, nonce:nonce, value:val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
-                console.log(tx);
-                this.handleLiqSuccess(wallet, loanId);
+                console.log(tx.txHash);
+                this.handleLiqSuccess(wallet, loanId, tx.transactionHash);
             })
             .catch((err) => {
                 console.error("Error on liquidating loan " + loanId);
@@ -73,10 +74,11 @@ class Liquidator {
         });
     }
 
-    handleLiqSuccess(wallet, loanId){
+    handleLiqSuccess(wallet, loanId, txHash){
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         delete this.liquidations[loanId];
-        this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + loanId + " successful.");
+        const msg = this.conf.network + "net-liquidation of loan " + loanId + " successful. \n "+txHash;
+        this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, msg);
     }
 
     async handleLiqError(loanId){
