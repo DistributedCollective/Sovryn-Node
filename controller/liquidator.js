@@ -49,7 +49,7 @@ class Liquidator {
                 await U.wasteTime(1); //1 second break to avoid rejection from node                
             }
             console.log("Completed liquidation round at " + new Date(Date.now()));
-            await U.wasteTime(this.conf.waitBetweenRounds);
+            await U.wasteTime(this.conf.liquidatorScanInterval);
         }
     }
 

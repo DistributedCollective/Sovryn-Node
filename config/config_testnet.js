@@ -6,9 +6,9 @@ export default  {
     publicNodeProvider: 'https://public-node.testnet.rsk.co', 
     network: "test",
     nrOfProcessingPositions: 10, //need to find appropriate nr
-    waitBetweenRounds: 60, //in seconds, should be > than blocktime
-    //todo: problem trying to liquidate same pos 2x because liquidator does not know it is in processing list
-    
+    scannerInterval: 60, //in seconds
+    rolloverScanInterval: 60, //in seconds
+    liquidatorScanInterval: 10, //in seconds
     testTokenRBTC: "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab", //wrbtc
     loanTokenSUSD: "0x74e00A8CeDdC752074aad367785bFae7034ed89f", //underlying token = doc
     loanTokenRBTC: "0xe67Fe227e0504e8e96A34C3594795756dC26e14B",

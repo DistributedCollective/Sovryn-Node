@@ -47,7 +47,7 @@ class PositionScanner {
             else if(pos && pos.length==0) {
                 console.log(Object.keys(this.positions).length+" active positions found");
                 
-                await U.wasteTime(this.conf.waitBetweenRounds);
+                await U.wasteTime(this.conf.scannerInterval);
                 from = 0;
                 to = this.conf.nrOfProcessingPositions;
                 

@@ -29,7 +29,7 @@ class Rollover {
                 }
             }
             console.log("Completed rollover at " + new Date(Date.now()));
-            await U.wasteTime(this.conf.waitBetweenRounds*4);
+            await U.wasteTime(this.conf.rolloverScanInterval);
         }
     }
 
