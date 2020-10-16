@@ -35,6 +35,7 @@ describe('Wallet', async () => {
         it('should return all liquidator doc-token wallet balances', async () => {
             for(var w of A.liquidator) {
                 let bal = await C.getWalletTokenBalance(w.adr, conf.docToken);
+                bal = C.web3.utils.fromWei(bal, "Ether");
                 console.log("Doc testtoken balance of "+w.adr+":"+ bal);
                 assert(bal>0);
             }
@@ -47,7 +48,8 @@ describe('Wallet', async () => {
                 assert(bal>0);
             }
         });
-
+        
+        //Not needed for new contracts
         it('should verify all liquidator wallets approved the sovryn contract to spend rbtc-token on their behalf', async () => {
             for(var w of A.liquidator) {
                 let bal = await C.getWalletTokenAllowance(w.adr, conf.sovrynProtocolAdr, conf.testTokenRBTC);

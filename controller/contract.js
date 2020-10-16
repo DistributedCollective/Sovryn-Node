@@ -80,8 +80,8 @@ class Contract {
         if(balDocToken<=0) return false;
         const allowanceDoc = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.docToken);
         if(allowanceDoc<=0) return false;
-        const alllowanceRbtc = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenRBTC);
-        if(alllowanceRbtc<=0) return false;
+        //const alllowanceRbtc = await this.getWalletTokenAllowance(adr, this.conf.sovrynProtocolAdr, this.conf.testTokenRBTC);
+        //if(alllowanceRbtc<=0) return false;
         return true;
     }
 

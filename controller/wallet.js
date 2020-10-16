@@ -28,18 +28,22 @@ class Wallet{
      * Returns the next available wallet with sufficient funds (RBTC and token)
      * False if none could be found
      * @reqTokenBalance in wei
+     * Careful: Consider decimals for tokens. Rbtc and doc have 18
      */
     async getWallet(type, reqTokenBalance, token){
         console.log("Checking wallet of type "+type+", required token Balance: "+reqTokenBalance+", for token: "+token);
         for(let wallet of A[type]){
-            if(this.queue[type][wallet.adr].length < 4){
+            if(this.queue[type][wallet.adr].length >= 4) continue;
 
-                let wBalance;
-                if(token=="rBtc") wBalance = await C.web3.eth.getBalance(wallet.adr);
-                else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
-                
-                if(wBalance>=(reqTokenBalance+this.txFee)) return wallet;
-            }
+            let wBalance;
+            if(token=="rBtc") wBalance = await C.web3.eth.getBalance(wallet.adr);
+            else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
+            
+            wBalance = parseFloat(wBalance)
+            reqTokenBalance = parseFloat(reqTokenBalance)
+
+            if(wBalance>=reqTokenBalance) return wallet;
+            
         }
         return false;
     }
