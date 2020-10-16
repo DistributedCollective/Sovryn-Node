@@ -11,6 +11,7 @@ import U from '../util/helper';
 
 C.init(conf);
 
+var liqQueue={};
 
 describe('Wallet', async () => {
     describe('#Read wallet', async () => {
@@ -49,6 +50,7 @@ describe('Wallet', async () => {
             }
         });
         
+        /*
         //Not needed for new contracts
         it('should verify all liquidator wallets approved the sovryn contract to spend rbtc-token on their behalf', async () => {
             for(var w of A.liquidator) {
@@ -56,7 +58,7 @@ describe('Wallet', async () => {
                 console.log("RBTC allowance for sovryn contract:"+ bal);
                 assert(bal>0);
             }
-        });
+        });*/
 
         it('should performa a complete liquidation wallet check', async()=> {
             for(var w of A.liquidator) {
@@ -65,13 +67,50 @@ describe('Wallet', async () => {
                 assert(checked);
             }
         });
+
+        it('should fill all open slots for the liquidator queue', async()=> {
+            const reqBal = C.web3.utils.toWei("0.001", "Ether");
+            for(let i=0;i<A.liquidator.length;i++) {
+                const w = await Wallet.getWallet("liquidator", reqBal, "rBtc");
+                
+                for(let j=0;j<4;j++) {
+                    const loanId = Math.random()*100000;
+                    liqQueue[loanId]=w.adr;
+                    console.log("Add loan "+loanId+" for address "+w.adr);
+                    Wallet.addToQueue("liquidator", w.adr, loanId);
+                }
+            }
+            for(let p in Wallet.queue["liquidator"]) assert(Wallet.queue["liquidator"][p].length==4);
+        });
+
+        it('should fail to return a wallet because all wallets are busy', async()=> {
+            const lastWallet = await Wallet.getWallet("liquidator", 0, "rBtc");
+            assert(!lastWallet);
+        });
+
+        it('should recognize all loan-Ids are already in queue', async()=> {
+            for(let l in liqQueue){
+                const inQueue = await Wallet.checkIfPositionExists(parseFloat(l));
+                assert(inQueue);
+            }
+        });
+
+        it('should remove all positions from the liquidator queue', async()=> {
+            for(let l in liqQueue){
+                console.log("Remove loan "+l+" associated to address "+liqQueue[l]);
+                Wallet.removeFromQueue("liquidator", liqQueue[l], parseFloat(l));
+            }
+            assert(Object.keys(Wallet.queue["liquidator"]).length === 0);
+        });
+
     });
 
+    /*
     describe('#Send tx', async () => {
         it('should send 4 tx at once', async () => {
-            const w = await Wallet.getWallet("liquidator", 0.1);
+            const w = await Wallet.getWallet("liquidator", 0.1, "rBtc");
             C.addWallets([w]);
-            const to = "0xe2b59CD37D173D550D75e9891376bf21b3f996F1";
+            const to = A.liquidator[0].adr;
             
             for (let i = 0; i < 4; i++) {
                 const amount = 0.001*(i+1);
@@ -87,7 +126,7 @@ describe('Wallet', async () => {
                 await U.wasteTime(1);
             }
         });
-    });
+    });*/
 });
 
 

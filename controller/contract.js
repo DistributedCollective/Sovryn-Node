@@ -95,7 +95,7 @@ class Contract {
     }
 
     /**
-     * Returns the wallet token balance
+     * Returns the wallet token balance in wei
      */
     getWalletTokenBalance(adr, token) {
         const tokenCtr = this.getTokenInstance(token);
@@ -108,8 +108,6 @@ class Contract {
                         console.error(error);
                         return resolve(false);
                     }
-
-                    //let bal = this.web3.utils.fromWei(result, 'Ether');
                     resolve(result);
                 });
             }
