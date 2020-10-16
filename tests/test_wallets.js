@@ -90,7 +90,7 @@ describe('Wallet', async () => {
 
         it('should recognize all loan-Ids are already in queue', async()=> {
             for(let l in liqQueue){
-                const inQueue = await Wallet.checkIfLoanExist(parseFloat(l));
+                const inQueue = await Wallet.checkIfPositionExists(parseFloat(l));
                 assert(inQueue);
             }
         });

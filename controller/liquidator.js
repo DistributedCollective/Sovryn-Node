@@ -35,6 +35,9 @@ class Liquidator {
                 const pos = this.liquidations[p];
                 const token = pos.loanToken == this.conf.testTokenRBTC? "rBtc":pos.loanToken;
                 
+                //Position already in liquidation wallet-queue
+                if(Wallet.checkIfPositionExists(p)) continue;
+
                 const w = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
                 if(!w) {
                     this.handleNoWalletError(p);
@@ -82,6 +85,7 @@ class Liquidator {
     }
 
     async handleLiqError(loanId){
+        Wallet.removeFromQueue("liquidator", wallet, loanId);
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");

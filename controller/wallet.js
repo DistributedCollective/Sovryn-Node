@@ -55,7 +55,7 @@ class Wallet {
         this.queue[which][address].push(loanId);
     }
 
-    checkIfLoanExist(loanId) {
+    checkIfPositionExists(loanId) {
         for(let p in this.queue["liquidator"]) {
             if(this.queue["liquidator"][p].indexOf(loanId)!=-1) return true;
         }
