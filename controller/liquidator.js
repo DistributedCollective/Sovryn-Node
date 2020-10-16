@@ -8,7 +8,7 @@
  * alternative: liquidate only with wrbtc
  */
 
-const TelegramBot = require('node-telegram-bot-api');
+const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
@@ -16,7 +16,7 @@ import Wallet from './wallet';
 class Liquidator {
     start(conf, liquidations) {
         this.conf=conf;
-        this.telegramBotWatcher = new TelegramBot(conf.errorBotWatcherTelegramToken, { polling: false });
+        this.telegramBotWatcher = new Telegram(conf.errorBotWatcherTelegramToken);
         this.liquidations = liquidations;
         this.checkPositionsForLiquidations();
     }
