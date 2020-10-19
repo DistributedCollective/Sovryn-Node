@@ -84,7 +84,7 @@ class Liquidator {
         this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, msg);
     }
 
-    async handleLiqError(loanId){
+    async handleLiqError(wallet, loanId){
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
