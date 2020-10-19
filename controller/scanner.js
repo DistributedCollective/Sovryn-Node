@@ -99,7 +99,8 @@ class PositionScanner {
 
             if (!this.positions[l.loanId]) {
                 this.positions[l.loanId] = l;
-                if (l.maxLiquidatable > 0) this.liquidations[l.loanId] = l;
+                //If liquidating at the very edge we often get errors if the price bounces back
+                if(l.currentMargin<l.maintenanceMargin*0.95) this.liquidations[l.loanId] = l;
             }
         }
     }
