@@ -5,10 +5,12 @@
 import Web3 from 'web3';
 import abiComplete from '../config/abiComplete';
 import abiTestToken from '../config/abiTestToken';
+import abiSwaps from '../config/abiSwaps';
+import abiPriceFeed from '../config/abiPriceFeed';
 
 class Contract {
     /**
-     * Creates all the contract intances to query open positions, balances
+     * Creates all the contract intances to query open positions, balances, prices
      */
     init(conf) {
         this.conf=conf;
@@ -16,6 +18,8 @@ class Contract {
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.docToken); 
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
+        this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
+        this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);
    }
 
    /**
