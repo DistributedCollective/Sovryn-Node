@@ -9,7 +9,7 @@ import abiLoanOpeningEvents from './abi/abiLoanOpeningEvents';
 import Web3 from 'web3';
 const abiDecoder = require('abi-decoder');
 var assert = require('assert');
-import tx from './tx';
+import tx from './tx_log_example';
 var web3, contractISUSD;
 abiDecoder.addABI(abiComplete);
 

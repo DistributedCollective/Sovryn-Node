@@ -1,10 +1,10 @@
 # Sovryn watcher
 
-The app has three main functions: Liquidation and rollover of open positions,  
+The app has three main functions: Liquidation of open positions, rollover of open positions and taking advantage of arbitrage opportunities on the amm.  
 It reads all open positions from the Sovryn marginTrade contracts and continuosly monitors for changes. 
   
 
-## Liquidation handling
+## 1. Liquidation handling
  
 If margin < maintenance, it initiates liquidation on the contract.  
 If it fails, it checks if the liquidation criteria are still met.    
@@ -15,12 +15,16 @@ If the tx was not confirmed after 10 minutes, it resends the transaction with a 
 The liquidator needs considerable funds in all currencies provided to be able to liquidate a position. He needs to allow the protocol contract to access his tokens in advance (Approve tokens) and have enough RBTC to cover transaction costs.
   
 
-## Rollover
+## 2. Rollover
 
 When the maximum loan duration has been exceeded, the position will need to be rolled over.
 The function rollover on the protocol contract extends the loan duration by the maximum term (28 days for margin trades at the moment of writing), pays the interest to the lender and refunds the caller for the gas cost by sending 2 * the gas cost using the fast gas price as base for the calculation.
  
-  
+
+## 3. Arbitrage
+
+Earn $ through abitrage: if the expected price from the amm deviates more than 2 % from the oracle price buy the side which is off and exchange the money back on money onchain.
+
 
 ### Requirements
 
