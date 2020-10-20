@@ -5,7 +5,7 @@
 import Web3 from 'web3';
 import abiComplete from '../config/abiComplete';
 import abiTestToken from '../config/abiTestToken';
-import abiSwaps from '../config/abiSwaps';
+import abiSwaps from '../config/abiSovrynSwapNetwork';
 import abiPriceFeed from '../config/abiPriceFeed';
 
 class Contract {

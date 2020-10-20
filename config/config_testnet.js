@@ -15,8 +15,9 @@ export default  {
     loanTokenRBTC: "0xe67Fe227e0504e8e96A34C3594795756dC26e14B",
     docToken: "0xCB46c0ddc60D18eFEB0E586C17Af6ea36452Dae0", //former susd
     sovrynProtocolAdr: "0x25380305f223B32FDB844152abD2E82BC5Ad99c3",
-    swapsImpl: "0xcFBE565dD20D4CFd0a2e33cA098d71048Eec0aca",
+    swapsImpl: "0x61172B53423E205a399640e5283e51FE60EC2256",
     priceFeed: "0x7f38c422b99075f63C9c919ECD200DF8d2Cf5BD4",
+    thresholdArbitrage: 2, //in %
     errorBotNodeTelegramToken: errorBotNodeTelegramToken,
     errorBotWatcherTelegramToken: errorBotWatcherTelegramToken,
     sovrynInternalTelegramId: -1001308978723,
