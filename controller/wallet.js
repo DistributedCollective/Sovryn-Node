@@ -70,7 +70,7 @@ class Wallet {
      */
     removeFromQueue(which, address, loanId) {
         this.queue[which][address] = this.removeLoan(this.queue[which][address], loanId);
-        if(this.queue[which][address].length==0) delete this.queue[which][address];
+        if(this.queue[which][address].length==0) this.queue[which][address]=[];
     }
 
     removeLoan(queue, loanId) {

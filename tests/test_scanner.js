@@ -30,7 +30,7 @@ describe('Scanner', async () => {
 
             while (true) {
                 const pos = await PosScanner.loadActivePositions(from, to);
-               
+               console.log(pos);
                 if (pos && pos.length > 0) {
                     console.log(pos.length + " active positions found");
                     PosScanner.addPosition(pos);
