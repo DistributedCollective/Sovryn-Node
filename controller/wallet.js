@@ -25,10 +25,10 @@ class Wallet {
     }
 
     /**
-     * Returns the next available wallet with sufficient funds (RBTC and token)
+     * Returns the next available wallet with sufficient funds (RBTC or token)
      * False if none could be found
      * @reqTokenBalance in wei
-     * Careful: Consider decimals for tokens. Rbtc and doc have 18
+     * Careful: Consider decimals for tokens. Rbtc and Doc have 18
      */
     async getWallet(type, reqTokenBalance, token) {
         console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + token);
@@ -70,7 +70,6 @@ class Wallet {
      */
     removeFromQueue(which, address, loanId) {
         this.queue[which][address] = this.removeLoan(this.queue[which][address], loanId);
-        if(this.queue[which][address].length==0) this.queue[which][address]=[];
     }
 
     removeLoan(queue, loanId) {
