@@ -69,6 +69,8 @@ class Wallet {
      * @param loanId the loan Id
      */
     removeFromQueue(which, address, loanId) {
+        console.log("Remove wallet "+address+" loanId "+loanId+" from queue");
+        console.log(this.queue[which][address]);
         this.queue[which][address] = this.removeLoan(this.queue[which][address], loanId);
     }
 

@@ -20,7 +20,7 @@ class MainController {
         C.init(conf);
         C.addWallets(A.liquidator);
         C.addWallets(A.rollover);
-        C.addWallets(A.arbitrage);
+        C.addWallets([A.arbitrage]);
         
         const b = await C.web3.eth.getBlockNumber();
         console.log("Connected to rsk " + conf.network + "-network. Current block " + b);
