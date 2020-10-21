@@ -29,9 +29,9 @@ class Arbitrage {
      * Wrapper for checking arbitrage opportunities
      * 1. Compare RBtc prices from Amm with the oracle
      * 2. If arbitrage opportunity is found: buy the tokens which are too many:
-     * Doc for: price(Amm) > price(PriceFeed), RBtc otherwise
+     * Doc if price(Amm) < price(PriceFeed), RBtc otherwise
      */
-    async checkAmmForArbitrage() {
+    async start() {
         while (true) {
             console.log("started checking prices at " + new Date(Date.now()));
 
@@ -39,7 +39,7 @@ class Arbitrage {
             let p = await this.getRBtcPrices();
             let arb = this.calcArbitrage(p[0, p[1], this.conf.thresholdArbitrage]);
             if (arb == p[0]) {
-                let convertedAmount = C.web3.utils.toWei(this.amount.toString(), "Ether");
+                let convertedAmount = C.web3.utils.toWei(p[0].toString(), "Ether");
                 res = await this.sendLiquidity(C.web3.utils.toWei(convertedAmount), "Doc");
             }
             else if (arb == p[1]) {
@@ -50,6 +50,8 @@ class Arbitrage {
 
             console.log("Completed checking prices at " + new Date(Date.now()));
             await U.wasteTime(this.conf.arbitrageScanInterval);
+            
+            //await U.wasteTime(this.conf.arbitrageScanInterval);
         }
     }
 
@@ -59,19 +61,26 @@ class Arbitrage {
      */
     calcArbitrage(p1, p2, threshold) {
         const smallerAmount = Math.min(p1, p2);
-        if ((Math.abs(p1 - p2) / smallerAmount * 100) >= threshold) return smallerAmount;
+        const arbitrage = Math.abs(p1 - p2) / smallerAmount * 100;
+        if (arbitrage >= threshold) {
+            console.log("Arbitrage (%): "+arbitrage);
+            if(smallerAmount==p1) console.log("Buy doc!")
+            else console.log("Buy RBtc");
+
+            return smallerAmount;
+        }
+        console.log("Price difference is too small for arbitrage");
         return 0;
     }
 
     async getRBtcPrices() {
         const amount = C.web3.utils.toWei(this.amount.toString(), "Ether");
-        let docPriceAmm = await this.getPriceFromAmm(C.contractSwaps, this.conf.testTokenRBTC, this.conf.docToken, amount);
-        docPriceAmm = C.web3.utils.fromWei(docPriceAmm.toString(), "Ether");
-        console.log("Doc Price amm: " + docPriceAmm);
-        let docPricePf = await this.getPriceFromPriceFeed(C.contractPriceFeed, this.conf.testTokenRBTC, this.conf.docToken, amount);
-        docPricePf = C.web3.utils.fromWei(docPricePf.toString(), "Ether");
-        console.log("Doc Price pricefeed: " + docPricePf);
-        return [docPriceAmm, docPricePf];
+        let rBtcPriceAmm = await this.getPriceFromAmm(C.contractSwaps, this.conf.testTokenRBTC, this.conf.docToken, amount);
+        rBtcPriceAmm = C.web3.utils.fromWei(rBtcPriceAmm.toString(), "Ether");
+        let rBtcPricePf = await this.getPriceFromPriceFeed(C.contractPriceFeed, this.conf.testTokenRBTC, this.conf.docToken, amount);
+        rBtcPricePf = C.web3.utils.fromWei(rBtcPricePf.toString(), "Ether");
+        console.log("RBtc Price amm: "+rBtcPriceAmm+", pricefeed: " + rBtcPricePf);
+        return [rBtcPriceAmm, rBtcPricePf];
     }
 
     /**

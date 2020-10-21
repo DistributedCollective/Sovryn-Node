@@ -3,3 +3,4 @@ public/dist
 secrets
 logs
 package-lock.json
+pm2.json

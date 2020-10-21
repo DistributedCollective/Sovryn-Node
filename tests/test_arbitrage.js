@@ -17,7 +17,6 @@ var pPriceFeed, pAmm;
 
 describe('Arbitrage', async () => {
     describe('#Retrieving prices', async () => {
-    
         it('Should get the RBtc price in doc from amm', async () => {
             const amount = C.web3.utils.toWei("0.0105", "Ether");
             let p = await Arbitrage.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.docToken, amount);
@@ -70,5 +69,10 @@ describe('Arbitrage', async () => {
             console.log(p);
             assert(p);
         });
+
+        /*
+        it('Should test the arbitrage loop', async () => {
+            Arbitrage.checkAmmForArbitrage();
+        });*/
     });
 });
