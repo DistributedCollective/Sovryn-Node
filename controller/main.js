@@ -6,6 +6,7 @@
 import PosScanner from './scanner';
 import Liquidator from './liquidator';
 import Rollover from './rollover';
+import Arbitrage from './arbitrage';
 import C from './contract';
 import A from '../secrets/accounts';
 import Monitor from './monitor';
@@ -28,6 +29,8 @@ class MainController {
         PosScanner.start(conf, this.positions, this.liquidations, true);
         Liquidator.start(conf, this.liquidations);
         Rollover.start(conf, this.positions);
+        Arbitrage.init(conf);
+        Arbitrage.start();
         Monitor.start(conf, this.positions, this.liquidations, PosScanner);
 
         const p = this;

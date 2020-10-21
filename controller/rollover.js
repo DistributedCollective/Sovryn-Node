@@ -1,5 +1,5 @@
 /**
- * Rollover the open position (loan or trade) to the next interval, currently 28 days  for margin-trades and 1 month for loans
+ * Rollover the open position (loan or trade) to the next interval, currently 28 days for margin-trades and 1 month for loans
  * Rollover = extend deadline and pay interest
  */
 import C from './contract';
