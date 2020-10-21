@@ -34,6 +34,7 @@ class MonitorController {
             blockInfoPn: await this.getCurrentBlockPublicNode(),
             accountInfoLiq: await this.getAccountInfo(A.liquidator),
             accountInfoRoll: await this.getAccountInfo(A.rollover),
+            accountInfoArb: await this.getAccountInfo([A.arbitrage]),
             accountInfoFbr: await this.getAccountInfo([{ adr: "0x896110899237409f6de4151c54cd48e4d3c84190" }]),
             accountInfoOg: await this.getAccountInfo([{ adr: "0x417621fC0035893FDcD5dd09CaF2f081345bfB5C" }]),
             positionInfo: await this.getOpenPositions(),
@@ -58,6 +59,11 @@ class MonitorController {
         for (let b in sInfo.accountInfoRoll) {
             if (sInfo.accountInfoRoll[b] < 0.001)
                 this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for rollover-wallet " + b + " on " + this.conf.network + " network");
+        }
+
+        for (let b in sInfo.accountInfoArb) {
+            if (sInfo.accountInfoArb[b] < 0.001)
+                this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for arbitrage-wallet " + b + " on " + this.conf.network + " network");
         }
 
        if(sInfo.positionInfo==0){

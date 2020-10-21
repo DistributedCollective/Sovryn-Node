@@ -22,7 +22,7 @@ class Monitor {
             console.log(res);
 
             p.lastBlock(res.blockInfoPn, res.blockInfoLn);
-            p.accBalances(res.accountInfoLiq, res.accountInfoRoll, res.accountInfoFbr, res.accountInfoOg);
+            p.accBalances(res.accountInfoLiq, res.accountInfoRoll, res.accountInfoArb, res.accountInfoFbr, res.accountInfoOg);
             p.showOpenPositions(res.positionInfo);
             p.showLiquidations(res.liqInfo);
         });
@@ -50,7 +50,7 @@ class Monitor {
         else $('#lastBlock').addClass('alert alert-success');
     }
 
-    accBalances(liq, roll, fbr, og) {
+    accBalances(liq, roll, arb, fbr, og) {
         let i=1;
         const threshold = 0.002;
         
@@ -67,6 +67,13 @@ class Monitor {
             $("#accInfoR1").removeClass();
             if (roll[b]>threshold) $('#accInfoR1').addClass('alert alert-success');
             else $('#accInfoR1').addClass('alert alert-danger');
+        }
+
+        for(let b in arb) {
+            $('#balanceAr1').text(b+ ": "+arb[b]+" RBTC");
+            $("#accInfoAr1").removeClass();
+            if (arb[b]>threshold) $('#accInfoAr1').addClass('alert alert-success');
+            else $('#accInfoAr1').addClass('alert alert-danger');
         }
 
         for(let b in fbr) {
