@@ -1,7 +1,7 @@
 # Sovryn watcher
 
+The watcher reads all open positions from the Sovryn marginTrade contracts and continuosly monitors for changes. 
 The app has three main functions: Liquidation of open positions, rollover of open positions and taking advantage of arbitrage opportunities on the amm.  
-It reads all open positions from the Sovryn marginTrade contracts and continuosly monitors for changes. 
   
 
 ## 1. Liquidation handling
@@ -39,22 +39,19 @@ Webpack
 1. npm install
 2. npm run build-client
 3. Create empty directory "logs"
-4. Create directory "secrets" and within a file account.js with the credentials of the liquidator and rollover wallets 
+4. Create directory "secrets" and within a file account.js with the credentials of the liquidator/rollover/arbitrage wallets 
 
 export default {
-    liquidator: [{
+    ["liquidator"/"rollover"/"arbitrage"]: [{
         adr: "",
         pKey: ""
     },
-    ...
-    ],
-    rollover: [{
-        adr: "",
-        pKey: ""
-    },
-    ...
-    ]
 }
+
+5. Charge the watcher wallets with RBtc and Doc
+6. Execute util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets  as well as the swap network contract to spend
+Doc on behalf of the arbitrage wallet.
+
 ```
 
 
