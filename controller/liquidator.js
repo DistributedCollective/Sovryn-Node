@@ -31,7 +31,7 @@ class Liquidator {
      */
     async checkPositionsForLiquidations() {
         while (true) {
-            console.log("started liquidation round at " + new Date(Date.now()));
+            console.log("started liquidation round");
             console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
 
             for (let p in this.liquidations) {
@@ -51,7 +51,7 @@ class Liquidator {
                 this.liquidate(p, w.adr, pos.maxLiquidatable, pos.loanToken, nonce);
                 await U.wasteTime(1); //1 second break to avoid rejection from node                
             }
-            console.log("Completed liquidation round at " + new Date(Date.now()));
+            console.log("Completed liquidation round");
             await U.wasteTime(conf.liquidatorScanInterval);
         }
     }

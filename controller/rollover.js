@@ -19,7 +19,7 @@ class Rollover {
      */
     async checkPositionsExpiration() {
         while (true) {
-            console.log("started checking expired positions at " + new Date(Date.now()));
+            console.log("started checking expired positions");
 
             for (let p in this.positions) {
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
@@ -29,7 +29,7 @@ class Rollover {
                     await this.rollover(this.positions[p].loanId, w.adr, nonce);
                 }
             }
-            console.log("Completed rollover at " + new Date(Date.now()));
+            console.log("Completed rollover");
             await U.wasteTime(conf.rolloverScanInterval);
         }
     }

@@ -34,7 +34,7 @@ class Arbitrage {
      */
     async start() {
         while (true) {
-            console.log("started checking prices at " + new Date(Date.now()));
+            console.log("started checking prices");
 
             let res, profit;
             let p = await this.getRBtcPrices();
@@ -49,7 +49,7 @@ class Arbitrage {
 
             if(res) profit = await this.calculateProfit(res);
 
-            console.log("Completed checking prices at " + new Date(Date.now()));
+            console.log("Completed checking prices at ");
             await U.wasteTime(conf.arbitrageScanInterval);
             
             //await U.wasteTime(conf.arbitrageScanInterval);

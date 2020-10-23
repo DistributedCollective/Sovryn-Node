@@ -77,7 +77,7 @@ class PositionScanner {
             try {
                 C.contractSovryn.methods.getActiveLoans(from, to, false).call((error, res) => {
                     if (error) {
-                        console.error(new Date(Date.now())+"error receiving user loans from "+from+" to: "+to);
+                        console.error("Error receiving user loans from "+from+" to: "+to);
                         console.error(error);
                         return resolve(false);
                     }
@@ -85,7 +85,7 @@ class PositionScanner {
                 });
             }
             catch (e) {
-                console.error(new Date(Date.now())+"error on retrieving active loans from "+from+" to: "+to);
+                console.error("Error on retrieving active loans from "+from+" to: "+to);
                 console.error(e);
                 resolve(false);
             }
