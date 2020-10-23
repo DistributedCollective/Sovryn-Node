@@ -22,9 +22,9 @@ class MainController {
         console.log("Connected to rsk " + conf.network + "-network. Current block " + b);
  
         PosScanner.start(this.positions, this.liquidations);
-        Liquidator.start(this.liquidations);
-        Rollover.start(this.positions);
-        Arbitrage.start();
+        if(conf.enableLiquidator) Liquidator.start(this.liquidations);
+        if(conf.enbableRollover) Rollover.start(this.positions);
+        if(conf.enableArbitrage) Arbitrage.start();
         Monitor.start(this.positions, this.liquidations, PosScanner);
 
         io.on('connection', (socket) => {

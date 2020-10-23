@@ -14,6 +14,10 @@ export default  {
     scannerInterval: 60, //in seconds
     rolloverScanInterval: 60, //in seconds
     liquidatorScanInterval: 60, //in seconds
+    arbitrageScanInterval,
+    enableLiquidator: true,
+    enableRollover: true,
+    enableArbitrage: true,
     testTokenRBTC: "0x21Fa1095205a37aDe78F394B3B984ea3f743bc70", //wrbtc
     loanTokenSUSD: "0x4a050817d9192A4E4a093ea6426D53417c5Eb1FC", //underlying token = susd
     loanTokenRBTC: "0x021Bc6f3c101fC1354A212583a5aF0347FE283Cf",
