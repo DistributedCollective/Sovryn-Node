@@ -1,6 +1,6 @@
 /**
  * Main controller
- * Starts observing the contract and liquidation and rollover processing
+ * Starts observing the contract, liquidation and rollover processing
  * Also provides the api to monitor open positions/liquidations
  */
 import PosScanner from './scanner';
@@ -8,8 +8,8 @@ import Liquidator from './liquidator';
 import Rollover from './rollover';
 import Arbitrage from './arbitrage';
 import C from './contract';
-import A from '../secrets/accounts';
 import Monitor from './monitor';
+import conf from '../config/config';
 
 class MainController {
     constructor() {
@@ -17,23 +17,16 @@ class MainController {
         this.liquidations={};
     }
 
-    async start(conf, io) {
-        C.init(conf);
-        C.addWallets(A.liquidator);
-        C.addWallets(A.rollover);
-        C.addWallets([A.arbitrage]);
-        
+    async start(io) { 
         const b = await C.web3.eth.getBlockNumber();
         console.log("Connected to rsk " + conf.network + "-network. Current block " + b);
  
-        PosScanner.start(conf, this.positions, this.liquidations, true);
-        Liquidator.start(conf, this.liquidations);
-        Rollover.start(conf, this.positions);
-        Arbitrage.init(conf);
+        PosScanner.start(this.positions, this.liquidations);
+        Liquidator.start(this.liquidations);
+        Rollover.start(this.positions);
         Arbitrage.start();
-        Monitor.start(conf, this.positions, this.liquidations, PosScanner);
+        Monitor.start(this.positions, this.liquidations, PosScanner);
 
-        const p = this;
         io.on('connection', (socket) => {
             socket.on('getSignals', async (cb) => Monitor.getSignals(cb));
             socket.on('getOpenPositionsDetails', async (cb) => Monitor.getOpenPositionsDetails(cb));
@@ -42,5 +35,4 @@ class MainController {
     }
 }
 
-const mainController = new MainController();
-export default mainController;
+export default new MainController;

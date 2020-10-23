@@ -12,4 +12,4 @@ bot.on('message', (msg) => {
   console.log(msg);
 });
 
-bot.sendMessage(conf.sovrynInternalTelegramId, "hello");
+bot.sendMessage(c.sovrynInternalTelegramId, "hello");

@@ -2,16 +2,11 @@
  * Arbitrage tester
  */
 
-import conf from '../config/config_testnet';
+process.argv[2]="testnet";
+import conf from '../config/config';
 import C from '../controller/contract';
 import Arbitrage from '../controller/arbitrage';
-import A from '../secrets/accounts';
 const assert = require('assert');
-
-C.init(conf);
-C.addWallets([A.arbitrage]);
-
-Arbitrage.init(conf);
 
 var pPriceFeed, pAmm;
 
@@ -50,10 +45,9 @@ describe('Arbitrage', async () => {
         it('Should detect arbitrage on the contract', async () => {
             const a = Arbitrage.calcArbitrage(pPriceFeed,pAmm,2);
             console.log(a);
-            assert(a>0);
+            assert(a);
         });
 
-        
         it('Should send Doc to the amm', async () => {
             const amount = C.web3.utils.toWei("105", "Ether");
             let p = await Arbitrage.sendLiquidity(amount, "Doc");

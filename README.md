@@ -18,7 +18,7 @@ The liquidator needs considerable funds in all currencies provided to be able to
 ## 2. Rollover
 
 When the maximum loan duration has been exceeded, the position will need to be rolled over.
-The function rollover on the protocol contract extends the loan duration by the maximum term (28 days for margin trades at the moment of writing), pays the interest to the lender and refunds the caller for the gas cost by sending 2 * the gas cost using the fast gas price as base for the calculation.
+The function "rollover" on the protocol contract extends the loan duration by the maximum term (28 days for margin trades at the moment of writing), pays the interest to the lender and refunds the caller for the gas cost by sending 2 * the gas cost using the fast gas price as base for the calculation.
  
 
 ## 3. Arbitrage
@@ -66,7 +66,7 @@ http://your-ip:3000/ to see some liquidation processing info
 
 ### Logging
 The watcher uses pm2 for log handling.    
-To enable Log-rotationdo "pm2 install pm2-logrotate" and afterwards "pm2 set pm2-logrotate:max_size 100K"   
+To enable Log-rotationdo "pm2 install pm2-logrotate" and afterwards "pm2 set pm2-logrotate:max_size 1000K"   
 
 License
 ----

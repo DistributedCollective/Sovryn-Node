@@ -4,31 +4,24 @@
  * This tests only works with the old contracts where the price can be changed manually
  */
 
-import conf from '../config/config_testnet_testcontracts';
+process.argv[2]="testnet";
+import conf from '../config/config';
+
 import abiComplete from '../config/abiComplete';
-import abiLoanToken from './abi/abiLoanToken';
-import abiPriceFeed from './abi/abiPriceFeed';
 import C from '../controller/contract';
 import Liquidator from '../controller/liquidator';
 import A from '../secrets/accounts';
 
 const abiDecoder = require('abi-decoder');
 const assert = require('assert');
-const adrPriceFeed = "0xE30352CDaa15E4ce5a03583b521DA7aD3C29ff4a";
 
-var contractPriceFeed, contractISUSD;
 var loanIdHigh, loanIdLow, loanHigh, loanLow;
-C.init(conf);
-C.addWallets(A.liquidator);
-C.addWallets([A.owner]);
 
 
 describe('Liquidation', async () => {
     describe('#liquidate a position', async () => {
         before(async () => {
             console.log("init");
-            contractPriceFeed = new C.web3.eth.Contract(abiPriceFeed, adrPriceFeed);
-            contractISUSD = new C.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
             abiDecoder.addABI(abiComplete);
         });
 
@@ -147,7 +140,7 @@ async function openLongPosition(amount, leverage) {
         const collateralTokenSent = C.web3.utils.toWei(amount, 'ether');
         const loanDataBytes = "0x"; //need to be empty
         const from = A.liquidator[0].adr.toLowerCase();
-        let t = await marginTrade(contractISUSD, loanId, leverageAmount, loanTokenSent, collateralTokenSent, conf.testTokenRBTC, from, loanDataBytes);
+        let t = await marginTrade(C.contractTokenSUSD, loanId, leverageAmount, loanTokenSent, collateralTokenSent, conf.testTokenRBTC, from, loanDataBytes);
         resolve(t);
     });
 }
@@ -197,7 +190,7 @@ async function changePrice(srcToken, destToken, rate) {
     const gasPrice = await C.web3.eth.getGasPrice();
 
     return new Promise(resolve => {
-        contractPriceFeed.methods.setRates(srcToken, destToken, C.web3.utils.toWei(rate.toString(), 'Ether'))
+        C.contractPriceFeed.methods.setRates(srcToken, destToken, C.web3.utils.toWei(rate.toString(), 'Ether'))
             .send({ from: A.owner.adr, gas: 2500000, gasPrice: gasPrice })
             .then(async (tx) => {
                 //console.log("change price Transaction: ", tx);

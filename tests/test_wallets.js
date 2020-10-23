@@ -3,13 +3,12 @@
  * 
 */
 const assert = require('assert');
-import conf from '../config/config_testnet';
+process.argv[2]="testnet";
+import conf from '../config/config';
 import C from '../controller/contract';
 import A from '../secrets/accounts';
 import Wallet from '../controller/wallet';
 import U from '../util/helper';
-
-C.init(conf);
 
 var liqQueue={};
 

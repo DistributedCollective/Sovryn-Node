@@ -5,10 +5,11 @@
 import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
+import conf from '../config/config';
+
 
 class Rollover {
-    start(conf, positions) {
-        this.conf=conf;
+    start(positions) {
         this.positions = positions;
         this.checkPositionsExpiration();
     }
@@ -29,7 +30,7 @@ class Rollover {
                 }
             }
             console.log("Completed rollover at " + new Date(Date.now()));
-            await U.wasteTime(this.conf.rolloverScanInterval);
+            await U.wasteTime(conf.rolloverScanInterval);
         }
     }
 

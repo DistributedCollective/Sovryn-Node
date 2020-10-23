@@ -12,11 +12,14 @@ const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
+import conf from '../config/config';
 
 class Liquidator {
-    start(conf, liquidations) {
-        this.conf = conf;
+    constructor(){
         this.telegramBotWatcher = new Telegram(conf.errorBotWatcherTelegramToken);
+    }
+    
+    start(liquidations) {
         this.liquidations = liquidations;
         this.checkPositionsForLiquidations();
     }
@@ -33,7 +36,7 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-                const token = pos.loanToken == this.conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+                const token = pos.loanToken == conf.testTokenRBTC ? "rBtc" : pos.loanToken;
 
                 //Position already in liquidation wallet-queue
                 if (Wallet.checkIfPositionExists(p)) continue;
@@ -49,7 +52,7 @@ class Liquidator {
                 await U.wasteTime(1); //1 second break to avoid rejection from node                
             }
             console.log("Completed liquidation round at " + new Date(Date.now()));
-            await U.wasteTime(this.conf.liquidatorScanInterval);
+            await U.wasteTime(conf.liquidatorScanInterval);
         }
     }
 
@@ -61,7 +64,7 @@ class Liquidator {
     liquidate(loanId, wallet, amount, token, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet);
         Wallet.addToQueue("liquidator", wallet, loanId);
-        const val = token == this.conf.testTokenRBTC ? amount : 0;
+        const val = token == conf.testTokenRBTC ? amount : 0;
 
         C.contractSovryn.methods.liquidate(loanId, wallet, amount)
             .send({ from: wallet, gas: 2500000, nonce: nonce, value: val })
@@ -80,8 +83,8 @@ class Liquidator {
     handleLiqSuccess(wallet, loanId, txHash) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         delete this.liquidations[loanId];
-        const msg = this.conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
-        this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, msg);
+        const msg = conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
+        this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, msg);
     }
 
     async handleLiqError(wallet, loanId) {
@@ -89,14 +92,14 @@ class Liquidator {
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + loanId + " failed.");
+            this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed.");
         }
         delete this.liquidations[loanId];
     }
 
     handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, this.conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
+        this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
         delete this.liquidations[loanId];
     }
 }

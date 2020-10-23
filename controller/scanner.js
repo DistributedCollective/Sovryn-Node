@@ -7,17 +7,18 @@
  */
 import C from './contract';
 import U from '../util/helper';
+import conf from '../config/config';
+
 
 class PositionScanner {
     /**
      * Set positions and liquidations
      * Start watching the contract if start=true
      */
-    start(conf, positions, liquidations, start) {
-        this.conf=conf;
+    start(positions, liquidations) {
         this.positions=positions;
         this.liquidations=liquidations;
-        if(start) this.processPositions();
+        this.processPositions();
     }
 
     /**
@@ -29,10 +30,10 @@ class PositionScanner {
      * Known issues: new open positions can have a different LoanId after some blocks got mined
      */
     async processPositions() {
-        console.log("Start processing active positions");
+        console.log("Start processing active positions in "+conf.scannerInterval+" s interval");
 
         let from = 0;
-        let to = this.conf.nrOfProcessingPositions;
+        let to = conf.nrOfProcessingPositions;
 
         while (true) {
             const pos = await this.loadActivePositions(from, to);
@@ -40,23 +41,25 @@ class PositionScanner {
                 this.addPosition(pos);
                 //console.log(pos.length + " active positions found");
                 from = to;
-                to = from + this.conf.nrOfProcessingPositions;
+                to = from + conf.nrOfProcessingPositions;
                 await U.wasteTime(1);
             }
             //reached current state
             else if(pos && pos.length==0) {
+                
                 console.log(Object.keys(this.positions).length+" active positions found");
                 
-                await U.wasteTime(this.conf.scannerInterval);
+                await U.wasteTime(conf.scannerInterval);
                 from = 0;
-                to = this.conf.nrOfProcessingPositions;
+                to = conf.nrOfProcessingPositions;
                 
                 for (let k in this.positions) if (this.positions.hasOwnProperty(k)) delete this.positions[k];
             }
             //error retrieving pos for this interval
             else {
+                console.error("Error retrieving pos");
                 from = to;
-                to = from + this.conf.nrOfProcessingPositions;
+                to = from + conf.nrOfProcessingPositions;
                 await U.wasteTime(1);
             }
         }

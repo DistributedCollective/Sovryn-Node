@@ -3,7 +3,8 @@
  * Day1: create open loans. Wait 24h
  * Day2: Execute it again. It will load open and expired positions from Day1 and tries to roll them over.
 */
-import conf from '../config/config_testnet';
+process.argv[2]="testnet";
+import conf from '../config/config';
 import abiComplete from '../config/abiComplete';
 import A from '../secrets/accounts';
 import C from '../controller/contract';
@@ -16,8 +17,6 @@ const assert = require('assert');
 const abiDecoder = require('abi-decoder');
 abiDecoder.addABI(abiComplete);
 
-C.init(conf);
-C.addWallets(A.liquidator);
 
 const contractISUSD = new C.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
 

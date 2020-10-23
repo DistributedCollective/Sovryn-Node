@@ -20,7 +20,7 @@ export default  {
     docToken: "0xD958866a46F4e7Db1Cc6A80589D0dc44Cbfb155b", //susd
     sovrynProtocolAdr: "0x6E2fb26a60dA535732F8149b25018C9c0823a715",
     swapsImpl: "0x61172B53423E205a399640e5283e51FE60EC2256",
-    priceFeed: "0x7f38c422b99075f63C9c919ECD200DF8d2Cf5BD4",
+    priceFeed: "0xE30352CDaa15E4ce5a03583b521DA7aD3C29ff4a",
     thresholdArbitrage: 2, //in %
     errorBotNodeTelegramToken: errorBotNodeTelegramToken,
     errorBotWatcherTelegramToken: errorBotWatcherTelegramToken,

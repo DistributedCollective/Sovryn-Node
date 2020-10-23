@@ -1,6 +1,6 @@
 /**
  * Wallet controller
- * Rsk currently only supports 4 simultaneos transactions per wallet
+ * Rsk currently only supports 4 simultaneos transactions per wallet. In order to avoid to use 4x more wallets a transaction queue is needed
  */
 
 import A from '../secrets/accounts';

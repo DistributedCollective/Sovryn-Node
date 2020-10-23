@@ -17,10 +17,11 @@ const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
 import A from '../secrets/accounts';
+import conf from '../config/config';
+
 
 class Arbitrage {
-    init(conf) {
-        this.conf = conf;
+    constructor() {
         this.telegramBotWatcher = new Telegram(conf.errorBotWatcherTelegramToken);
         this.amount = 0.010; //105$; see comment on top
     }
@@ -37,7 +38,7 @@ class Arbitrage {
 
             let res, profit;
             let p = await this.getRBtcPrices();
-            let arb = this.calcArbitrage(p[0], p[1], this.conf.thresholdArbitrage);
+            let arb = this.calcArbitrage(p[0], p[1], conf.thresholdArbitrage);
             if (arb == p[0]) {
                 let convertedAmount = C.web3.utils.toWei(p[0].toString(), "Ether");
                 res = await this.sendLiquidity(C.web3.utils.toWei(convertedAmount), "Doc");
@@ -49,9 +50,9 @@ class Arbitrage {
             if(res) profit = await this.calculateProfit(res);
 
             console.log("Completed checking prices at " + new Date(Date.now()));
-            await U.wasteTime(this.conf.arbitrageScanInterval);
+            await U.wasteTime(conf.arbitrageScanInterval);
             
-            //await U.wasteTime(this.conf.arbitrageScanInterval);
+            //await U.wasteTime(conf.arbitrageScanInterval);
         }
     }
 
@@ -75,9 +76,9 @@ class Arbitrage {
 
     async getRBtcPrices() {
         const amount = C.web3.utils.toWei(this.amount.toString(), "Ether");
-        let rBtcPriceAmm = await this.getPriceFromAmm(C.contractSwaps, this.conf.testTokenRBTC, this.conf.docToken, amount);
+        let rBtcPriceAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.docToken, amount);
         rBtcPriceAmm = C.web3.utils.fromWei(rBtcPriceAmm.toString(), "Ether");
-        let rBtcPricePf = await this.getPriceFromPriceFeed(C.contractPriceFeed, this.conf.testTokenRBTC, this.conf.docToken, amount);
+        let rBtcPricePf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.docToken, amount);
         rBtcPricePf = C.web3.utils.fromWei(rBtcPricePf.toString(), "Ether");
         console.log("RBtc Price amm: "+rBtcPriceAmm+", pricefeed: " + rBtcPricePf);
         return [rBtcPriceAmm, rBtcPricePf];
@@ -151,18 +152,18 @@ class Arbitrage {
      */
     sendLiquidity(amount, currency) {
         console.log("Selling " + amount + " "+currency+" to the amm");
-        const sourceToken = currency=="Doc"?this.conf.docToken:this.conf.testTokenRBTC;
-        const destToken = currency=="Doc"?this.conf.testTokenRBTC:this.conf.docToken;
+        const sourceToken = currency=="Doc"?conf.docToken:conf.testTokenRBTC;
+        const destToken = currency=="Doc"?conf.testTokenRBTC:conf.docToken;
         const contract = C.contractSwaps;
         const minReturn = 1; //amount / 100 * 99; //minReturn = 1 -> No assurance
-        const beneficiary = A.arbitrage.adr;
+        const beneficiary = A.arbitrage[0].adr;
         const affiliateAcc = "0x0000000000000000000000000000000000000000";
         const affiliateFee = 0;
 
         return new Promise(async (resolve) => {
             try {
                 contract.methods["conversionPath"](sourceToken, destToken).call((error, result) => {
-                    if (error) {
+                    if (error || !result || result.length!=3) {
                         console.error("error loading conversion path from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                         console.error(error);
                         return resolve();

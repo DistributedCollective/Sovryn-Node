@@ -7,11 +7,11 @@ const axios = require('axios');
 const Telegram = require('telegraf/telegram');
 import A from '../secrets/accounts';
 import C from './contract';
+import conf from '../config/config';
 
 class MonitorController {
 
-    start(conf, positions, liquidations, posScanner) {
-        this.conf = conf;
+    start(positions, liquidations, posScanner) {
         this.positions = positions;
         this.liquidations = liquidations;
         this.telegramBotNode = new Telegram(conf.errorBotNodeTelegramToken);
@@ -34,7 +34,7 @@ class MonitorController {
             blockInfoPn: await this.getCurrentBlockPublicNode(),
             accountInfoLiq: await this.getAccountInfo(A.liquidator),
             accountInfoRoll: await this.getAccountInfo(A.rollover),
-            accountInfoArb: await this.getAccountInfo([A.arbitrage]),
+            accountInfoArb: await this.getAccountInfo(A.arbitrage),
             accountInfoFbr: await this.getAccountInfo([{ adr: "0x896110899237409f6de4151c54cd48e4d3c84190" }]),
             accountInfoOg: await this.getAccountInfo([{ adr: "0x417621fC0035893FDcD5dd09CaF2f081345bfB5C" }]),
             positionInfo: await this.getOpenPositions(),
@@ -48,26 +48,26 @@ class MonitorController {
     * Internal check
     */
     async checkSystem() {
-        if (this.conf.network == "test") return;
+        if (conf.network == "test") return;
 
         const sInfo = await this.getSignals();
         for (let b in sInfo.accountInfoLiq) {
             if (sInfo.accountInfoLiq[b] < 0.001)
-                this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for liquidator " + b + " on " + this.conf.network + " network");
+                this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for liquidator " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoRoll) {
             if (sInfo.accountInfoRoll[b] < 0.001)
-                this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for rollover-wallet " + b + " on " + this.conf.network + " network");
+                this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for rollover-wallet " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoArb) {
             if (sInfo.accountInfoArb[b] < 0.001)
-                this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No money left for arbitrage-wallet " + b + " on " + this.conf.network + " network");
+                this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for arbitrage-wallet " + b + " on " + conf.network + " network");
         }
 
        if(sInfo.positionInfo==0){
-           // this.telegramBotWatcher.sendMessage(this.conf.sovrynInternalTelegramId, "No open positions on the contract on "+this.conf.network+ " network");
+           // this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No open positions on the contract on "+conf.network+ " network");
         }
     }
 

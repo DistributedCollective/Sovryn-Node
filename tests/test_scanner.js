@@ -1,7 +1,7 @@
 /**
  * Test the position scanner loop
 */
-import conf from '../config/config_testnet';
+process.argv[2]="testnet";
 import abiComplete from '../config/abiComplete';
 import PosScanner from '../controller/scanner';
 import C from '../controller/contract';
@@ -9,17 +9,17 @@ import U from '../util/helper';
 const assert = require('assert');
 const abiDecoder = require('abi-decoder');
 abiDecoder.addABI(abiComplete);
-C.init(conf);
+
 
 let positions = {}
 let liquidations = {};
 
 
-
 describe('Scanner', async () => {
     describe('#Open positions', async () => {
         before('init', async () => {
-            PosScanner.start(conf, positions, liquidations, false);
+            PosScanner.positions=positions;
+            PosScanner.liquidations=liquidations;
         });
 
         it('should find open positions on the Sovryn contract', async () => {
