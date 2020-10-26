@@ -7,7 +7,7 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
 import mainController from './controller/main';
-import conf from '../config/config';
+import conf from './config/config';
 
 const monitor = require('pm2-server-monitor');
 monitor({
