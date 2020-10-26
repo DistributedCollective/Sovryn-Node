@@ -38,7 +38,7 @@ class Arbitrage {
 
             let res, arb, profit;
             let p = await this.getRBtcPrices();
-            if(p[0] && p[1]) arb = this.calcArbitrage(p[0], p[1], conf.thresholdArbitrage);
+            if(p[0]>0 && p[1]>0) arb = this.calcArbitrage(p[0], p[1], conf.thresholdArbitrage);
             if (arb && (arb == p[0])) {
                 let convertedAmount = C.web3.utils.toWei(p[0].toString(), "Ether");
                 res = await this.sendLiquidity(C.web3.utils.toWei(convertedAmount), "Doc");
@@ -69,7 +69,7 @@ class Arbitrage {
             return smallerAmount;
         }
         console.log(arbitrage+ " % price difference is too small for arbitrage");
-        return 0;
+        return;
     }
 
     async getRBtcPrices() {

@@ -87,6 +87,11 @@ class Liquidator {
         this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, msg);
     }
 
+    /**
+     * Possible errors: 
+     * 1. Another user was faster -> position is already liquidated
+     * 2. Btc price moved in opposite direction and the amount cannot be liquidated anymore
+     */
     async handleLiqError(wallet, loanId) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         const updatedLoan = await C.getPositionStatus(loanId)

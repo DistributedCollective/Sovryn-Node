@@ -4,7 +4,7 @@
  * This tests only works with the old contracts where the price can be changed manually
  */
 
-process.argv[2]="testnet";
+process.argv[2]="testnet_testcontracts";
 import conf from '../config/config';
 
 import abiComplete from '../config/abiComplete';
@@ -24,11 +24,11 @@ describe('Liquidation', async () => {
             console.log("init");
             abiDecoder.addABI(abiComplete);
         });
-
+/*
         it('should set the start price for btc to 10000', async () => {
             let a = await changePrice(conf.testTokenRBTC, conf.docToken, 10000);
             assert(a.length == 66);
-        });
+        });*/
 
         it('should create a position with 2x leverage)', async () => {
             let p = await openLongPosition("0.01", "2");
@@ -36,7 +36,7 @@ describe('Liquidation', async () => {
             console.log("loan id low " + loanIdLow)
             assert(p.length == 66);
         });
-
+/*
         it('should create a position with 4x leverage)', async () => {
             let p = await openLongPosition("0.01", "4");
             loanIdHigh = await parseLog(p);
@@ -113,7 +113,7 @@ describe('Liquidation', async () => {
             }
             let liquidated = await Liquidator.liquidate(loanIdLow, A.liquidator[0].adr, loanLow.maxLiquidatable);
             assert(liquidated);
-        });
+        });*/
     });
 });
 
@@ -191,7 +191,7 @@ async function changePrice(srcToken, destToken, rate) {
 
     return new Promise(resolve => {
         C.contractPriceFeed.methods.setRates(srcToken, destToken, C.web3.utils.toWei(rate.toString(), 'Ether'))
-            .send({ from: A.owner.adr, gas: 2500000, gasPrice: gasPrice })
+            .send({ from: A.owner[0].adr, gas: 2500000, gasPrice: gasPrice })
             .then(async (tx) => {
                 //console.log("change price Transaction: ", tx);
                 resolve(tx.transactionHash);
