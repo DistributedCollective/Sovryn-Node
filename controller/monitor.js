@@ -76,7 +76,7 @@ class MonitorController {
         return new Promise(resolve => {
             axios({
                 method: 'post',
-                url: p.conf.publicNodeProvider,
+                url: conf.publicNodeProvider,
                 data: {
                     method: 'eth_blockNumber',
                     jsonrpc: "2.0",
