@@ -1,14 +1,20 @@
+/**
+ * Datbase controller.
+ */
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-import BotModel from '../models/bot';
+import Arbitrage from '../models/arbitrage';
+import Rollover from '../models/rollover';
+import Liquidator from '../models/liquidator';
+
 
 class DbCtrl {
 
     async initDb(dbName) {
         return new Promise(resolve => {
-            const file = path.join(__dirname, '../db/' + dbName + ".db");
+            const file = path.join(__dirname, '../db/' + dbName);
             this.db = new sqlite3.Database(file, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
                 if (err) {
                     console.error(err.message, file);
@@ -27,9 +33,12 @@ class DbCtrl {
      */
     async initRepos() {
         try {
-            this.botRepository = new BotModel(this.db);
-
-            await this.botRepository.createTable();
+            this.arbRepo = new Arbitrage(this.db);
+            this.rollRepo = new Rollover(this.db);
+            this.liqRepo = new Liquidator(this.db);
+            await this.arbRepo.createTable();
+            await this.rollRepo.createTable();
+            await this.liqRepo.createTable();
         } catch (e) {
             console.log(e);
         }
@@ -55,38 +64,6 @@ class DbCtrl {
         } catch (e) {
             console.log(e);
         }
-    }
-
-    async deActiveBots(bots) {
-        try {
-            for (let bot of bots) {
-                await this.botRepository.update({adr: bot.adr}, {active: 0});
-            }
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
-    async updateBot(botAdr, updateInfo) {
-        return await this.botRepository.update({adr: botAdr}, updateInfo);
-    }
-
-    async findActiveBots() {
-        try {
-            const list = await this.botRepository.find({active: 1});
-            return list || [];
-        } catch (e) {
-            console.log(e);
-            return [];
-        }
-    }
-
-    async getLastBotIndex() {
-        return this.botRepository.getLastIndex();
-    }
-
-    async listLastBots(nr = 50) {
-        return await this.botRepository.find({}, {limit: nr, orderBy: {id: -1}});
     }
 }
 

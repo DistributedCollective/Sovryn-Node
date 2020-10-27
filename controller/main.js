@@ -3,13 +3,14 @@
  * Starts observing the contract, liquidation and rollover processing
  * Also provides the api to monitor open positions/liquidations
  */
+import conf from '../config/config';
 import PosScanner from './scanner';
 import Liquidator from './liquidator';
 import Rollover from './rollover';
 import Arbitrage from './arbitrage';
 import C from './contract';
 import Monitor from './monitor';
-import conf from '../config/config';
+import dbCtrl from './db';
 
 class MainController {
     constructor() {
@@ -20,7 +21,8 @@ class MainController {
     async start(io) { 
         const b = await C.web3.eth.getBlockNumber();
         console.log("Connected to rsk " + conf.network + "-network. Current block " + b);
- 
+        await dbCtrl.initDb(conf.db);
+
         PosScanner.start(this.positions, this.liquidations);
         if(conf.enableLiquidator) Liquidator.start(this.liquidations);
         if(conf.enbableRollover) Rollover.start(this.positions);

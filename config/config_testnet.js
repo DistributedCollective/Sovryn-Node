@@ -5,6 +5,7 @@ export default  {
     nodeProvider: 'https://testnet.sovryn.app/rpc',  
     publicNodeProvider: 'https://public-node.testnet.rsk.co', 
     network: "test",
+    db: "watcher_testnet.db",
     nrOfProcessingPositions: 100, //need to find appropriate nr
     scannerInterval: 60, //in seconds
     rolloverScanInterval: 60, //in seconds
