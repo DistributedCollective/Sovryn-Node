@@ -1,7 +1,7 @@
 /**
  * Test the position scanner loop
+ * Set config file in /config.config.js manually because mocha.js overwrites process.arg
 */
-process.argv[2]="testnet";
 import abiComplete from '../config/abiComplete';
 import PosScanner from '../controller/scanner';
 import C from '../controller/contract';
@@ -10,10 +10,8 @@ const assert = require('assert');
 const abiDecoder = require('abi-decoder');
 abiDecoder.addABI(abiComplete);
 
-
 let positions = {}
 let liquidations = {};
-
 
 describe('Scanner', async () => {
     describe('#Open positions', async () => {

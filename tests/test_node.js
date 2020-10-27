@@ -1,6 +1,6 @@
 /**
  * general tests for interacting with the node.
- * */
+ */
 
 import c from '../config/config_testnet';
 import abiComplete from '../config/abiComplete';

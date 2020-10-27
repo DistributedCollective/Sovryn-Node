@@ -2,9 +2,10 @@
  * Liquidation tester
  * The liquidator account need to have sufficient tokens approved to be able to liquidate the open positions
  * This tests only works with the old contracts where the price can be changed manually
+ * 
+ *  Set config file in /config.config.js manually because mocha.js overwrites process.arg
  */
 
-process.argv[2]="testnet_testcontracts";
 import conf from '../config/config';
 
 import abiComplete from '../config/abiComplete';
@@ -24,11 +25,22 @@ describe('Liquidation', async () => {
             console.log("init");
             abiDecoder.addABI(abiComplete);
         });
-/*
+        
+        it('should liquidate an open position', async () => {
+            const loanId = "0x724b280f7bc3babcef613e57c07ead3779065ca67ccf26c9ce38540b14e7c5a9";
+            const token = "0x542fDA317318eBF1d3DEAf76E0b632741A7e677d" == conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+            console.log("Liquidating "+token);
+            const nonce = await C.web3.eth.getTransactionCount(A.liquidator[1].adr, 'pending');
+            const maxLiquidatable = 180109841160566;
+            let liquidated = await Liquidator.liquidate(loanId, A.liquidator[1].adr, maxLiquidatable, token, nonce);
+            assert(true);
+        });
+
+        /*
         it('should set the start price for btc to 10000', async () => {
             let a = await changePrice(conf.testTokenRBTC, conf.docToken, 10000);
             assert(a.length == 66);
-        });*/
+        });
 
         it('should create a position with 2x leverage)', async () => {
             let p = await openLongPosition("0.01", "2");
@@ -36,7 +48,7 @@ describe('Liquidation', async () => {
             console.log("loan id low " + loanIdLow)
             assert(p.length == 66);
         });
-/*
+        
         it('should create a position with 4x leverage)', async () => {
             let p = await openLongPosition("0.01", "4");
             loanIdHigh = await parseLog(p);
@@ -202,6 +214,22 @@ async function changePrice(srcToken, destToken, rate) {
             });
     });
 }
+
+/*
+function liquidate(loanId, wallet, amount) {
+    C.contractSovryn.methods.liquidate(loanId, wallet, amount)
+            .send({ from: wallet, gas: 2500000, value: val })
+            .then(async (tx) => {
+                console.log("loan " + loanId + " liquidated!");
+                console.log(tx.txHash);
+                this.handleLiqSuccess(wallet, loanId, tx.transactionHash);
+            })
+            .catch((err) => {
+                console.error("Error on liquidating loan " + loanId);
+                console.error(err);
+                this.handleLiqError(loanId);
+        });
+}*/
 
 
 /**

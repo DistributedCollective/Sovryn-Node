@@ -2,8 +2,9 @@
  * This test need to be executed in 2 steps
  * Day1: create open loans. Wait 24h
  * Day2: Execute it again. It will load open and expired positions from Day1 and tries to roll them over.
+ * 
+ * Set config file in /config.config.js manually because mocha.js overwrites process.arg
 */
-process.argv[2]="testnet";
 import conf from '../config/config';
 import abiComplete from '../config/abiComplete';
 import A from '../secrets/accounts';

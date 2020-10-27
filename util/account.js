@@ -48,5 +48,5 @@ async function transferToken(from, to, val) {
 }
 
 //createAccount(1);
-//transfer(A.liquidator[1], "0xAb6E5c658F1EA88bC4fC8fe87FDAa10d8Bf53c69".toLowerCase(), "0.005");
-transferToken(A.liquidator[2], "0xAb6E5c658F1EA88bC4fC8fe87FDAa10d8Bf53c69".toLowerCase(), "20");
+transfer(A.liquidator[0], A.liquidator[1].adr, "0.005");
+//transferToken(A.liquidator[2], A.liquidator[1].adr, "20");
