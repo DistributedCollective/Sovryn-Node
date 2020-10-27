@@ -62,22 +62,25 @@ class Liquidator {
     * wallet = sender and receiver address
     */
     liquidate(loanId, wallet, amount, token, nonce) {
-        console.log("trying to liquidate loan " + loanId + " from wallet " + wallet);
+        console.log("trying to liquidate loan " + loanId + " from wallet " + wallet+", amount: "+amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
-        const val = token == conf.testTokenRBTC ? amount : 0;
+        const val = token=="rBtc"? amount : 0;
+        console.log("Sending val: "+val);
+        console.log("Nonce: "+nonce);
 
+        const p=this;
         C.contractSovryn.methods.liquidate(loanId, wallet, amount)
             .send({ from: wallet, gas: 2500000, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.txHash);
-                this.handleLiqSuccess(wallet, loanId, tx.transactionHash);
+                p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
             })
             .catch((err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                this.handleLiqError(loanId);
-            });
+                p.handleLiqError(loanId);
+        });
     }
 
     handleLiqSuccess(wallet, loanId, txHash) {

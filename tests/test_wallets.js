@@ -1,9 +1,8 @@
 /**
  * Wallet tester
- * 
+ * Set config file in /config.config.js manually because mocha.js overwrites process.arg
 */
 const assert = require('assert');
-process.argv[2]="testnet";
 import conf from '../config/config';
 import C from '../controller/contract';
 import A from '../secrets/accounts';

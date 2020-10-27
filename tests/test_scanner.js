@@ -1,7 +1,7 @@
 /**
  * Test the position scanner loop
+ * Set config file in /config.config.js manually because mocha.js overwrites process.arg
 */
-import conf from '../config/config_mainnet';
 import abiComplete from '../config/abiComplete';
 import PosScanner from '../controller/scanner';
 import C from '../controller/contract';
@@ -9,17 +9,15 @@ import U from '../util/helper';
 const assert = require('assert');
 const abiDecoder = require('abi-decoder');
 abiDecoder.addABI(abiComplete);
-C.init(conf);
 
 let positions = {}
 let liquidations = {};
 
-
-
 describe('Scanner', async () => {
     describe('#Open positions', async () => {
         before('init', async () => {
-            PosScanner.start(conf, positions, liquidations, false);
+            PosScanner.positions=positions;
+            PosScanner.liquidations=liquidations;
         });
 
         it('should find open positions on the Sovryn contract', async () => {
@@ -59,7 +57,10 @@ describe('Scanner', async () => {
             for(let p in PosScanner.positions){
                 let margin = PosScanner.positions[p].currentMargin/1e18;
                 let mMargin = PosScanner.positions[p].maintenanceMargin/1e18;
-                if(margin<20) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
+                if(margin<16) {
+                    console.log(PosScanner.positions[p]);
+                    console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
+                }
             }
         });
     });
