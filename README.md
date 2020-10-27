@@ -18,7 +18,7 @@ The liquidator needs considerable funds in all currencies provided to be able to
 ## 2. Rollover
 
 When the maximum loan duration has been exceeded, the position will need to be rolled over.
-The function "rollover" on the protocol contract extends the loan duration by the maximum term (28 days for margin trades at the moment of writing), pays the interest to the lender and refunds the caller for the gas cost by sending 2 * the gas cost using the fast gas price as base for the calculation.
+The function "rollover" on the protocol contract extends the loan duration by the maximum term (28 days for margin trades at the moment of writing) and pays the interest to the lender. The callers reward is 0.1% of the position size and receives 2 * the gas cost using the fast gas price as base for the calculation as well as 0.1% .
  
 
 ## 3. Arbitrage
