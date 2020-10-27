@@ -1,7 +1,6 @@
 /**
- *  Accepts client requests and checks the health of the watcher and node in 60s interval
+ *  Accepts client requests and checks the health of the watcher in 60s interval
  *  If the system is not healthy it sends a message to the telegram group
- *  Assuming the public node from IOV labs is always right!
  */
 const axios = require('axios');
 const Telegram = require('telegraf/telegram');
@@ -14,14 +13,15 @@ class MonitorController {
     start(positions, liquidations, posScanner) {
         this.positions = positions;
         this.liquidations = liquidations;
-        this.telegramBotNode = new Telegram(conf.errorBotNodeTelegramToken);
-        this.telegramBotWatcher = new Telegram(conf.errorBotWatcherTelegramToken);
         this.posScanner = posScanner;
 
-        let p = this;
-        setInterval(() => {
-            p.checkSystem();
-        }, 1000 * 60);
+        if(conf.errorBotTelegram!="") {
+            this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
+            let p = this;
+            setInterval(() => {
+                p.checkSystem();
+            }, 1000 * 60);
+        }
     }
 
     /**
@@ -35,8 +35,6 @@ class MonitorController {
             accountInfoLiq: await this.getAccountInfo(A.liquidator),
             accountInfoRoll: await this.getAccountInfo(A.rollover),
             accountInfoArb: await this.getAccountInfo(A.arbitrage),
-            accountInfoFbr: await this.getAccountInfo([{ adr: "0x896110899237409f6de4151c54cd48e4d3c84190" }]),
-            accountInfoOg: await this.getAccountInfo([{ adr: "0x417621fC0035893FDcD5dd09CaF2f081345bfB5C" }]),
             positionInfo: await this.getOpenPositions(),
             liqInfo: await this.getOpenLiquidations()
         }
@@ -64,10 +62,6 @@ class MonitorController {
         for (let b in sInfo.accountInfoArb) {
             if (sInfo.accountInfoArb[b] < 0.001)
                 this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for arbitrage-wallet " + b + " on " + conf.network + " network");
-        }
-
-       if(sInfo.positionInfo==0){
-           // this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No open positions on the contract on "+conf.network+ " network");
         }
     }
 

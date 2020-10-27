@@ -48,6 +48,10 @@ export default {
     },
 }
 
+as well as a telegram bot-token-id if notifications on telegram about new transactions are desired
+export default "[telegram-bot-token]";
+export default ""; for no notifications
+
 5. Charge the watcher wallets with RBtc and Doc
 6. Execute util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets  as well as the swap network contract to spend
 Doc on behalf of the arbitrage wallet.
