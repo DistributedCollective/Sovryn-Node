@@ -1,4 +1,4 @@
-import telgramBot from '../secrets/telegram.js';
+import telegramBot from '../secrets/telegram.js';
 
 export default  {
     serverPort: 3000,
