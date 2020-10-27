@@ -48,7 +48,9 @@ export default {
     },
 }
 
-as well as a telegram bot-token-id if notifications on telegram about new transactions are desired
+Ever wallet need to have at least nonce 1.
+
+To receive notifications on telegram about new transactions and errors create a telegram bot-token-id and write in in a file /secrets/telegram.js
 export default "[telegram-bot-token]";
 export default ""; for no notifications
 
