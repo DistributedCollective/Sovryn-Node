@@ -57,10 +57,7 @@ describe('Scanner', async () => {
             for(let p in PosScanner.positions){
                 let margin = PosScanner.positions[p].currentMargin/1e18;
                 let mMargin = PosScanner.positions[p].maintenanceMargin/1e18;
-                if(margin<16) {
-                    console.log(PosScanner.positions[p]);
-                    console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
-                }
+                if(margin<15) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
             }
         });
     });

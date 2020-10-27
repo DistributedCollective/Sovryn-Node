@@ -1,4 +1,4 @@
-import {errorBotNodeTelegramToken, errorBotWatcherTelegramToken} from '../secrets/telegram';
+import telegramBot from '../secrets/telegram.js';
 
 export default {
     serverPort: 3000,
@@ -21,8 +21,7 @@ export default {
     swapsImpl: "0x98aCE08D2b759a265ae326F010496bcD63C15afc", 
     priceFeed: "0x437AC62769f386b2d238409B7f0a7596d36506e4",
     thresholdArbitrage: 2, //in%
-    errorBotNodeTelegramToken: errorBotNodeTelegramToken,
-    errorBotWatcherTelegramToken: errorBotWatcherTelegramToken,
+    errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
     healthMonitorPort: 10 //results in 3010
 }

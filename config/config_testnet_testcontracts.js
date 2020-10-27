@@ -3,7 +3,7 @@
 * does not take price from oracles
 */
 
-import {errorBotNodeTelegramToken, errorBotWatcherTelegramToken} from '../secrets/telegram';
+import telegramBot from '../secrets/telegram.js';
 
 export default  {
     serverPort: 3000,
@@ -26,8 +26,7 @@ export default  {
     swapsImpl: "0x61172B53423E205a399640e5283e51FE60EC2256",
     priceFeed: "0xE30352CDaa15E4ce5a03583b521DA7aD3C29ff4a",
     thresholdArbitrage: 2, //in %
-    errorBotNodeTelegramToken: errorBotNodeTelegramToken,
-    errorBotWatcherTelegramToken: errorBotWatcherTelegramToken,
+    errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
     healthMonitorPort: 3 //results in 3003
 }

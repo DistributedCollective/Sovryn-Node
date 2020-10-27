@@ -48,6 +48,12 @@ export default {
     },
 }
 
+Ever wallet need to have at least nonce 1.
+
+To receive notifications on telegram about new transactions and errors create a telegram bot-token-id and write in in a file /secrets/telegram.js
+export default "[telegram-bot-token]";
+export default ""; for no notifications
+
 5. Charge the watcher wallets with RBtc and Doc
 6. Execute util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets  as well as the swap network contract to spend
 Doc on behalf of the arbitrage wallet.
