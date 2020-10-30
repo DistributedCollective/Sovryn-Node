@@ -44,7 +44,7 @@ class Arbitrage {
                 res = await this.sendLiquidity(C.web3.utils.toWei(convertedAmount), "Doc");
             }
             else if (arb && (arb == p[1])) {
-                res = await this.sendLiquidity(C.web3.utils.toWei(this.amount), "Rbtc");
+                res = await this.sendLiquidity(C.web3.utils.toWei(this.amount.toString()), "Rbtc");
             }
 
             if(res) profit = await this.calculateProfit(res);
