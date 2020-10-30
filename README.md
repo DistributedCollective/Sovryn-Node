@@ -48,8 +48,6 @@ export default {
     },
 }
 
-Every wallet need to have at least nonce 1 in order to do contract calls without getting an error from the node. Reason unkown.
-
 To receive notifications on telegram about new transactions and errors create a telegram bot-token-id and write in in a file /secrets/telegram.js
 export default "[telegram-bot-token]";
 export default ""; for no notifications
