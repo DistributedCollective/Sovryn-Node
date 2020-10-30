@@ -135,6 +135,12 @@ function getRequiredCollateral(loanToken, collateralToken, principal, marginAmou
  * Borrows from the ISUD contract
  */
 function borrow(collateralTokenSent, withdrawAmount, collateralTokenAddress, adrBorrower, adrReceiver) {
+    console.log("-----------")
+    console.log(collateralTokenSent)
+    console.log(withdrawAmount)
+    console.log(collateralTokenAddress)
+    console.log(adrBorrower)
+    console.log(adrReceiver)
     return new Promise(async (resolve) => {
         const loanId = "0x0000000000000000000000000000000000000000000000000000000000000000"; // 0 if new loan
         const durationInSeconds = 60*60*24;

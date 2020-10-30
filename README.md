@@ -38,7 +38,7 @@ Webpack
 ```sh
 1. npm install
 2. npm run build-client
-3. Create empty directory "logs"
+3. Create empty directories "logs" and "db" in the project root
 4. Create directory "secrets" and within a file account.js with the credentials of the liquidator/rollover/arbitrage wallets 
 
 export default {
@@ -48,14 +48,12 @@ export default {
     },
 }
 
-Every wallet need to have at least nonce 1 in order to do contract calls without getting an error from the node. Reason unkown.
-
 To receive notifications on telegram about new transactions and errors create a telegram bot-token-id and write in in a file /secrets/telegram.js
 export default "[telegram-bot-token]";
 export default ""; for no notifications
 
 5. Charge the watcher wallets with RBtc and Doc
-6. Execute util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets  as well as the swap network contract to spend
+6. Execute util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets as well as the swap network contract to spend
 Doc on behalf of the arbitrage wallet.
 
 ```
