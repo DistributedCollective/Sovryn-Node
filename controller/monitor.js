@@ -28,6 +28,7 @@ class MonitorController {
      * Wrapper for health signals, called from client
      */
     async getSignals(cb) {
+        console.log("get signals")
         const resp =
         {
             blockInfoLn: await this.getCurrentBlockPrivateNode(),

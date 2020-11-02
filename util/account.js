@@ -7,7 +7,8 @@ import conf from '../config/config_mainnet';
 import A from '../secrets/accounts';
 import abiDocToken from '../config/abiTestToken';
 
-var web3 = new Web3(conf.nodeProvider);
+//var web3 = new Web3(conf.nodeProvider);
+var web3 = new Web3("https://public-node.rsk.co");
 var docContract = new web3.eth.Contract(abiDocToken, conf.docToken);
 
 
@@ -48,5 +49,5 @@ async function transferToken(from, to, val) {
 }
 
 //createAccount(1);
-transfer(A.liquidator[0], A.liquidator[1].adr, "0.005");
+transfer(A.liquidator[0], A.liquidator[1].adr, "0.00005");
 //transferToken(A.liquidator[2], A.liquidator[1].adr, "20");
