@@ -4,3 +4,4 @@ secrets
 logs
 package-lock.json
 pm2.json
+db

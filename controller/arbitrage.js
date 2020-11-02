@@ -149,7 +149,7 @@ class Arbitrage {
      * todo2: convert minReturn with web3-big-number lib
      */
     sendLiquidity(amount, currency) {
-        console.log("Selling " + amount + " "+currency+" to the amm");
+        console.log("Send " + amount + " "+currency+" to the amm");
         const sourceToken = currency=="Doc"?conf.docToken:conf.testTokenRBTC;
         const destToken = currency=="Doc"?conf.testTokenRBTC:conf.docToken;
         const contract = C.contractSwaps;
