@@ -44,8 +44,8 @@ class Rollover {
             C.contractSovryn.methods.rollover(loanId, loanDataBytes)
                 .send({ from: wallet, gas: 2500000, nonce })
                 .then((tx) => {
-                    //console.log("Rollover Transaction: ");
-                    //console.log(tx);
+                    console.log("Rollover successful");
+                    console.log(tx);
                     resolve(tx.transactionHash);
                 })
                 .catch((err) => {

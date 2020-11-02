@@ -6,10 +6,10 @@ export default {
     publicNodeProvider: 'https://public-node.rsk.co',
     network: "main",
     db: "watcher_mainnet.db",
-    nrOfProcessingPositions: 100, //need to find appropriate nr
-    scannerInterval: 60, //in seconds
-    rolloverScanInterval: 60, //in seconds
-    liquidatorScanInterval: 10, //in seconds
+    nrOfProcessingPositions: 100, 
+    scannerInterval: 60, //sec
+    rolloverScanInterval: 60, //sec
+    liquidatorScanInterval: 10, //sec
     arbitrageScanInterval: 60,
     enableLiquidator: true,
     enableRollover: true,
@@ -21,7 +21,7 @@ export default {
     sovrynProtocolAdr: "0x5A0D867e0D70Fcc6Ade25C3F1B89d618b5B4Eaa7",
     swapsImpl: "0x98aCE08D2b759a265ae326F010496bcD63C15afc", 
     priceFeed: "0x437AC62769f386b2d238409B7f0a7596d36506e4",
-    thresholdArbitrage: 2, //in%
+    thresholdArbitrage: 2, //in %
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
     healthMonitorPort: 10 //results in 3010

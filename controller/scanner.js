@@ -1,9 +1,7 @@
 /**
  * Contract position scanner
- * Reads all open positions from the blockchain by quereing "active loans" in a loop. Stores open positions in a queue "positions" and
+ * Reads all open positions from the Sovryn contract by quereing "active loans" in a loop. Stores open positions in a queue "positions" and
  * positions flagged for liquidation in "liquidations".
- * Monitors every position on the loantoken contract and checks if it is still open and if it needs to be liquidated or not.
- * 
  */
 import C from './contract';
 import U from '../util/helper';
@@ -13,7 +11,6 @@ import conf from '../config/config';
 class PositionScanner {
     /**
      * Set positions and liquidations
-     * Start watching the contract if start=true
      */
     start(positions, liquidations) {
         this.positions=positions;
@@ -68,7 +65,6 @@ class PositionScanner {
     /**
      * Loading active positions from the contract
      * Returns 
-     * todo: check order (0-10 = first 10 or last 10??)
      */
     loadActivePositions(from, to) {
         //console.log("loading active positions from id " + from + " to " + to);
@@ -112,7 +108,6 @@ class PositionScanner {
             }
         }
     }
-
 }
 
 export default new PositionScanner();

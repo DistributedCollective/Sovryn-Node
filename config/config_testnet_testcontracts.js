@@ -1,8 +1,6 @@
 /** 
-* This contracts contain a custom price feed which is arbitrarily settable
-* does not take price from oracles
+* This contract version contain a custom price feed which is arbitrarily settable by the contract owner and does not take price from oracles
 */
-
 import telegramBot from '../secrets/telegram.js';
 
 export default  {
@@ -11,10 +9,10 @@ export default  {
     publicNodeProvider: 'https://public-node.testnet.rsk.co', 
     network: "test",
     db: "watcher_testnettestcontract.db",
-    nrOfProcessingPositions: 10, //need to find appropriate nr
-    scannerInterval: 60, //in seconds
-    rolloverScanInterval: 60, //in seconds
-    liquidatorScanInterval: 60, //in seconds
+    nrOfProcessingPositions: 100,
+    scannerInterval: 60, //sec
+    rolloverScanInterval: 60, //sec
+    liquidatorScanInterval: 60, //sec
     arbitrageScanInterval: 60,
     enableLiquidator: true,
     enableRollover: true,
