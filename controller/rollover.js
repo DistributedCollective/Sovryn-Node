@@ -45,12 +45,11 @@ class Rollover {
             C.contractSovryn.methods.rollover(loanId, loanDataBytes)
                 .send({ from: wallet, gas: 2500000, nonce })
                 .then((tx) => {
-                    console.log("Rollover Transaction successful: ");
-                    console.log(tx);
+                    console.log("Rollover Transaction successful: "+tx.transactionHash);
                     resolve(tx.transactionHash);
                 })
                 .catch((err) => {
-                    console.error("Error in rolling over a position from the contract");
+                    console.error("Error in rolling over position "+loanId);
                     console.error(err);
                     resolve();
                 });
