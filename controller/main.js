@@ -30,7 +30,6 @@ class MainController {
         Monitor.start(this.positions, this.liquidations, PosScanner);
 
         io.on('connection', (socket) => {
-            console.log("new co")
             socket.on('getSignals', async (cb) => Monitor.getSignals(cb));
             socket.on('getOpenPositionsDetails', async (cb) => Monitor.getOpenPositionsDetails(cb));
             socket.on('getOpenLiquidationsDetails', async (cb) => Monitor.getOpenLiquidationsDetails(cb));
