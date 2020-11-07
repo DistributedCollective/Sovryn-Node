@@ -16,7 +16,7 @@ import conf from '../config/config';
 
 class Liquidator {
     constructor(){
-        this.telegramBotWatcher = new Telegram(conf.errorBotWatcherTelegramToken);
+        this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
     }
     
     start(liquidations) {
@@ -48,7 +48,7 @@ class Liquidator {
                 }
                 const nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
 
-                this.liquidate(p, w.adr, pos.maxLiquidatable, pos.loanToken, nonce);
+                this.liquidate(p, w.adr, pos.maxLiquidatable, token, nonce);
                 await U.wasteTime(1); //1 second break to avoid rejection from node                
             }
             console.log("Completed liquidation round");
@@ -79,7 +79,7 @@ class Liquidator {
             .catch((err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                p.handleLiqError(loanId);
+                p.handleLiqError(wallet, loanId);
         });
     }
 

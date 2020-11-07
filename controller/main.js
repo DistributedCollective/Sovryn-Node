@@ -25,7 +25,7 @@ class MainController {
 
         PosScanner.start(this.positions, this.liquidations);
         if(conf.enableLiquidator) Liquidator.start(this.liquidations);
-        if(conf.enbableRollover) Rollover.start(this.positions);
+        if(conf.enableRollover) Rollover.start(this.positions);
         if(conf.enableArbitrage) Arbitrage.start();
         Monitor.start(this.positions, this.liquidations, PosScanner);
 
