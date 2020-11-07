@@ -5,7 +5,6 @@ export default class Arbitrage extends BaseModel {
         super(db, 'arbitrage', `CREATE TABLE IF NOT EXISTS arbitrage (
             id INTEGER PRIMARY KEY,
             adr text,
-            pKey text,
             dateAdded datetime,
             amount text,
             amountAfter text,

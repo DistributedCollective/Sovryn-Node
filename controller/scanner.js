@@ -10,7 +10,8 @@ import conf from '../config/config';
 
 class PositionScanner {
     /**
-     * Set positions and liquidations
+     * Empty positions and liquidations array is assigned from the main-controller.
+     * This allows the liquidator controller to manipulate the liquidations list.
      */
     start(positions, liquidations) {
         this.positions=positions;
@@ -24,7 +25,6 @@ class PositionScanner {
      * Poosible optimization: parse the event logs after reaching current state instead of quering "getActiveLoans".
      * 
      * The performance of this overhead need to be tested and optimized if needed
-     * Known issues: new open positions can have a different LoanId after some blocks got mined
      */
     async processPositions() {
         console.log("Start processing active positions in "+conf.scannerInterval+" s interval");
@@ -33,30 +33,39 @@ class PositionScanner {
         let to = conf.nrOfProcessingPositions;
 
         while (true) {
+            //active positions need to be read in batches.
             const pos = await this.loadActivePositions(from, to);
             if (pos && pos.length>0) {
                 this.addPosition(pos);
                 //console.log(pos.length + " active positions found");
                 from = to;
                 to = from + conf.nrOfProcessingPositions;
+                //wait a second to reduce the load from the node
                 await U.wasteTime(1);
             }
-            //reached current state
+            //empty array -> read all loans -> done
             else if(pos && pos.length==0) {
                 
                 console.log(Object.keys(this.positions).length+" active positions found");
-                
+                //waiting time between rounds like specified
                 await U.wasteTime(conf.scannerInterval);
+                //start from 0
                 from = 0;
                 to = conf.nrOfProcessingPositions;
-                
+                //delete the position list
+                //note: this should be refactored, because the other controllers only have access to the incomplete position
+                //list while the positions are being read from the contract. currently, it takes just a seconds, so
+                //not yet crucial.
                 for (let k in this.positions) if (this.positions.hasOwnProperty(k)) delete this.positions[k];
             }
-            //error retrieving pos for this interval
+            //error retrieving pos for this interval (node error). happens occasionally (1 out of 100 runs). reason unkown
+            //Error: Returned error: VM execution error: transaction reverted
             else {
                 console.error("Error retrieving pos");
+                //skip it this run, pick it up the next
                 from = to;
                 to = from + conf.nrOfProcessingPositions;
+                //wait a second to reduce the load from the node
                 await U.wasteTime(1);
             }
         }
@@ -64,11 +73,10 @@ class PositionScanner {
 
     /**
      * Loading active positions from the contract
-     * Returns 
+     * Returns an array or false
      */
     loadActivePositions(from, to) {
         //console.log("loading active positions from id " + from + " to " + to);
-
         return new Promise(resolve => {
             try {
                 C.contractSovryn.methods.getActiveLoans(from, to, false).call((error, res) => {

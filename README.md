@@ -1,7 +1,7 @@
 # Sovryn watcher
 
 The watcher reads all open positions from the Sovryn marginTrade contracts and continuosly monitors for changes. 
-The app has three main functions: Liquidation of open positions, rollover of open positions and taking advantage of arbitrage opportunities on the amm.  
+The app has three main functions: Liquidation of expired positions, rollover of open positions and taking advantage of arbitrage opportunities on the amm.  
   
 
 ## 1. Liquidation handling
@@ -12,7 +12,8 @@ If not, it keeps observing.
 If yes, it sends an error notification to a telegram group for manual processing.  
 If the tx was not confirmed after 10 minutes, it resends the transaction with a higher gas fee.  
 
-The liquidator needs considerable funds in all currencies provided to be able to liquidate a position. He needs to allow the protocol contract to access his tokens in advance (Approve tokens) and have enough RBTC to cover transaction costs.
+The liquidator needs considerable funds in all currencies provided to be able to liquidate a position. 
+He needs to allow the protocol contract to access his tokens in advance (Approve token transfers of all involved Erc20 tokens) and have enough RBTC to cover transaction costs.
   
 
 ## 2. Rollover
@@ -37,15 +38,23 @@ Webpack
 
 ```sh
 1. npm install
-2. npm run build-client
+2. To build the client create an empty directory "public/dist" and run "npm run build-client"
 3. Create empty directories "logs" and "db" in the project root
 4. Create directory "secrets" and within a file account.js with the credentials of the liquidator/rollover/arbitrage wallets 
 
 export default {
-    ["liquidator"/"rollover"/"arbitrage"]: [{
+    "liquidator": [{
         adr: "",
         pKey: ""
-    },
+    }],
+    "rollover": [{
+        adr: "",
+        pKey: ""
+    }],
+    "arbitrage": [{
+        adr: "",
+        pKey: ""
+    }],
 }
 
 To receive notifications on telegram about new transactions and errors create a telegram bot-token-id and write in in a file /secrets/telegram.js
