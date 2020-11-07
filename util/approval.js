@@ -6,21 +6,19 @@
 import conf from '../config/config_testnet';
 import C from '../controller/contract';
 import W from '../secrets/accounts';
-C.init(conf);
 
 
 const amount = C.web3.utils.toWei("1000000000", 'ether');
 
 
-approveArbitrageWallets();
-//approveLiquidatorWallets();
+//approveArbitrageWallets();
+approveLiquidatorWallets();
 
 
 async function approveLiquidatorWallets() {
     console.log("start")
-    await C.addWallets(W.liquidator);
-
-    const from = W.liquidator[1].adr.toLowerCase();
+   
+    const from = W.liquidator[0].adr.toLowerCase();
     let approved;
 
     //should approve the Sovryn contract to spend RBTC for the main account
@@ -40,10 +38,12 @@ async function approveLiquidatorWallets() {
     console.log(approved);
 
 
+    //only needed for opening positions (tests)
     //should approve the rBTC IToken contract to spend rBTC for the main account
     //approved = await C.approveToken(C.contractTokenRBTC, from, conf.loanTokenRBTC, amount);
     //console.log(approved);
 
+     //only needed for opening positions (tests)
     //should approve the sUSD IToken contract to spend rBTC for the main account
     //approved = await C.approveToken(C.contractTokenRBTC, from, conf.loanTokenSUSD, amount);
     //console.log(approved);
@@ -56,9 +56,8 @@ async function approveLiquidatorWallets() {
 
 async function approveArbitrageWallets() {
     console.log("start")
-    await C.addWallets([W.arbitrage]);
-
-    const from = W.arbitrage.adr.toLowerCase();
+   
+    const from = W.arbitrage[0].adr.toLowerCase();
     let approved;
 
     //should approve the swap network contract (conf.swapsImpl) to spend Doc for the main account

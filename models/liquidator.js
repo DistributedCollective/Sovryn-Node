@@ -1,8 +1,8 @@
 import BaseModel from './baseModel';
 
-export default class Arbitrage extends BaseModel {
+export default class Liquidator extends BaseModel {
     constructor(db) {
-        super(db, 'arbitrage', `CREATE TABLE IF NOT EXISTS arbitrage (
+        super(db, 'liquidator', `CREATE TABLE IF NOT EXISTS liquidator (
             id INTEGER PRIMARY KEY,
             liquidatorAdr text,
             liquidatedAdr text,
@@ -18,11 +18,11 @@ export default class Arbitrage extends BaseModel {
         try {
             const walletTable = await super.createTable();
 
-            console.log("Created arbitrage table", walletTable);
+            console.log("Created liquidator table", walletTable);
 
             return walletTable;
         } catch (e) {
-            console.log('Can not create arbitrage table', e);
+            console.log('Can not create liquidator table', e);
         }
     }
 
