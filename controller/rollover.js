@@ -21,8 +21,7 @@ class Rollover {
         while (true) {
             console.log("started checking expired positions");
 
-            for (let p in this.positions) {
-                console.log(this.positions[p].endTimestamp)      
+            for (let p in this.positions) {    
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
                     console.log("Found expired open position. Going to rollover " + this.positions[p].loanId);
                     const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
