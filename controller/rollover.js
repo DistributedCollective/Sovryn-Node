@@ -22,6 +22,7 @@ class Rollover {
             console.log("started checking expired positions");
 
             for (let p in this.positions) {
+                console.log(this.positions[p].endTimestamp)      
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
                     console.log("Found expired open position. Going to rollover " + this.positions[p].loanId);
                     const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
@@ -44,8 +45,8 @@ class Rollover {
             C.contractSovryn.methods.rollover(loanId, loanDataBytes)
                 .send({ from: wallet, gas: 2500000, nonce })
                 .then((tx) => {
-                    //console.log("Rollover Transaction: ");
-                    //console.log(tx);
+                    console.log("Rollover Transaction successful: ");
+                    console.log(tx);
                     resolve(tx.transactionHash);
                 })
                 .catch((err) => {

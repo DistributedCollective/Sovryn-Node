@@ -28,7 +28,7 @@ describe('Scanner', async () => {
 
             while (true) {
                 const pos = await PosScanner.loadActivePositions(from, to);
-               //console.log(pos);
+               console.log(pos);
                 if (pos && pos.length > 0) {
                     console.log(pos.length + " active positions found");
                     PosScanner.addPosition(pos);
@@ -53,11 +53,11 @@ describe('Scanner', async () => {
             }
         });
 
-        it('should find open positions with margin < 10%', async () => {
+        it('should find open positions with margin < 20%', async () => {
             for(let p in PosScanner.positions){
                 let margin = PosScanner.positions[p].currentMargin/1e18;
                 let mMargin = PosScanner.positions[p].maintenanceMargin/1e18;
-                if(margin<15) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
+                if(margin<20) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
             }
         });
     });
