@@ -1,6 +1,6 @@
 /**
  * Liquidation handler
- * If liquidation successful removes position from liquidation list
+ * If liquidation is successful removes position from liquidation list
  * If it fails, check if the liquidation criteria are still met. 
  * If no, delete it from the liquidation list. If yes, send an error notification to a telegram group for manual processing. 
  * 

@@ -1,5 +1,5 @@
 /**
- * Provides a web3- and contract instance for the Liquidation handler and rollover controllers 
+ * Provides a web3- and contract instance for the watcher modules
  */
 
 import Web3 from 'web3';
@@ -119,7 +119,7 @@ class Contract {
     }
 
     /**
-     * Returns the allowance of token for address
+     * Returns the allowance for adr2 to spend tokens of address adr1
      */
     getWalletTokenAllowance(adr1, adr2, token) {
         const tokenCtr = this.getTokenInstance(token);

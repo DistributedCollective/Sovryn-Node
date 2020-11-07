@@ -6,11 +6,11 @@ export default  {
     publicNodeProvider: 'https://public-node.testnet.rsk.co', 
     network: "test",
     db: "watcher_testnet.db",
-    nrOfProcessingPositions: 100, //need to find appropriate nr
-    scannerInterval: 60, //in seconds
-    rolloverScanInterval: 60, //in seconds
-    liquidatorScanInterval: 10, //in seconds
-    arbitrageScanInterval: 30, //in seconds
+    nrOfProcessingPositions: 100,
+    scannerInterval: 60, //sec
+    rolloverScanInterval: 60, //sec
+    liquidatorScanInterval: 10, //sec
+    arbitrageScanInterval: 30, //sec
     enableLiquidator: true,
     enableRollover: true,
     enableArbitrage: true,
