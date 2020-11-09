@@ -16,14 +16,22 @@ class Rollover {
 
     /**
      * Wrapper for rolling over open positions
+     * Only rollover if amount > threshold
+     * todo: convert btc amount considering real btc price and take from config file
      */
     async checkPositionsExpiration() {
         while (true) {
             console.log("started checking expired positions");
 
-            for (let p in this.positions) {    
+            for (let p in this.positions) { 
+                
+                const amn = this.positions[p].principal/1e18;
+
+                if(this.positions[p].loanToken == conf.docToken && amn < 0.1) continue;
+                else if(this.positions[p].loanToken == conf.testTokenRBTC && amn < 0.0001) continue; 
+                 
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
-                    console.log("Found expired open position. Going to rollover " + this.positions[p].loanId);
+                    console.log("Found expired open position. Going to rollover " + this.positions[p].loanId);   
                     const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
                     await this.rollover(this.positions[p].loanId, w.adr, nonce);

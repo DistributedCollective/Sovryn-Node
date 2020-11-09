@@ -9,11 +9,12 @@ export default  {
     nrOfProcessingPositions: 100,
     scannerInterval: 60, //sec
     rolloverScanInterval: 60, //sec
-    liquidatorScanInterval: 10, //sec
+    liquidatorScanInterval: 60, //sec
     arbitrageScanInterval: 30, //sec
     enableLiquidator: true,
     enableRollover: true,
     enableArbitrage: true,
+    rolloverMinThreshold: 0.1, //$
     testTokenRBTC: "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab", //wrbtc
     loanTokenSUSD: "0x74e00A8CeDdC752074aad367785bFae7034ed89f", //underlying token = doc
     loanTokenRBTC: "0xe67Fe227e0504e8e96A34C3594795756dC26e14B",
