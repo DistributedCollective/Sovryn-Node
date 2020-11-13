@@ -15,6 +15,7 @@ class PositionScanner {
      */
     start(positions, liquidations) {
         this.positions=positions;
+        this.positionsTmp = {};
         this.liquidations=liquidations;
         this.processPositions();
     }
@@ -45,18 +46,20 @@ class PositionScanner {
             }
             //empty array -> read all loans -> done
             else if(pos && pos.length==0) {
-                
                 console.log(Object.keys(this.positions).length+" active positions found");
-                //waiting time between rounds like specified
-                await U.wasteTime(conf.scannerInterval);
                 //start from 0
                 from = 0;
                 to = conf.nrOfProcessingPositions;
-                //delete the position list
-                //note: this should be refactored, because the other controllers only have access to the incomplete position
-                //list while the positions are being read from the contract. currently, it takes just a seconds, so
-                //not yet crucial.
+                //delete the position list and copy updated positions from positionsTmp. Causes an inconsitency for about 0.1-1second
                 for (let k in this.positions) if (this.positions.hasOwnProperty(k)) delete this.positions[k];
+                for (let k in this.positionsTmp) {
+                    if (this.positionsTmp.hasOwnProperty(k)) {
+                        this.positions[k] = JSON.parse(JSON.stringify(this.positionsTmp[k]));
+                        delete this.positionsTmp[k];
+                    }
+                }
+                //waiting time between rounds like specified
+                await U.wasteTime(conf.scannerInterval);
             }
             //error retrieving pos for this interval (node error). happens occasionally (1 out of 100 runs). reason unkown
             //Error: Returned error: VM execution error: transaction reverted
@@ -97,23 +100,21 @@ class PositionScanner {
     }
 
     /**
-     * Adding new positions to the positions queue, 
+     * Adding new positions to the tmp positions queue, 
      * positions ready for liquidation to the liquidations queue
      */
     addPosition(loans) {
         for (let l of loans) {
             if (!l.loanId) continue;
 
-            if (!this.positions[l.loanId]) {
-                this.positions[l.loanId] = l;
+            this.positionsTmp[l.loanId] = l;
 
-                if(l.maxLiquidatable>0) {
-                    console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
-                    console.log("Liquidation will happen at: "+C.web3.utils.fromWei((l.maintenanceMargin*0.99).toString(), "Ether"));
-                }
-                //If liquidating at the very edge we often get errors if the price bounces back
-                if(l.currentMargin<l.maintenanceMargin*0.99) this.liquidations[l.loanId] = l;
+            if(l.currentMargin<l.maintenanceMargin*1.02) {
+                console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
+                console.log("Liquidation will happen at: "+C.web3.utils.fromWei((l.maintenanceMargin*0.99).toString(), "Ether"));
             }
+            //If liquidating at the very edge we often get errors if the price bounces back
+            if(l.maxLiquidatable>0 && l.currentMargin<l.maintenanceMargin*0.99) this.liquidations[l.loanId] = l;
         }
     }
 }

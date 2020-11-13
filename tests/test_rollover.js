@@ -44,14 +44,14 @@ describe('Contract', async () => {
             console.log("interest rate is "+intRate);
             assert(intRate>0);
         });         
-        
+        /*
         it('should borrow 10 usd from the contract', async () => {
             const withdrawAmount = C.web3.utils.toWei("10", 'ether');
             const b = await borrow(requiredC, withdrawAmount, conf.testTokenRBTC, A.liquidator[0].adr, A.liquidator[0].adr);
             loanId = await parseLog(b);
             console.log("Borrowing successful. Loan-id: "+loanId);
             assert(b.length==66);
-        }); 
+        }); */
         
         it('should find open positions with expired date on the contract', async () => {
             var pos = [1];
@@ -78,7 +78,7 @@ describe('Contract', async () => {
             console.log("Found "+totalPos+" open positions. "+rollover.length+" to rollover");
             assert(true);
         });   
-
+/*
         //the position need to be expired (min time = 24h)
         it('should rollover all open but expired loans', async () => {
             if(rollover.length==0) {
@@ -94,7 +94,7 @@ describe('Contract', async () => {
 
                 assert(r.length==66);
             }
-        });
+        });*/
     });
 });
 

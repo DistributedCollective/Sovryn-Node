@@ -18,6 +18,7 @@ describe('Scanner', async () => {
         before('init', async () => {
             PosScanner.positions=positions;
             PosScanner.liquidations=liquidations;
+            PosScanner.positionsTmp={};
         });
 
         it('should find open positions on the Sovryn contract', async () => {
@@ -28,7 +29,7 @@ describe('Scanner', async () => {
 
             while (true) {
                 const pos = await PosScanner.loadActivePositions(from, to);
-               console.log(pos);
+                //console.log(pos);
                 if (pos && pos.length > 0) {
                     console.log(pos.length + " active positions found");
                     PosScanner.addPosition(pos);
@@ -39,8 +40,14 @@ describe('Scanner', async () => {
                 }
                 //reached current state
                 else if(pos && pos.length==0) {
+                    for (let k in PosScanner.positionsTmp) {
+                        if (PosScanner.positionsTmp.hasOwnProperty(k)) {
+                            positions[k] = JSON.parse(JSON.stringify(PosScanner.positionsTmp[k]));
+                        }
+                    }
+
                     console.log("Round ended. "+Object.keys(positions).length + " active positions found");
-                    assert(Object.keys(PosScanner.positions).length==posFound);
+                    assert(Object.keys(positions).length==posFound);
                     break;
                 }
                 //error retrieving pos for this interval
@@ -52,14 +59,23 @@ describe('Scanner', async () => {
                 }
             }
         });
-
+        /*
         it('should find open positions with margin < 20%', async () => {
             for(let p in PosScanner.positions){
                 let margin = PosScanner.positions[p].currentMargin/1e18;
                 let mMargin = PosScanner.positions[p].maintenanceMargin/1e18;
                 if(margin<20) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
             }
-        });
+        });*/
+
+        /*
+        it('should process all open pos', async () => {
+            for(let p in PosScanner.positions){
+                let ev = await loadEvent(p);  
+                console.log(ev);             
+            }
+            assert(true);
+        });*/
     });
 });
 
@@ -89,6 +105,24 @@ function parseLog(txHash) {
                     return resolve(decodedLogs[i].events[2].value);
                 }
             }
+        });
+    });
+}
+
+
+function loadEvent(loanId) {
+    return new Promise(resolve => {
+        C.contractSovryn.getPastEvents('Trade', {
+            fromBlock: 1205639,
+            toBlock: 'latest',
+            filter: {loanId: loanId}
+        }, (error, events) => {
+            if (error) {
+                console.log("had an error"); console.log(error);
+            }
+            console.log("event "+events[0].address+" loaded")
+            //console.log(events[0]);
+            resolve(events[0].returnValues.user);
         });
     });
 }
