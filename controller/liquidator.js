@@ -68,6 +68,9 @@ class Liquidator {
         console.log("Sending val: "+val);
         console.log("Nonce: "+nonce);
 
+        //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
+        delete this.liquidations[loanId];
+
         const p=this;
         C.contractSovryn.methods.liquidate(loanId, wallet, amount)
             .send({ from: wallet, gas: 2500000, nonce: nonce, value: val })
@@ -85,7 +88,6 @@ class Liquidator {
 
     handleLiqSuccess(wallet, loanId, txHash) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
-        delete this.liquidations[loanId];
         const msg = conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
         this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, msg);
     }
@@ -102,13 +104,11 @@ class Liquidator {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
             this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed.");
         }
-        delete this.liquidations[loanId];
     }
 
     handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
         this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
-        delete this.liquidations[loanId];
     }
 }
 
