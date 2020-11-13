@@ -47,8 +47,6 @@ class PositionScanner {
             //empty array -> read all loans -> done
             else if(pos && pos.length==0) {
                 console.log(Object.keys(this.positions).length+" active positions found");
-                //waiting time between rounds like specified
-                await U.wasteTime(conf.scannerInterval);
                 //start from 0
                 from = 0;
                 to = conf.nrOfProcessingPositions;
@@ -60,6 +58,8 @@ class PositionScanner {
                         delete this.positionsTmp[k];
                     }
                 }
+                //waiting time between rounds like specified
+                await U.wasteTime(conf.scannerInterval);
             }
             //error retrieving pos for this interval (node error). happens occasionally (1 out of 100 runs). reason unkown
             //Error: Returned error: VM execution error: transaction reverted

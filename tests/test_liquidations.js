@@ -3,12 +3,13 @@
  * The liquidator account need to have sufficient tokens approved to be able to liquidate the open positions
  * This tests only works with the old contracts where the price can be changed manually
  * 
- *  Set config file in /config.config.js manually because mocha.js overwrites process.arg
+ *  Set test/mainnet in file /config.config.js manually because mocha.js overwrites process.arg
  */
 
 import conf from '../config/config';
 
 import abiComplete from '../config/abiComplete';
+import abiLoanToken from './abi/abiLoanToken';
 import C from '../controller/contract';
 import Liquidator from '../controller/liquidator';
 import A from '../secrets/accounts';
@@ -24,33 +25,23 @@ describe('Liquidation', async () => {
         before(async () => {
             console.log("init");
             abiDecoder.addABI(abiComplete);
+            C.contractTokenSUSD = new C.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD); 
         });
-        
-        it('should liquidate an open position', async () => {
-            const loanId = "0x724b280f7bc3babcef613e57c07ead3779065ca67ccf26c9ce38540b14e7c5a9";
-            const token = "0x542fDA317318eBF1d3DEAf76E0b632741A7e677d" == conf.testTokenRBTC ? "rBtc" : pos.loanToken;
-            console.log("Liquidating "+token);
-            const nonce = await C.web3.eth.getTransactionCount(A.liquidator[1].adr, 'pending');
-            const maxLiquidatable = 180109841160566;
-            let liquidated = await Liquidator.liquidate(loanId, A.liquidator[1].adr, maxLiquidatable, token, nonce);
-            assert(true);
-        });
-
-        /*
+         
         it('should set the start price for btc to 10000', async () => {
             let a = await changePrice(conf.testTokenRBTC, conf.docToken, 10000);
             assert(a.length == 66);
         });
 
         it('should create a position with 2x leverage)', async () => {
-            let p = await openLongPosition("0.01", "2");
+            let p = await openLongPosition("0.001", "2");
             loanIdLow = await parseLog(p);
             console.log("loan id low " + loanIdLow)
             assert(p.length == 66);
         });
         
         it('should create a position with 4x leverage)', async () => {
-            let p = await openLongPosition("0.01", "4");
+            let p = await openLongPosition("0.001", "4");
             loanIdHigh = await parseLog(p);
             console.log("loan id high " + loanIdHigh)
             assert(p.length == 66);
@@ -125,7 +116,7 @@ describe('Liquidation', async () => {
             }
             let liquidated = await Liquidator.liquidate(loanIdLow, A.liquidator[0].adr, loanLow.maxLiquidatable);
             assert(liquidated);
-        });*/
+        });
     });
 });
 
