@@ -6,13 +6,15 @@ import conf from '../config/config';
 import C from '../controller/contract';
 import Arbitrage from '../controller/arbitrage';
 const assert = require('assert');
-
+import db from "../controller/db";
 var pPriceFeed, pAmm;
 
 describe('Arbitrage', async () => {
+    db.initDb(conf.db);
     describe('#Retrieving prices', async () => {
+        const maxAmount = "0.01";
         it('Should get the RBtc price in doc from amm', async () => {
-            const amount = C.web3.utils.toWei("0.0105", "Ether");
+            const amount = C.web3.utils.toWei(maxAmount, "Ether");
             let p = await Arbitrage.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.docToken, amount);
             p = C.web3.utils.fromWei(p.toString(), "Ether");
             pAmm = p;
@@ -21,7 +23,7 @@ describe('Arbitrage', async () => {
         });
         
         it('Should get Rbtc price in doc from price feed', async () => {
-            const amount = C.web3.utils.toWei("0.0105", "Ether");
+            const amount = C.web3.utils.toWei(maxAmount, "Ether");
             let p = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.docToken, amount);
             p = C.web3.utils.fromWei(p.toString(), "Ether");
             pPriceFeed = p;
@@ -60,6 +62,7 @@ describe('Arbitrage', async () => {
             let p = await Arbitrage.sendLiquidity(amount, "RBtc");
             console.log(p);
             assert(p);
+            await Arbitrage.calculateProfit(p.transactionHash, pPriceFeed)
         });*/
 
         /*

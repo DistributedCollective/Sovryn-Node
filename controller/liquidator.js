@@ -24,7 +24,6 @@ class Liquidator {
     start(liquidations) {
         this.liquidations = liquidations;
         this.checkPositionsForLiquidations();
-        this.addLiqLog(txHash);
     }
 
     /**
