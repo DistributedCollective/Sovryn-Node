@@ -148,28 +148,36 @@ class Arbitrage {
      * Amount in wei
      * todo1: When contracts are updated -> Send Rbtc instead of WRbtc
      * todo2: convert minReturn with web3-big-number lib
+     * 
+     * 
+     * 1. change contract to new contract of wukong (same abi)
+     * 2. contract call the same but for rbtc-> also send value
+     * 
+     * 
      */
     sendLiquidity(amount, currency) {
         console.log("Send " + amount + " "+currency+" to the amm");
         const sourceToken = currency=="Doc"?conf.docToken:conf.testTokenRBTC;
         const destToken = currency=="Doc"?conf.testTokenRBTC:conf.docToken;
-        const contract = C.contractSwaps;
+        const contract1 = C.contractSwaps;
+        const contract2 = C.wRbtcWrapper;
         const minReturn = 1; //amount / 100 * 99; //minReturn = 1 -> No assurance
         const beneficiary = A.arbitrage[0].adr;
         const affiliateAcc = "0x0000000000000000000000000000000000000000";
         const affiliateFee = 0;
+        const val = currency=="Doc"? 0:amount;
 
         return new Promise(async (resolve) => {
             try {
-                contract.methods["conversionPath"](sourceToken, destToken).call((error, result) => {
+                contract1.methods["conversionPath"](sourceToken, destToken).call((error, result) => {
                     if (error || !result || result.length!=3) {
                         console.error("error loading conversion path from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                         console.error(error);
                         return resolve();
                     }
                     
-                    contract.methods["convertByPath"](result, amount, minReturn, beneficiary, affiliateAcc, affiliateFee)
-                        .send({ from: beneficiary, gas: 2500000 })
+                    contract2.methods["convertByPath"](result, amount, minReturn)
+                        .send({ from: beneficiary, gas: 2500000, value: val })
                         .then(async (tx) => {
                             console.log("Arbitrage tx successful");
                             return resolve(tx);
@@ -182,7 +190,7 @@ class Arbitrage {
                 });
             }
             catch (e) {
-                console.error("error loading price from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
+                console.error("error loading price from " + contract1._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                 console.error(e);
                 resolve()
             }
