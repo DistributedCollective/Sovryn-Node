@@ -6,12 +6,13 @@ export default class Arbitrage extends BaseModel {
             id INTEGER PRIMARY KEY,
             adr text,
             dateAdded datetime,
-            amount text,
-            amountAfter text,
-            pos text,
-            loanId text,
-            active Boolean,
-            closed Boolean
+            amountFrom text,
+            amountTo text,
+            tokenFrom text,
+            tokenTo text,
+            trade text,
+            profit text,
+            txHash
             )`);
     }
 

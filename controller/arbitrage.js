@@ -18,12 +18,16 @@ import C from './contract';
 import U from '../util/helper';
 import A from '../secrets/accounts';
 import conf from '../config/config';
+import abiDecoder from 'abi-decoder';
+import abiSwap from "../config/abiSovrynSwapNetwork";
+import db from "./db";
 
 
 class Arbitrage {
     constructor() {
         this.telegramBotWatcher = new Telegram(conf.errorBotWatcherTelegramToken);
         this.amount = 0.010; //105$; see comment on top
+        abiDecoder.addABI(abiSwap);
     }
 
     /**
@@ -41,7 +45,7 @@ class Arbitrage {
             if(p[0]>0 && p[1]>0) arb = this.calcArbitrage(p[0], p[1], conf.thresholdArbitrage);
             if (arb && (arb == p[0])) {
                 let convertedAmount = C.web3.utils.toWei(p[0].toString(), "Ether");
-                res = await this.sendLiquidity(C.web3.utils.toWei(convertedAmount), "Doc");
+                res = await this.sendLiquidity(convertedAmount, "Doc");
             }
             else if (arb && (arb == p[1])) {
                 res = await this.sendLiquidity(C.web3.utils.toWei(this.amount.toString()), "Rbtc");
@@ -190,11 +194,51 @@ class Arbitrage {
 
     }
 
-    /**
-    *
-    */
-    calculateProfit(tx){
-        return 1;
+    async calculateProfit(txHash, btcPriceFeed){
+        try {
+            const receipt = await C.web3.eth.getTransactionReceipt(txHash);
+            if (receipt && receipt.logs) {
+                const logs = abiDecoder.decodeLogs(receipt.logs);
+                const conversionEvent = (logs || []).find(log => log && log.name === "Conversion");
+                // console.log(JSON.stringify(logs, null, 2));
+
+                if (conversionEvent && conversionEvent.events) {
+                    const priceFeed = Number(btcPriceFeed)/this.amount;
+                    let {fromToken, toToken, fromAmount, toAmount, trader} = U.parseEventParams(conversionEvent.events);
+                    let toAmountWithPFeed, trade;
+
+                    fromAmount = Number(C.web3.utils.fromWei(fromAmount.toString(), 'ether'));
+                    toAmount = Number(C.web3.utils.fromWei(toAmount.toString(), 'ether'));
+
+                    if (fromToken.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
+                        toAmountWithPFeed = Number(fromAmount) * priceFeed;
+                        trade = 'sell btc';
+                    } else {
+                        toAmountWithPFeed = Number(fromAmount) / priceFeed;
+                        trade = 'buy btc';
+                    }
+                    const profit = toAmount - toAmountWithPFeed;
+
+                    console.log({trader,
+                        fromToken, toToken,
+                        fromAmount, toAmount,
+                        profit,
+                        trade
+                    })
+
+                    await db.addArbitrage({
+                        adr: trader,
+                        fromToken, toToken,
+                        fromAmount, toAmount,
+                        profit,
+                        trade
+                    })
+                }
+            }
+
+        } catch (e) {
+            console.error("Error when calculate arbitrage profit", e);
+        }
     }
 
     /**

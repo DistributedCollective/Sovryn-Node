@@ -14,7 +14,8 @@ class Util {
     parseEventParams(logEvents) {
         const params = {};
         (logEvents || []).forEach(event => {
-            params[event.name] = event.value;
+            const name = event.name.replace('_', '');
+            params[name] = event.value;
         });
         return params;
     }

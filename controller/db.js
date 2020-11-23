@@ -71,6 +71,19 @@ class DbCtrl {
             console.log(e);
         }
     }
+
+    async addArbitrage({adr, tokenFrom, tokenTo, amountFrom, amountTo, profit, trade, txHash}) {
+        try {
+            return await this.arbRepo.insert({
+                adr, tokenFrom, tokenTo,
+                amountFrom, amountTo, profit, trade,
+                txHash
+            })
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
 }
 
 export default new DbCtrl();

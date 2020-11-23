@@ -21,7 +21,7 @@ class MainController {
     async start(io) { 
         const b = await C.web3.eth.getBlockNumber();
         console.log("Connected to Rsk " + conf.network + "-network. Current block " + b);
-        //await dbCtrl.initDb(conf.db);
+        await dbCtrl.initDb(conf.db);
 
         PosScanner.start(this.positions, this.liquidations);
         if(conf.enableLiquidator) Liquidator.start(this.liquidations);
