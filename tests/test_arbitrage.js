@@ -2,7 +2,6 @@
  * Arbitrage tester
  * Set config file in /config.config.js manually because mocha.js overwrites process.arg
  */
-
 import conf from '../config/config';
 import C from '../controller/contract';
 import Arbitrage from '../controller/arbitrage';
@@ -29,7 +28,7 @@ describe('Arbitrage', async () => {
             console.log(p);
             assert(p>0);
         });
-
+    
         it('Should detect 50% arbitrage from example values', async () => {
             const threshold = 5; //in %
             for(let i=0;i<10;i++) {
@@ -37,7 +36,7 @@ describe('Arbitrage', async () => {
                 const p2=100+i;
                 const a = Arbitrage.calcArbitrage(p1,p2,threshold);
                 console.log(a);
-                if(i<5) assert(a==0);
+                if(i<5) assert(!a);
                 else assert(a>0);
             }
         });
@@ -48,21 +47,20 @@ describe('Arbitrage', async () => {
             assert(a);
         });
 
+       
         it('Should send Doc to the amm', async () => {
-            const amount = C.web3.utils.toWei("105", "Ether");
+            const amount = C.web3.utils.toWei("100", "Ether");
             let p = await Arbitrage.sendLiquidity(amount, "Doc");
-            p = C.web3.utils.fromWei(p.toString(), "Ether");
             console.log(p);
             assert(p);
         });
-
+/*
         it('Should send WRbtc to the amm', async () => {
-            const amount = C.web3.utils.toWei("0.007", "Ether");
+            const amount = C.web3.utils.toWei("0.01", "Ether");
             let p = await Arbitrage.sendLiquidity(amount, "RBtc");
-            p = C.web3.utils.fromWei(p.toString(), "Ether");
             console.log(p);
             assert(p);
-        });
+        });*/
 
         /*
         it('Should test the arbitrage loop', async () => {

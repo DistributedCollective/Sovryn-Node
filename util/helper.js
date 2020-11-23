@@ -10,6 +10,14 @@ class Util {
             }, s * 1000);
         });
     }
+
+    parseEventParams(logEvents) {
+        const params = {};
+        (logEvents || []).forEach(event => {
+            params[event.name] = event.value;
+        });
+        return params;
+    }
 }
 
 

@@ -1,6 +1,6 @@
 node_modules
 public/dist
-secrets
+/secrets/
 logs
 package-lock.json
 pm2.json

@@ -10,6 +10,7 @@ export default class Rollover extends BaseModel {
             amount text,
             pos text,
             loanId text,
+            txHash text
             )`);
     }
 

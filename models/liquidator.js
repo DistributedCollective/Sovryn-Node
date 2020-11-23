@@ -10,6 +10,8 @@ export default class Liquidator extends BaseModel {
             amount text,
             pos text,
             loanId text,
+            profit text,
+            txHash text
             )`);
     }
 

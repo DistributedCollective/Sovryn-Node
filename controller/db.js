@@ -44,23 +44,29 @@ class DbCtrl {
         }
     }
 
-    async addBots(bots) {
+    async addRollover({loanId, txHash, adr}) {
         try {
-            for (let bot of bots) {
-                const found = await this.botRepository.findOne({adr: bot.adr});
+            return await this.rollRepo.insert({
+                loanId,
+                txHash,
+                rolloverAdr: adr
+            });
+        } catch (e) {
+            console.log(e);
+        }
+    }
 
-                if (found) {
-                    await this.botRepository.update({id: found.id}, {
-                        ...bot,
-                        active: 1
-                    });
-                } else {
-                    await this.botRepository.insert({
-                        ...bot,
-                        active: 1
-                    });
-                }
-            }
+    async addLiquidate({liquidatorAdr, liquidatedAdr, amount, pos, loanId, profit, txHash}) {
+        try {
+            return await this.liqRepo.insert({
+                liquidatorAdr,
+                liquidatedAdr,
+                amount,
+                pos,
+                loanId,
+                profit,
+                txHash
+            })
         } catch (e) {
             console.log(e);
         }

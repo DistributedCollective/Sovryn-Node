@@ -13,15 +13,18 @@ import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
 import conf from '../config/config';
+import abiDecoder from 'abi-decoder';
+import dbCtrl from './db';
 
 class Liquidator {
-    constructor(){
+    constructor() {
         this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
     }
-    
+
     start(liquidations) {
         this.liquidations = liquidations;
         this.checkPositionsForLiquidations();
+        this.addLiqLog(txHash);
     }
 
     /**
@@ -62,16 +65,16 @@ class Liquidator {
     * wallet = sender and receiver address
     */
     liquidate(loanId, wallet, amount, token, nonce) {
-        console.log("trying to liquidate loan " + loanId + " from wallet " + wallet+", amount: "+amount);
+        console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
-        const val = token=="rBtc"? amount : 0;
-        console.log("Sending val: "+val);
-        console.log("Nonce: "+nonce);
+        const val = token == "rBtc" ? amount : 0;
+        console.log("Sending val: " + val);
+        console.log("Nonce: " + nonce);
 
         //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
         delete this.liquidations[loanId];
 
-        const p=this;
+        const p = this;
         C.contractSovryn.methods.liquidate(loanId, wallet, amount)
             .send({ from: wallet, gas: 2500000, nonce: nonce, value: val })
             .then(async (tx) => {
@@ -83,7 +86,7 @@ class Liquidator {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
                 p.handleLiqError(wallet, loanId);
-        });
+            });
     }
 
     handleLiqSuccess(wallet, loanId, txHash) {
@@ -110,6 +113,53 @@ class Liquidator {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
         this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
     }
+
+    async addLiqLog(txHash) {
+        try {
+            const receipt = await C.web3.eth.getTransactionReceipt(txHash);
+
+            if (receipt && receipt.logs) {
+                const logs = abiDecoder.decodeLogs(receipt.logs) || [];
+                const liqEvent = logs.find(log => log && log.name === 'Liquidate');
+                const {
+                    user, liquidator, loanId, loanToken, collateralToken, collateralWithdrawAmount
+                } = U.parseEventParams(liqEvent && liqEvent.events);
+
+                if (user && liquidator, loanId) {
+                    const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
+                    if (!path || path.length != 3) return;
+
+                    const balBefore = await C.getWalletTokenBalance(liquidator, loanToken);
+                    const affiliateAcc = "0x0000000000000000000000000000000000000000";
+                    const approved = await C.approveToken(C.getTokenInstance(collateralToken), liquidator, conf.swapsImpl, collateralWithdrawAmount);
+                    const swapTx = await C.contractSwaps.methods['convertByPath'](path, collateralWithdrawAmount, 1, liquidator, affiliateAcc, 0).send({
+                        from: liquidator,
+                        gas: 2500000
+                    });
+
+                    const balAfter = await C.getWalletTokenBalance(liquidator, loanToken);
+                    const profit = parseFloat(balAfter) - parseFloat(balBefore);
+                    const pos = loanToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+
+                    const addedLog = await dbCtrl.addLiquidate({
+                        liquidatorAdr: liquidator,
+                        liquidatedAdr: user,
+                        amount: collateralWithdrawAmount,
+                        pos: pos,
+                        loanId: loanId,
+                        profit: profit,
+                        txHash: txHash
+                    });
+
+                    return addedLog;
+                }
+            }
+
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
 }
 
 export default new Liquidator();

@@ -6,7 +6,8 @@ import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
 import conf from '../config/config';
-
+import abiDecoder from 'abi-decoder';
+import dbCtrl from './db';
 
 class Rollover {
     start(positions) {
@@ -34,7 +35,8 @@ class Rollover {
                     console.log("Found expired open position. Going to rollover " + this.positions[p].loanId);   
                     const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
-                    await this.rollover(this.positions[p].loanId, w.adr, nonce);
+                    const tx = await this.rollover(this.positions[p].loanId, w.adr, nonce);
+                    if (tx) await this.addTx(tx);
                 }
             }
             console.log("Completed rollover");
@@ -62,6 +64,29 @@ class Rollover {
                 });
         });
     }
+
+    async addTx(txHash) {
+        try {
+            const receipt = await C.web3.eth.getTransactionReceipt(txHash);
+
+            if (receipt && receipt.logs) {
+                const logs = abiDecoder.decodeLogs(receipt.logs) || [];
+                const loanEvent = logs.find(log => log.name === "LoanSwap");
+                const params = U.parseEventParams(loanEvent.events);
+
+                if (params && params.loanId) {
+                    await dbCtrl.addRollover({
+                        loanId: params.loanId,
+                        txHash: receipt.transactionHash,
+                        adr: params.borrower
+                    })
+                }
+            }
+        } catch (e) {
+
+        }
+    }
+
 }
 
 export default new Rollover();

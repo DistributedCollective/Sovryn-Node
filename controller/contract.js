@@ -7,6 +7,7 @@ import abiComplete from '../config/abiComplete';
 import abiTestToken from '../config/abiTestToken';
 import abiSwaps from '../config/abiSovrynSwapNetwork';
 import abiPriceFeed from '../config/abiPriceFeed';
+import abiRBTCWrapperProxy from '../config/abiRBTCWrapperProxy';
 import conf from '../config/config';
 import wallets from '../secrets/accounts';
 
@@ -21,6 +22,7 @@ class Contract {
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
         this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
         this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);
+        this.wRbtcWrapper = new this.web3.eth.Contract(abiRBTCWrapperProxy, conf.wRbtcWrapper);
         //Add wallets to web3, so they are ready for sending transactions
         for(let w in wallets) for (let a of wallets[w]) this.web3.eth.accounts.wallet.add(a.pKey);
    }
@@ -150,8 +152,8 @@ class Contract {
      * helper function
      */
     getTokenInstance(adr) {
-        if (adr == conf.docToken) return this.contractTokenSUSD;
-        else if (adr == conf.testTokenRBTC) return this.contractTokenRBTC;
+        if (adr && adr.toLowerCase() == conf.docToken.toLowerCase()) return this.contractTokenSUSD;
+        else if (adr && adr.toLowerCase() == conf.testTokenRBTC.toLowerCase()) return this.contractTokenRBTC;
     }
 }
 
