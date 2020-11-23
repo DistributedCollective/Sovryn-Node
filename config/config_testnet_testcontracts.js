@@ -22,8 +22,9 @@ export default  {
     loanTokenRBTC: "0x021Bc6f3c101fC1354A212583a5aF0347FE283Cf",
     docToken: "0xD958866a46F4e7Db1Cc6A80589D0dc44Cbfb155b", //susd
     sovrynProtocolAdr: "0x6E2fb26a60dA535732F8149b25018C9c0823a715",
-    swapsImpl: "0x61172B53423E205a399640e5283e51FE60EC2256",
-    priceFeed: "0xE30352CDaa15E4ce5a03583b521DA7aD3C29ff4a",
+    swapsImpl: "0x61172B53423E205a399640e5283e51FE60EC2256",//get price from amm/old execute swaps
+    priceFeed: "0xE30352CDaa15E4ce5a03583b521DA7aD3C29ff4a", //get oracle price
+    wRbtcWrapper: "0x61172B53423E205a399640e5283e51FE60EC2256 ", //real contract not available on this version
     thresholdArbitrage: 2, //in %
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,

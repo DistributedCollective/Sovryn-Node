@@ -10,7 +10,6 @@
  * 
  * The swap network contract (conf.swapsImpl) need to be approved by the arbitrage wallet to spend Doc on his behalf
  * 
- * Todo1: rewrite send Rbtc to send Rbtc in instaed of WRbtc after the contracts are updated
  * Todo2: Update amount calculation after the trading limits were released/updated.
  */
 
@@ -144,16 +143,9 @@ class Arbitrage {
 
 
     /**
-     * Sending Doc or WRBtc to the Amm
+     * Sending Doc or RBtc to the Amm
      * Amount in wei
-     * todo1: When contracts are updated -> Send Rbtc instead of WRbtc
-     * todo2: convert minReturn with web3-big-number lib
-     * 
-     * 
-     * 1. change contract to new contract of wukong (same abi)
-     * 2. contract call the same but for rbtc-> also send value
-     * 
-     * 
+     * todo: convert minReturn with web3-big-number lib
      */
     sendLiquidity(amount, currency) {
         console.log("Send " + amount + " "+currency+" to the amm");
