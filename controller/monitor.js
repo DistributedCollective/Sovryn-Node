@@ -19,7 +19,7 @@ class MonitorController {
             this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
             let p = this;
             setInterval(() => {
-                p.checkSystem();
+               // p.checkSystem();
             }, 1000 * 60);
         }
     }
