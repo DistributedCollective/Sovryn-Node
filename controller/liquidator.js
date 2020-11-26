@@ -80,6 +80,7 @@ class Liquidator {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.txHash);
                 p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
+                addLiqLog(tx.transactionHash);
             })
             .catch((err) => {
                 console.error("Error on liquidating loan " + loanId);
@@ -149,7 +150,6 @@ class Liquidator {
                         profit: profit,
                         txHash: txHash
                     });
-
                     return addedLog;
                 }
             }
