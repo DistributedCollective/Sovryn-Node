@@ -21,7 +21,7 @@ export default {
     sovrynProtocolAdr: "0x5A0D867e0D70Fcc6Ade25C3F1B89d618b5B4Eaa7",
     swapsImpl: "0x98aCE08D2b759a265ae326F010496bcD63C15afc", //get price from amm/old execute swaps
     priceFeed: "0x437AC62769f386b2d238409B7f0a7596d36506e4", //get oracle price
-    wRbtcWrapper: "0x78E7e79F1acc1f57a3291d5BfA8436A0771C1800 ", //real contract not available on this version
+    wRbtcWrapper: "0x78E7e79F1acc1f57a3291d5BfA8436A0771C1800", //real contract not available on this version
     thresholdArbitrage: 2, //in %
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
