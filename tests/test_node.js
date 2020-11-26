@@ -24,7 +24,7 @@ describe('Process blocks', () => {
     });
 
     it('should return some events', () => {
-      contractISUSD.getPastEvents('Transfer', {
+      contractISUSD.getPastEvents('Mint', {
         fromBlock: 1205639,
         toBlock: 'latest'
       }, (error, events) => {
@@ -36,7 +36,7 @@ describe('Process blocks', () => {
         assert(true);
       });
     });
-
+/*
     it('should decode the event log', () => {
       for(let ev in tx.events) {
         //console.log(tx.events[ev])
@@ -54,6 +54,6 @@ describe('Process blocks', () => {
         }
         for(let i in ids) assert(ids[i].length==66);
       }
-    })
+    })*/
   });
 });

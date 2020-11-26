@@ -11,8 +11,8 @@ import W from '../secrets/accounts';
 const amount = C.web3.utils.toWei("1000000000", 'ether');
 
 
-//approveArbitrageWallets();
-approveLiquidatorWallets();
+approveArbitrageWallets();
+//approveLiquidatorWallets();
 
 
 async function approveLiquidatorWallets() {
@@ -66,6 +66,10 @@ async function approveArbitrageWallets() {
     //console.log(approved);
 
     //should approve the swap network contract to spend WrBTC for the main account
-    approved = await C.approveToken(C.contractTokenRBTC, from, conf.swapsImpl, amount);
+    //approved = await C.approveToken(C.contractTokenRBTC, from, conf.swapsImpl, amount);
+    //console.log(approved);
+
+    //should approve the wRBTC wrapper contract to spend Doc for the main account
+    approved = await C.approveToken(C.contractTokenSUSD, from, conf.wRbtcWrapper, amount);
     console.log(approved);
 }

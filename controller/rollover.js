@@ -26,8 +26,7 @@ class Rollover {
 
             for (let p in this.positions) { 
                 
-                const amn = this.positions[p].principal/1e18;
-
+                const amn = C.web3.fromWei(this.positions[p].principal);
                 if(this.positions[p].loanToken == conf.docToken && amn < 0.1) continue;
                 else if(this.positions[p].loanToken == conf.testTokenRBTC && amn < 0.0001) continue; 
                  
