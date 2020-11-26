@@ -26,11 +26,11 @@ class Rollover {
 
             for (let p in this.positions) { 
                 const amn = C.web3.utils.fromWei(this.positions[p].collateral.toString(), "Ether");
-                if(this.positions[p].loanToken.toLowerCase() == conf.docToken.toLowerCase() && amn < 0.1) continue;
-                else if(this.positions[p].loanToken.toLowerCase() == conf.testTokenRBTC.toLowerCase() && amn < 0.0001) continue; 
+                if(this.positions[p].collateralToken.toLowerCase() == conf.docToken.toLowerCase() && amn < 2) continue;
+                else if(this.positions[p].collateralToken.toLowerCase() == conf.testTokenRBTC.toLowerCase() && amn < 0.00012) continue; 
                
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
-                    console.log("Found expired open position. Going to rollover " + this.positions[p].loanId+" pos size: "+amn);   
+                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collatralToken: "+this.positions[p].collateralToken);   
                     const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
                     const tx = await this.rollover(this.positions[p].loanId, w.adr, nonce);
