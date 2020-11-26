@@ -25,7 +25,7 @@ class Rollover {
             console.log("started checking expired positions");
 
             for (let p in this.positions) { 
-                
+                console.log(this.positions[p])
                 const amn = C.web3.fromWei(this.positions[p].principal);
                 if(this.positions[p].loanToken == conf.docToken && amn < 0.1) continue;
                 else if(this.positions[p].loanToken == conf.testTokenRBTC && amn < 0.0001) continue; 

@@ -53,11 +53,9 @@ class PositionScanner {
                 //delete the position list and copy updated positions from positionsTmp. Causes an inconsitency for about 0.1-1second
                 for (let k in this.positions) if (this.positions.hasOwnProperty(k)) delete this.positions[k];
                 for (let k in this.positionsTmp) {
-                    if (this.positionsTmp.hasOwnProperty(k)) {
-                        this.positions[k] = JSON.parse(JSON.stringify(this.positionsTmp[k]));
-                        delete this.positionsTmp[k];
-                    }
+                    if (this.positionsTmp.hasOwnProperty(k)) this.positions[k] = this.positionsTmp[k];
                 }
+                this.positionsTmp={};
                 //waiting time between rounds like specified
                 await U.wasteTime(conf.scannerInterval);
             }
