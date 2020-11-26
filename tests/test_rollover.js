@@ -68,6 +68,10 @@ describe('Contract', async () => {
                     totalPos+=pos.length;
 
                     for (let p in pos) {
+                        const amn = C.web3.utils.fromWei(pos[p].collateral.toString(), "Ether");
+                        if(pos[p].loanToken == conf.docToken && amn < 0.1) continue;
+                        else if(pos[p].loanToken == conf.testTokenRBTC && amn < 0.0001) continue; 
+                    
                         if(pos[p].endTimestamp < Date.now()/1000){
                             console.log("Found expired open position. "+pos[p].loanId);
                             rollover.push(pos[p].loanId);
