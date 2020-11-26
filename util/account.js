@@ -3,12 +3,11 @@
  */
 
 import Web3 from 'web3';
-import conf from '../config/config_mainnet';
+import conf from '../config/config_testnet';
 import A from '../secrets/accounts';
 import abiDocToken from '../config/abiTestToken';
 
-//var web3 = new Web3(conf.nodeProvider);
-var web3 = new Web3("https://public-node.rsk.co");
+var web3 = new Web3(conf.nodeProvider);
 var docContract = new web3.eth.Contract(abiDocToken, conf.docToken);
 
 
@@ -21,7 +20,7 @@ function createAccount(nr) {
 
 async function transfer(from, to, amount) {
     console.log(from);
-    web3.eth.accounts.wallet.add(from.pKey);
+    await web3.eth.accounts.wallet.add(from.pKey);
 
     let res = await web3.eth.sendTransaction({
         to: to,
@@ -48,6 +47,7 @@ async function transferToken(from, to, val) {
     }
 }
 
-//createAccount(1);
-transfer(A.liquidator[0], A.rollover[0].adr, "0.01");
+//createAccount(3);
+transfer(A.owner[1], A.arbitrage[0].adr, "0.2");
 //transferToken(A.liquidator[2], A.liquidator[1].adr, "20");
+
