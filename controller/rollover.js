@@ -2,6 +2,7 @@
  * Rollover the open position (loan or trade) to the next interval, currently 28 days for margin-trades and 1 month for loans
  * Rollover = extend deadline and pay interest
  */
+
 import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
@@ -24,17 +25,21 @@ class Rollover {
         while (true) {
             console.log("started checking expired positions");
 
-            for (let p in this.positions) { 
+            for (let p in this.positions) {
                 const amn = C.web3.utils.fromWei(this.positions[p].collateral.toString(), "Ether");
-                if(this.positions[p].collateralToken.toLowerCase() == conf.docToken.toLowerCase() && amn < 2) continue;
-                else if(this.positions[p].collateralToken.toLowerCase() == conf.testTokenRBTC.toLowerCase() && amn < 0.00012) continue; 
-               
+                if (this.positions[p].collateralToken.toLowerCase() === conf.docToken.toLowerCase() && amn < 2) continue;
+                else if(this.positions[p].collateralToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() && amn < 0.00012) continue;
+
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
-                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collatralToken: "+this.positions[p].collateralToken);   
-                    const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
-                    let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
-                    const tx = await this.rollover(this.positions[p].loanId, w.adr, nonce);
-                    if (tx) await this.addTx(tx);
+                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collatralToken: "+this.positions[p].collateralToken);
+                    const wallet = await Wallet.getWallet("rollover", 0.001, "rBtc");
+                    if (wallet) {
+                        const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
+                        const tx = await this.rollover(this.positions[p].loanId, wallet.adr, nonce);
+                        if (tx) await this.addTx(tx);
+                    } else {
+                        console.log("No wallet available unhandled for rollovers");
+                    }
                 }
             }
             console.log("Completed rollover");
@@ -48,7 +53,7 @@ class Rollover {
     rollover(loanId, wallet, nonce) {
         return new Promise(async (resolve) => {
             const loanDataBytes = "0x"; //need to be empty
-            
+
             C.contractSovryn.methods.rollover(loanId, loanDataBytes)
                 .send({ from: wallet, gas: 2500000, nonce })
                 .then((tx) => {
@@ -81,7 +86,7 @@ class Rollover {
                 }
             }
         } catch (e) {
-
+            console.error(e);
         }
     }
 
