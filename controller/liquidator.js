@@ -1,9 +1,9 @@
 /**
  * Liquidation handler
  * If liquidation is successful removes position from liquidation list
- * If it fails, check if the liquidation criteria are still met. 
- * If no, delete it from the liquidation list. If yes, send an error notification to a telegram group for manual processing. 
- * 
+ * If it fails, check if the liquidation criteria are still met.
+ * If no, delete it from the liquidation list. If yes, send an error notification to a telegram group for manual processing.
+ *
  * todo: If the contract returns WRBTC when liquidating long positions -> swap the WRBTC For RBTC to avoid bankrupcy of the wallet
  * alternative: liquidate only with wrbtc
  */
@@ -28,7 +28,7 @@ class Liquidator {
 
     /**
      * Wrapper for liquidations
-     * 1. Get wallet with enough funds in required tokens and not busy atm, then 
+     * 1. Get wallet with enough funds in required tokens and not busy atm, then
      * 2. Try to liquidate position
      */
     async checkPositionsForLiquidations() {
@@ -45,13 +45,13 @@ class Liquidator {
 
                 const w = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
                 if (!w) {
-                    this.handleNoWalletError(p);
+                    await this.handleNoWalletError(p);
                     continue;
                 }
                 const nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
 
                 this.liquidate(p, w.adr, pos.maxLiquidatable, token, nonce);
-                await U.wasteTime(1); //1 second break to avoid rejection from node                
+                await U.wasteTime(1); //1 second break to avoid rejection from node
             }
             console.log("Completed liquidation round");
             await U.wasteTime(conf.liquidatorScanInterval);
@@ -79,24 +79,24 @@ class Liquidator {
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.txHash);
-                p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
+                await p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
                 addLiqLog(tx.transactionHash);
             })
-            .catch((err) => {
+            .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                p.handleLiqError(wallet, loanId);
+                await p.handleLiqError(wallet, loanId);
             });
     }
 
-    handleLiqSuccess(wallet, loanId, txHash) {
+    async handleLiqSuccess(wallet, loanId, txHash) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         const msg = conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
-        this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, msg);
+        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, msg);
     }
 
     /**
-     * Possible errors: 
+     * Possible errors:
      * 1. Another user was faster -> position is already liquidated
      * 2. Btc price moved in opposite direction and the amount cannot be liquidated anymore
      */
@@ -105,13 +105,13 @@ class Liquidator {
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed.");
+            await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed.");
         }
     }
 
-    handleNoWalletError(loanId) {
+    async handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
+        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
     }
 
     async addLiqLog(txHash) {
