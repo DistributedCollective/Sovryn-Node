@@ -1,15 +1,15 @@
 /**
  * The arbitrage controller tries to capitalize on changes in market price between Doc and RBtc on the Sovryn amm.
- * 
+ *
  * First step is to define the amount for which we seek arbitrage. Currently hardcoded at 105$, the maximum trading amount.
  * Then, start an endless loop:
  * 1. Get the price from the amm. This returns the expected return form the Sovryn network.
  * 2. Get the price from the price feed contract. This returns the oracle price.
  * 3. Compare the prices. If the difference is >= threshold then sell arbitrage amount of liquidity of the respective currency to the amm,
  * Inform the telegram group about a successful arbitrage trade and save statistic in db
- * 
+ *
  * The swap network contract (conf.swapsImpl) need to be approved by the arbitrage wallet to spend Doc on his behalf
- * 
+ *
  * Todo2: Update amount calculation after the trading limits were released/updated.
  */
 
@@ -25,7 +25,7 @@ import db from "./db";
 
 class Arbitrage {
     constructor() {
-        this.telegramBotWatcher = new Telegram(conf.errorBotWatcherTelegramToken);
+        this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
         this.amount = 0.010; //105$; see comment on top
         abiDecoder.addABI(abiSwap);
     }
@@ -171,7 +171,7 @@ class Arbitrage {
                         console.error(error);
                         return resolve();
                     }
-                    
+
                     contract2.methods["convertByPath"](result, amount, minReturn)
                         .send({ from: beneficiary, gas: 2500000, value: val })
                         .then(async (tx) => {
