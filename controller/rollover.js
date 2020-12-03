@@ -3,6 +3,7 @@
  * Rollover = extend deadline and pay interest
  */
 
+const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
@@ -13,6 +14,7 @@ import dbCtrl from './db';
 class Rollover {
     start(positions) {
         this.positions = positions;
+        this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
         this.checkPositionsExpiration();
     }
 
@@ -38,7 +40,7 @@ class Rollover {
                         const tx = await this.rollover(this.positions[p].loanId, wallet.adr, nonce);
                         if (tx) await this.addTx(tx);
                     } else {
-                        console.log("No wallet available unhandled for rollovers");
+                        await this.handleNoWalletError();
                     }
                 }
             }
@@ -90,6 +92,10 @@ class Rollover {
         }
     }
 
+    async handleNoWalletError() {
+        console.error("No wallet available unhandled for rollovers");
+        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No wallet available unhandled for rollovers");
+    }
 }
 
 export default new Rollover();
