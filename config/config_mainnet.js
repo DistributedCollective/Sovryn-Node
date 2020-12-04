@@ -2,11 +2,11 @@ import telegramBot from '../secrets/telegram.js';
 
 export default {
     serverPort: 3000,
-    nodeProvider: 'https://mainnet.sovryn.app/rpc', 
+    nodeProvider: 'https://mainnet.sovryn.app/rpc',
     publicNodeProvider: 'https://public-node.rsk.co',
     network: "main",
     db: "watcher_mainnet.db",
-    nrOfProcessingPositions: 100, 
+    nrOfProcessingPositions: 100,
     scannerInterval: 60, //sec
     rolloverScanInterval: 60, //sec
     liquidatorScanInterval: 10, //sec
@@ -25,5 +25,6 @@ export default {
     thresholdArbitrage: 2, //in %
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
-    healthMonitorPort: 10 //results in 3010
+    healthMonitorPort: 10, //results in 3010
+    gasPriceBuffer: 10 //in %
 }

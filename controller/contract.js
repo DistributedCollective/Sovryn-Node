@@ -13,12 +13,12 @@ import wallets from '../secrets/accounts';
 
 class Contract {
     /**
-     * Creates all the contract intances to query open positions, balances, prices
+     * Creates all the contract instances to query open positions, balances, prices
      */
     constructor() {
         this.web3 = new Web3(conf.nodeProvider);
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
-        this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.docToken); 
+        this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.docToken);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
         this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
         this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);
@@ -56,9 +56,10 @@ class Contract {
     * This is needed in order to be able to liquidate a position and should be executed once in the beginning
     */
     approveToken(tokenCtr, from, receiver, amount) {
-        return new Promise(resolve => {
+        return new Promise(async resolve => {
+            const gasPrice = await this.getGasPrice();
             tokenCtr.methods.approve(receiver, amount)
-                .send({ from: from, gas:200000 })
+                .send({ from: from, gas:200000, gasPrice: gasPrice })
                 .then((tx) => {
                     console.log("Approved Transaction: ");
                     //console.log(tx);
@@ -152,8 +153,13 @@ class Contract {
      * helper function
      */
     getTokenInstance(adr) {
-        if (adr && adr.toLowerCase() == conf.docToken.toLowerCase()) return this.contractTokenSUSD;
-        else if (adr && adr.toLowerCase() == conf.testTokenRBTC.toLowerCase()) return this.contractTokenRBTC;
+        if (adr && adr.toLowerCase() === conf.docToken.toLowerCase()) return this.contractTokenSUSD;
+        else if (adr && adr.toLowerCase() === conf.testTokenRBTC.toLowerCase()) return this.contractTokenRBTC;
+    }
+
+    async getGasPrice() {
+        const gasPrice = await this.web3.eth.getGasPrice();
+        return Math.round(gasPrice * (100 + conf.gasPriceBuffer) / 100);
     }
 }
 

@@ -38,7 +38,7 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-                const token = pos.loanToken == conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+                const token = pos.loanToken === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
 
                 //Position already in liquidation wallet-queue
                 if (Wallet.checkIfPositionExists(p)) continue;
@@ -50,7 +50,7 @@ class Liquidator {
                 }
                 const nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
 
-                this.liquidate(p, w.adr, pos.maxLiquidatable, token, nonce);
+                await this.liquidate(p, w.adr, pos.maxLiquidatable, token, nonce);
                 await U.wasteTime(1); //1 second break to avoid rejection from node
             }
             console.log("Completed liquidation round");
@@ -63,10 +63,10 @@ class Liquidator {
     * If Loan token == WRBTC -> pass value
     * wallet = sender and receiver address
     */
-    liquidate(loanId, wallet, amount, token, nonce) {
+    async liquidate(loanId, wallet, amount, token, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
-        const val = token == "rBtc" ? amount : 0;
+        const val = token === "rBtc" ? amount : 0;
         console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
@@ -74,8 +74,9 @@ class Liquidator {
         delete this.liquidations[loanId];
 
         const p = this;
+        const gasPrice = await C.getGasPrice();
         C.contractSovryn.methods.liquidate(loanId, wallet, amount)
-            .send({ from: wallet, gas: 2500000, nonce: nonce, value: val })
+            .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.txHash);
@@ -127,14 +128,16 @@ class Liquidator {
 
                 if (user && liquidator, loanId) {
                     const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
-                    if (!path || path.length != 3) return;
+                    if (!path || path.length !== 3) return;
 
                     const balBefore = await C.getWalletTokenBalance(liquidator, loanToken);
                     const affiliateAcc = "0x0000000000000000000000000000000000000000";
+                    const gasPrice = await C.getGasPrice();
                     const approved = await C.approveToken(C.getTokenInstance(collateralToken), liquidator, conf.swapsImpl, collateralWithdrawAmount);
                     const swapTx = await C.contractSwaps.methods['convertByPath'](path, collateralWithdrawAmount, 1, liquidator, affiliateAcc, 0).send({
                         from: liquidator,
-                        gas: 2500000
+                        gas: 2500000,
+                        gasPrice: gasPrice
                     });
 
                     const balAfter = await C.getWalletTokenBalance(liquidator, loanToken);
@@ -155,10 +158,9 @@ class Liquidator {
             }
 
         } catch (e) {
-            console.log(e);
+            console.error(e);
         }
     }
-
 }
 
 export default new Liquidator();

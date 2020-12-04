@@ -43,11 +43,11 @@ class Arbitrage {
             let res, arb, profit;
             let p = await this.getRBtcPrices();
             if(p[0]>0 && p[1]>0) arb = this.calcArbitrage(p[0], p[1], conf.thresholdArbitrage);
-            if (arb && (arb == p[0])) {
+            if (arb && (arb === p[0])) {
                 let convertedAmount = C.web3.utils.toWei(p[0].toString(), "Ether");
                 res = await this.sendLiquidity(convertedAmount, "Doc");
             }
-            else if (arb && (arb == p[1])) {
+            else if (arb && (arb === p[1])) {
                 res = await this.sendLiquidity(C.web3.utils.toWei(this.amount.toString()), "Rbtc");
             }
 
@@ -67,7 +67,7 @@ class Arbitrage {
         const arbitrage = Math.abs(p1 - p2) / smallerAmount * 100;
         if (arbitrage >= threshold) {
             console.log("Arbitrage (%): "+arbitrage);
-            if(smallerAmount==p1) console.log("Buy doc!")
+            if(smallerAmount === p1) console.log("Buy doc!")
             else console.log("Buy RBtc");
 
             return smallerAmount;
@@ -153,27 +153,28 @@ class Arbitrage {
      */
     sendLiquidity(amount, currency) {
         console.log("Send " + amount + " "+currency+" to the amm");
-        const sourceToken = currency=="Doc"?conf.docToken:conf.testTokenRBTC;
-        const destToken = currency=="Doc"?conf.testTokenRBTC:conf.docToken;
+        const sourceToken = currency === "Doc"?conf.docToken:conf.testTokenRBTC;
+        const destToken = currency === "Doc"?conf.testTokenRBTC:conf.docToken;
         const contract1 = C.contractSwaps;
         const contract2 = C.wRbtcWrapper;
         const minReturn = 1; //amount / 100 * 99; //minReturn = 1 -> No assurance
         const beneficiary = A.arbitrage[0].adr;
         const affiliateAcc = "0x0000000000000000000000000000000000000000";
         const affiliateFee = 0;
-        const val = currency=="Doc"? 0:amount;
+        const val = currency === "Doc"? 0:amount;
 
         return new Promise(async (resolve) => {
             try {
-                contract1.methods["conversionPath"](sourceToken, destToken).call((error, result) => {
-                    if (error || !result || result.length!=3) {
+                contract1.methods["conversionPath"](sourceToken, destToken).call(async (error, result) => {
+                    if (error || !result || result.length !== 3) {
                         console.error("error loading conversion path from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                         console.error(error);
                         return resolve();
                     }
 
+                    const gasPrice = await C.getGasPrice();
                     contract2.methods["convertByPath"](result, amount, minReturn)
-                        .send({ from: beneficiary, gas: 2500000, value: val })
+                        .send({ from: beneficiary, gas: 2500000, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
                             console.log("Arbitrage tx successful");
                             return resolve(tx);

@@ -47,7 +47,7 @@ class MonitorController {
     * Internal check
     */
     async checkSystem() {
-        if (conf.network == "test") return;
+        if (conf.network === "test") return;
 
         const sInfo = await this.getSignals();
         for (let b in sInfo.accountInfoLiq) {
