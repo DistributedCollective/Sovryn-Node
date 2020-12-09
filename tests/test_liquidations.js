@@ -2,7 +2,7 @@
  * Liquidation tester
  * The liquidator account need to have sufficient tokens approved to be able to liquidate the open positions
  * This tests only works with the old contracts where the price can be changed manually
- * 
+ *
  *  Set test/mainnet in file /config.config.js manually because mocha.js overwrites process.arg
  */
 
@@ -25,9 +25,9 @@ describe('Liquidation', async () => {
         before(async () => {
             console.log("init");
             abiDecoder.addABI(abiComplete);
-            C.contractTokenSUSD = new C.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD); 
+            C.contractTokenSUSD = new C.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
         });
-         
+
         it('should set the start price for btc to 10000', async () => {
             let a = await changePrice(conf.testTokenRBTC, conf.docToken, 10000);
             assert(a.length == 66);
@@ -39,7 +39,7 @@ describe('Liquidation', async () => {
             console.log("loan id low " + loanIdLow)
             assert(p.length == 66);
         });
-        
+
         it('should create a position with 4x leverage)', async () => {
             let p = await openLongPosition("0.001", "4");
             loanIdHigh = await parseLog(p);
@@ -130,7 +130,7 @@ describe('Liquidation', async () => {
 */
 
 /**
- * Opens a long position on the loan token contract 
+ * Opens a long position on the loan token contract
  * @amount, @leverage = strings
  */
 async function openLongPosition(amount, leverage) {
@@ -163,7 +163,7 @@ async function marginTrade(contractToken, loanId, leverageAmount, loanTokenSent,
             leverageAmount,
             loanTokenSent,
             collateralTokenSent,
-            testTokenAdr, //in case of ISUSD the collateral is RBTC 
+            testTokenAdr, //in case of ISUSD the collateral is RBTC
             trader,
             loanDataBytes
         )
@@ -213,12 +213,12 @@ function liquidate(loanId, wallet, amount) {
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.txHash);
-                this.handleLiqSuccess(wallet, loanId, tx.transactionHash);
+                await this.handleLiqSuccess(wallet, loanId, tx.transactionHash);
             })
             .catch((err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                this.handleLiqError(loanId);
+                await this.handleLiqError(loanId);
         });
 }*/
 

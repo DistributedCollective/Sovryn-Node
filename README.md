@@ -1,6 +1,6 @@
 # Sovryn watcher
 
-The watcher reads all open positions from the Sovryn marginTrade contracts and continuosly monitors for changes. 
+The watcher reads all open positions from the Sovryn marginTrade contracts and continuously monitors for changes.
 The app has three main functions: Liquidation of expired positions, rollover of open positions and taking advantage of arbitrage opportunities on the amm.  
   
 
@@ -24,7 +24,7 @@ The function "rollover" on the protocol contract extends the loan duration by th
 
 ## 3. Arbitrage
 
-Earn $ through abitrage: if the expected price from the amm deviates more than 2 % from the oracle price buy the side which is off and exchange the money back on money onchain.
+Earn $ through arbitrage: if the expected price from the amm deviates more than 2 % from the oracle price buy the side which is off and exchange the money back on money onchain.
 
 
 ### Requirements
@@ -38,9 +38,10 @@ Webpack
 
 ```sh
 1. npm install
-2. To build the client create an empty directory "public/dist" and run "npm run build-client"
-3. Create empty directories "logs" and "db" in the project root
-4. Create directory "secrets" and within a file account.js with the credentials of the liquidator/rollover/arbitrage wallets 
+2. npm install -g mocha nodemon
+3. To build the client create an empty directory "public/dist" and run "npm run build-client"
+4. Create empty directories "logs" and "db" in the project root
+5. Create directory "secrets" and within a file accounts.js with the credentials of the liquidator/rollover/arbitrage wallets
 
 export default {
     "liquidator": [{
@@ -61,8 +62,8 @@ To receive notifications on telegram about new transactions and errors create a 
 export default "[telegram-bot-token]";
 export default ""; for no notifications
 
-5. Charge the watcher wallets with RBtc and Doc
-6. Execute util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets as well as the swap network contract to spend
+6. Charge the watcher wallets with RBtc and Doc
+7. Execute node -r esm util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets as well as the swap network contract to spend
 Doc on behalf of the arbitrage wallet.
 
 ```

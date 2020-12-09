@@ -2,6 +2,8 @@
  * Rollover the open position (loan or trade) to the next interval, currently 28 days for margin-trades and 1 month for loans
  * Rollover = extend deadline and pay interest
  */
+
+const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
@@ -15,6 +17,7 @@ class Rollover {
     }
     start(positions) {
         this.positions = positions;
+        this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
         this.checkPositionsExpiration();
     }
 
@@ -27,18 +30,23 @@ class Rollover {
         while (true) {
             console.log("started checking expired positions");
 
-            for (let p in this.positions) { 
+            for (let p in this.positions) {
                 const amn = C.web3.utils.fromWei(this.positions[p].collateral.toString(), "Ether");
-                if(this.positions[p].collateralToken.toLowerCase() == conf.docToken.toLowerCase() && amn < 2) continue;
-                else if(this.positions[p].collateralToken.toLowerCase() == conf.testTokenRBTC.toLowerCase() && amn < 0.00012) continue; 
-                else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
 
+                if(this.positions[p].collateralToken.toLowerCase() === conf.docToken.toLowerCase() && amn < 2) continue;
+                else if(this.positions[p].collateralToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() && amn < 0.00012) continue; 
+                else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
+               
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
-                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collatralToken: "+this.positions[p].collateralToken);   
-                    const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
-                    let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
-                    const tx = await this.rollover(this.positions[p].loanId, w.adr, nonce);
-                    if (tx) await this.addTx(tx);
+                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collatralToken: "+this.positions[p].collateralToken);
+                    const wallet = await Wallet.getWallet("rollover", 0.001, "rBtc");
+                    if (wallet) {
+                        const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
+                        const tx = await this.rollover(this.positions[p].loanId, wallet.adr, nonce);
+                        if (tx) await this.addTx(tx);
+                    } else {
+                        await this.handleNoWalletError();
+                    }
                 }
             }
             console.log("Completed rollover");
@@ -53,9 +61,10 @@ class Rollover {
         const p=this;
         return new Promise(async (resolve) => {
             const loanDataBytes = "0x"; //need to be empty
-            
+
+            const gasPrice = await C.getGasPrice();
             C.contractSovryn.methods.rollover(loanId, loanDataBytes)
-                .send({ from: wallet, gas: 2500000, nonce })
+                .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce })
                 .then((tx) => {
                     console.log("Rollover Transaction successful: "+tx.transactionHash);
                     p.handleRolloverSuccess(loanId);
@@ -101,8 +110,13 @@ class Rollover {
                 }
             }
         } catch (e) {
-
+            console.error(e);
         }
+    }
+
+    async handleNoWalletError() {
+        console.error("No wallet available unhandled for rollovers");
+        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No wallet available unhandled for rollovers");
     }
 }
 

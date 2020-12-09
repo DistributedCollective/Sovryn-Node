@@ -2,8 +2,8 @@ import telegramBot from '../secrets/telegram.js';
 
 export default  {
     serverPort: 3000,
-    nodeProvider: 'https://testnet.sovryn.app/rpc',  
-    publicNodeProvider: 'https://public-node.testnet.rsk.co', 
+    nodeProvider: 'https://testnet.sovryn.app/rpc',
+    publicNodeProvider: 'https://public-node.testnet.rsk.co',
     network: "test",
     db: "watcher_testnet.db",
     nrOfProcessingPositions: 100,
@@ -26,5 +26,6 @@ export default  {
     thresholdArbitrage: 2, //in %
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
-    healthMonitorPort: 3 //results in 3003
+    healthMonitorPort: 3, //results in 3003
+    gasPriceBuffer: 10 //in %
 }

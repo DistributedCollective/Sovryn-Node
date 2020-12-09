@@ -43,26 +43,26 @@ class MonitorController {
         else return resp;
     }
 
-    /** 
+    /**
     * Internal check
     */
     async checkSystem() {
-        if (conf.network == "test") return;
+        if (conf.network === "test") return;
 
         const sInfo = await this.getSignals();
         for (let b in sInfo.accountInfoLiq) {
             if (sInfo.accountInfoLiq[b] < 0.001)
-                this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for liquidator " + b + " on " + conf.network + " network");
+                await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for liquidator " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoRoll) {
             if (sInfo.accountInfoRoll[b] < 0.001)
-                this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for rollover-wallet " + b + " on " + conf.network + " network");
+                await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for rollover-wallet " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoArb) {
             if (sInfo.accountInfoArb[b] < 0.001)
-                this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for arbitrage-wallet " + b + " on " + conf.network + " network");
+                await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for arbitrage-wallet " + b + " on " + conf.network + " network");
         }
     }
 
