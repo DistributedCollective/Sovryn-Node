@@ -19,6 +19,7 @@ import dbCtrl from './db';
 class Liquidator {
     constructor() {
         this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
+        this.liquidationErrorList=[];
     }
 
     start(liquidations) {
@@ -42,6 +43,8 @@ class Liquidator {
 
                 //Position already in liquidation wallet-queue
                 if (Wallet.checkIfPositionExists(p)) continue;
+                //have to check manually
+                else if(this.liquidationErrorList[loanId]>=5) continue;
 
                 const w = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
                 if (!w) {
@@ -91,6 +94,7 @@ class Liquidator {
 
     handleLiqSuccess(wallet, loanId, txHash) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
+        this.liquidationErrorList[loanId]=null;
         const msg = conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
         this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, msg);
     }
@@ -102,6 +106,9 @@ class Liquidator {
      */
     async handleLiqError(wallet, loanId) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
+        if(!this.liquidationErrorList[loanId]) this.liquidationErrorList[loanId]=1;
+        else this.liquidationErrorList[loanId]++;
+
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
@@ -115,6 +122,7 @@ class Liquidator {
     }
 
     async addLiqLog(txHash) {
+        console.log("Add liquidation "+txHash+" to db");
         try {
             const receipt = await C.web3.eth.getTransactionReceipt(txHash);
 

@@ -69,11 +69,11 @@ describe('Contract', async () => {
 
                     for (let p in pos) {
                         const amn = C.web3.utils.fromWei(pos[p].collateral.toString(), "Ether");
-                        if(pos[p].loanToken == conf.docToken && amn < 0.1) continue;
+                        if(pos[p].loanToken == conf.docToken && amn < 2) continue;
                         else if(pos[p].loanToken == conf.testTokenRBTC && amn < 0.0001) continue; 
                     
                         if(pos[p].endTimestamp < Date.now()/1000){
-                            console.log("Found expired open position. "+pos[p].loanId);
+                            console.log("Found expired open position. "+pos[p].loanId+", amount: "+amn);
                             rollover.push(pos[p].loanId);
                         }
                     }
@@ -82,23 +82,23 @@ describe('Contract', async () => {
             console.log("Found "+totalPos+" open positions. "+rollover.length+" to rollover");
             assert(true);
         });   
-/*
+
         //the position need to be expired (min time = 24h)
-        it('should rollover all open but expired loans', async () => {
+        it('should rollover all expired loans', async () => {
             if(rollover.length==0) {
                 console.log("Nothing todo here");
                 return assert(true);
             }
             console.log("start rollover");
             for(let i in rollover) {
-                const w = await Wallet.getWallet("rollover", 0.001);
-                let nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
-                const r = await Rollover.rollover(rollover[i], w.adr, nonce);
+                const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
+                let nonce = await C.web3.eth.getTransactionCount(w.adr.toLowerCase(), 'pending');
+                const r = await Rollover.rollover(rollover[i], w.adr.toLowerCase(), nonce);
                 console.log(r);
 
                 assert(r.length==66);
             }
-        });*/
+        });
     });
 });
 

@@ -10,6 +10,9 @@ import abiDecoder from 'abi-decoder';
 import dbCtrl from './db';
 
 class Rollover {
+    constructor(){
+        this.RolloverErrorList=[];
+    }
     start(positions) {
         this.positions = positions;
         this.checkPositionsExpiration();
@@ -28,7 +31,8 @@ class Rollover {
                 const amn = C.web3.utils.fromWei(this.positions[p].collateral.toString(), "Ether");
                 if(this.positions[p].collateralToken.toLowerCase() == conf.docToken.toLowerCase() && amn < 2) continue;
                 else if(this.positions[p].collateralToken.toLowerCase() == conf.testTokenRBTC.toLowerCase() && amn < 0.00012) continue; 
-               
+                else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
+
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
                     console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collatralToken: "+this.positions[p].collateralToken);   
                     const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
@@ -46,6 +50,7 @@ class Rollover {
      * Tries to rollover a position
      */
     rollover(loanId, wallet, nonce) {
+        const p=this;
         return new Promise(async (resolve) => {
             const loanDataBytes = "0x"; //need to be empty
             
@@ -54,15 +59,30 @@ class Rollover {
                 .then((tx) => {
                     console.log("Rollover Transaction successful: "+tx.transactionHash);
                     resolve(tx.transactionHash);
+                    p.handleRolloverSuccess(loanId);
                 })
                 .catch((err) => {
                     console.error("Error in rolling over position "+loanId);
                     console.error(err);
                     resolve();
+                    p.handleRolloverError(loanId);
                 });
         });
     }
 
+    handleRolloverSuccess(loanId){
+        this.RolloverErrorList[loanId] = null;
+    }
+
+    handleRolloverError(loanId){
+        if(!this.RolloverErrorList[loanId]) this.RolloverErrorList[loanId]=1;
+        else this.RolloverErrorList[loanId]++;
+    }
+
+
+    /**
+     * Rollover currently does not emit logs
+     */
     async addTx(txHash) {
         try {
             const receipt = await C.web3.eth.getTransactionReceipt(txHash);
@@ -84,7 +104,6 @@ class Rollover {
 
         }
     }
-
 }
 
 export default new Rollover();

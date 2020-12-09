@@ -8,7 +8,7 @@ export default  {
     db: "watcher_testnet.db",
     nrOfProcessingPositions: 100,
     scannerInterval: 60, //sec
-    rolloverScanInterval: 60, //sec
+    rolloverScanInterval: 180, //sec
     liquidatorScanInterval: 60, //sec
     arbitrageScanInterval: 30, //sec
     enableLiquidator: true,
