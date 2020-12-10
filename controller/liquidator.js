@@ -29,7 +29,7 @@ class Liquidator {
 
     /**
      * Wrapper for liquidations
-     * 1. Get wallet with enough funds in required tokens and not busy atm, then
+     * 1. Get a wallet with enough funds in required tokens and which is not busy at the moment, then
      * 2. Try to liquidate position
      */
     async checkPositionsForLiquidations() {
@@ -43,8 +43,8 @@ class Liquidator {
 
                 //Position already in liquidation wallet-queue
                 if (Wallet.checkIfPositionExists(p)) continue;
-                //have to check manually
-                else if(this.liquidationErrorList[loanId]>=5) continue;
+                //failed too often -> have to check manually
+                if(this.liquidationErrorList[p]>=5) continue;
 
                 const w = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
                 if (!w) {
