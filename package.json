@@ -9,7 +9,8 @@
     "start:testnet": "nodemon -r esm start.js testnet",
     "start:mainnet": "nodemon -r esm start.js mainnet",
     "build-client": "npx webpack --config ./public/webpack.config.ts && cp public/src/index.html public/dist/index.html",
-    "approveWallets": "node -r esm ./util/approval.js mainnet"
+    "approveWalletsMain": "node -r esm ./util/approval.js mainnet",
+    "approveWalletsTest": "node -r esm ./util/approval.js testnet"
   },
   "author": "",
   "license": "ISC",
