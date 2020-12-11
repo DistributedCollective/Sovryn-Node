@@ -8,7 +8,8 @@
     "test-network": "node -r esm ./tests/network.js",
     "start:testnet": "nodemon -r esm start.js testnet",
     "start:mainnet": "nodemon -r esm start.js mainnet",
-    "build-client": "npx webpack --config ./public/webpack.config.ts && cp public/src/index.html public/dist/index.html"
+    "build-client": "npx webpack --config ./public/webpack.config.ts && cp public/src/index.html public/dist/index.html",
+    "approveWallets": "node -r esm ./util/approval.js mainnet"
   },
   "author": "",
   "license": "ISC",

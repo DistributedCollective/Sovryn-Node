@@ -10,7 +10,9 @@ import W from '../secrets/accounts';
 
 const amount = C.web3.utils.toWei("1000000000", 'ether');
 
+setTimeout(()=> {
 approve();
+},2000);
 
 async function approve() {
     await approveLiquidatorWallets();
@@ -30,17 +32,14 @@ async function approveLiquidatorWallets() {
         approved = await C.approveToken(C.contractTokenRBTC, from, conf.sovrynProtocolAdr, amount);
         console.log(approved);
 
-
         //should approve the Sovryn contract to spend SUSD (doc) for the main account
         console.log(from + " approving " + conf.sovrynProtocolAdr + " for " + amount)
-
         approved = await C.approveToken(C.contractTokenSUSD, from, conf.sovrynProtocolAdr, amount);
         console.log(approved);
 
         //should approve the rBTC IToken contract to spend sUSD (doc) for the main account
         approved = await C.approveToken(C.contractTokenSUSD, from, conf.loanTokenRBTC, amount);
         console.log(approved);
-
 
         //only needed for opening positions (tests)
         //should approve the rBTC IToken contract to spend rBTC for the main account
@@ -64,7 +63,6 @@ async function approveArbitrageWallets() {
     console.log("start approving arbitrage wallet")
 
     const from = W.arbitrage[0].adr.toLowerCase();
-
     let approved;
 
     //should approve the swap network contract (conf.swapsImpl) to spend Doc for the main account
