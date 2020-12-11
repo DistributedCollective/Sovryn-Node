@@ -44,7 +44,7 @@ class Liquidator {
                 //Position already in liquidation wallet-queue
                 if (Wallet.checkIfPositionExists(p)) continue;
                 //have to check manually
-                else if(this.liquidationErrorList[loanId]>=5) continue;
+                if(this.liquidationErrorList[p]>=5) continue;
 
                 const w = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
                 if (!w) {
