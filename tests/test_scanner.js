@@ -59,14 +59,14 @@ describe('Scanner', async () => {
                 }
             }
         });
-        /*
+        
         it('should find open positions with margin < 20%', async () => {
             for(let p in PosScanner.positions){
                 let margin = PosScanner.positions[p].currentMargin/1e18;
                 let mMargin = PosScanner.positions[p].maintenanceMargin/1e18;
                 if(margin<20) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
             }
-        });*/
+        });
 
         /*
         it('should process all open pos', async () => {

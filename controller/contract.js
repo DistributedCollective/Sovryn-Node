@@ -18,8 +18,12 @@ class Contract {
     constructor() {
         this.web3 = new Web3(conf.nodeProvider);
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
+
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.docToken);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
+        this.contractTokenUSDT = new this.web3.eth.Contract(abiTestToken, conf.USDTToken);
+        this.contractTokenBPRO = new this.web3.eth.Contract(abiTestToken, conf.BProToken);
+    
         this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
         this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);
         this.wRbtcWrapper = new this.web3.eth.Contract(abiRBTCWrapperProxy, conf.wRbtcWrapper);
@@ -72,6 +76,7 @@ class Contract {
     /**
      * Returns wheter a wallet is ready to be used as liquidator
      * todo: add correct threshold of balances
+     * todo: add new token-checks
      */
     async completeWalletCheck(adr) {
         const balRbtc = await this.getWalletBalance(adr);
@@ -155,6 +160,9 @@ class Contract {
     getTokenInstance(adr) {
         if (adr && adr.toLowerCase() === conf.docToken.toLowerCase()) return this.contractTokenSUSD;
         else if (adr && adr.toLowerCase() === conf.testTokenRBTC.toLowerCase()) return this.contractTokenRBTC;
+        else if (adr && adr.toLowerCase() === conf.testTokenUSDT.toLowerCase()) return this.contractTokenUSDT;
+        else if (adr && adr.toLowerCase() === conf.testTokenBPRO.toLowerCase()) return this.contractTokenBPRO;
+        return false;
     }
 
     async getGasPrice() {
