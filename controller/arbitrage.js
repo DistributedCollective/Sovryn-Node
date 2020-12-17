@@ -167,8 +167,18 @@ class Arbitrage {
      */
     sendLiquidity(amount, currency) {
         console.log("Send " + amount + " "+currency+" to the amm");
-        const sourceToken = currency === "Doc"?conf.docToken:conf.testTokenRBTC;
-        const destToken = currency === "Doc"?conf.testTokenRBTC:conf.docToken;
+        let sourceToken, destToken;
+
+        if(currency === "doc") sourceToken = conf.docToken;
+        else if(currency === "usdt") sourceToken = conf.USDTToken;
+        else if(currency === "bpro") sourceToken = conf.BProToken;
+        else sourceToken = conf.testTokenRBTC;
+
+        if(currency === "doc") destToken = conf.docToken;
+        else if(currency === "usdt") destToken = conf.USDTToken;
+        else if(currency === "bpro") destToken = conf.BProToken;
+        else destToken = conf.testTokenRBTC;
+
         const contract1 = C.contractSwaps;
         const contract2 = C.wRbtcWrapper;
         const minReturn = 1; //amount / 100 * 99; //minReturn = 1 -> No assurance
