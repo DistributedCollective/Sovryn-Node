@@ -84,7 +84,7 @@ class Liquidator {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.txHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
-                addLiqLog(tx.transactionHash);
+                p.addLiqLog(tx.transactionHash);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
