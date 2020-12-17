@@ -39,7 +39,7 @@ class Rollover {
                
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
                     console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collatralToken: "+this.positions[p].collateralToken);
-                    const wallet = await Wallet.getWallet("rollover", 0.001, "rBtc");
+                    const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     if (wallet) {
                         const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
                         const tx = await this.rollover(this.positions[p].loanId, wallet.adr, nonce);
@@ -115,8 +115,8 @@ class Rollover {
     }
 
     async handleNoWalletError() {
-        console.error("No wallet available unhandled for rollovers");
-        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No wallet available unhandled for rollovers");
+        console.error("No wallet available for rollover");
+        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No wallet available for rollover");
     }
 }
 

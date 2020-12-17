@@ -46,14 +46,15 @@ class Liquidator {
                 //failed too often -> have to check manually
                 if(this.liquidationErrorList[p]>=5) continue;
 
-                const w = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
-                if (!w) {
+                const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
+                if (!wallet) {
                     await this.handleNoWalletError(p);
                     continue;
-                }
-                const nonce = await C.web3.eth.getTransactionCount(w.adr, 'pending');
+                } 
+                const liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
+                const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
-                await this.liquidate(p, w.adr, pos.maxLiquidatable, token, nonce);
+                await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce);
                 await U.wasteTime(1); //1 second break to avoid rejection from node
             }
             console.log("Completed liquidation round");

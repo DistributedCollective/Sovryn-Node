@@ -39,8 +39,22 @@ class Wallet {
             if (token === "rBtc") wBalance = await C.web3.eth.getBalance(wallet.adr);
             else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
 
-            if (parseFloat(wBalance) >= parseFloat(reqTokenBalance)) return wallet;
+            if (parseFloat(wBalance) >= parseFloat(reqTokenBalance)) return [wallet, parseFloat(wBalance)];
         }
+
+        //No wallet with enough funds found, return first one with balance > 0
+        //todo: return the one with the highest balance
+        for (let wallet of A[type]) {
+            if (this.queue[type][wallet.adr].length >= 4) continue;
+
+            let wBalance;
+            if (token === "rBtc") wBalance = await C.web3.eth.getBalance(wallet.adr);
+            else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
+
+            if (parseFloat(wBalance) >= 0) return [wallet, parseFloat(wBalance)];
+        }
+
+        //completely drained or busy or both
         return false;
     }
 
