@@ -21,7 +21,7 @@ export default {
     testTokenRBTC: "0x542fDA317318eBF1d3DEAf76E0b632741A7e677d", //wrbtc
     docToken: "0xe700691da7b9851f2f35f8b8182c69c53ccad9db", //former susd
     USDTToken: "0xEf213441a85DF4d7acBdAe0Cf78004E1e486BB96".toLowerCase(), 
-    BProToken: "0x440cd83c160de5c96ddb20246815ea44c7abbca8".toLowerCase(), 
+    BProToken: "0x440cd83C160de5C96DDb20246815EA44C7Abbca8".toLowerCase(), 
     sovrynProtocolAdr: "0x5A0D867e0D70Fcc6Ade25C3F1B89d618b5B4Eaa7",
     swapsImpl: "0x98aCE08D2b759a265ae326F010496bcD63C15afc", //get price from amm/old execute swaps
     priceFeed: "0x437AC62769f386b2d238409B7f0a7596d36506e4", //get oracle price

@@ -41,7 +41,7 @@ class Arbitrage {
             let prices = await this.getRBtcPrices();
 
             for(let p in prices) {
-                if(prices[p][0]>0 && prices[pair][1]>0) arb = this.calcArbitrage(prices[p][0], prices[p][1], conf.thresholdArbitrage);
+                if(prices[p][0]>0 && prices[p][1]>0) arb = this.calcArbitrage(prices[p][0], prices[p][1], conf.thresholdArbitrage);
                 if (arb && (arb === prices[p][0])) {
                     let convertedAmount = C.web3.utils.toWei(prices[p][0].toString(), "Ether");
                     res = await this.sendLiquidity(convertedAmount, p);
@@ -80,24 +80,23 @@ class Arbitrage {
         const amount = C.web3.utils.toWei(conf.amountArbitrage.toString(), "Ether");
         //doc
         let rBtcDocAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.docToken, amount);
-        rBtcDocAmm = C.web3.utils.fromWei(rBtcPriceAmm.toString(), "Ether");
+        rBtcDocAmm = C.web3.utils.fromWei(rBtcDocAmm.toString(), "Ether");
         let rBtcDocPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.docToken, amount);
-        rBtcDocPf = C.web3.utils.fromWei(rBtcPricePf.toString(), "Ether");
+        rBtcDocPf = C.web3.utils.fromWei(rBtcDocPf.toString(), "Ether");
         
         //usdt
         let rBtcUsdtAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.USDTToken, amount);
-        rBtcUsdtAmm = C.web3.utils.fromWei(rBtcPriceAmm.toString(), "Ether");
+        rBtcUsdtAmm = C.web3.utils.fromWei(rBtcUsdtAmm.toString(), "Ether");
         let rBtcUsdtPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.USDTToken, amount);
-        rBtcUsdtPf = C.web3.utils.fromWei(rBtcPricePf.toString(), "Ether");
+        rBtcUsdtPf = C.web3.utils.fromWei(rBtcUsdtPf.toString(), "Ether");
         
         //bpro
-        let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
-        rBtcBproAmm = C.web3.utils.fromWei(rBtcPriceAmm.toString(), "Ether");
+        /*let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
+        rBtcBproAmm = C.web3.utils.fromWei(rBtcBproAmm.toString(), "Ether");
         let rBtcBproPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.BProToken, amount);
-        rBtcBproPf = C.web3.utils.fromWei(rBtcPricePf.toString(), "Ether");
+        rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");*/
         
-        console.log("RBtc Price amm: "+rBtcPriceAmm+", pricefeed: " + rBtcPricePf);
-        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], "bpro": [rBtcBproAmm, rBtcBproPf]};
+        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], /*"bpro": [rBtcBproAmm, rBtcBproPf]*/};
     }
 
     /**
