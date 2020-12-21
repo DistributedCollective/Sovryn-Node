@@ -94,11 +94,14 @@ class Rollover {
      */
     async addTx(txHash) {
         try {
+            console.log("Add rollover to db");
             const receipt = await C.web3.eth.getTransactionReceipt(txHash);
 
             if (receipt && receipt.logs) {
                 const logs = abiDecoder.decodeLogs(receipt.logs) || [];
-                const loanEvent = logs.find(log => log.name === "LoanSwap");
+                console.log("-------rollover logs");
+                console.log(logs)
+                const loanEvent = logs.find(log => log.name === "Conversion");
                 const params = U.parseEventParams(loanEvent.events);
 
                 if (params && params.loanId) {

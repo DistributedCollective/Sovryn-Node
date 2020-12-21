@@ -2,14 +2,11 @@
  * Testing telegram bot api
  */
 
-import c from '../config/config_testnet';
-const TelegramBot = require('node-telegram-bot-api');
+import c from '../config/config';
+const Telegram = require('telegraf/telegram');
 
-console.log("start bot "+c.errorBotNodeTelegramToken)
-const bot = new TelegramBot(c.errorBotNodeTelegramToken, {polling: true});
+console.log("start bot "+c.errorBotTelegram)
+const bot = new Telegram(c.errorBotTelegram);
 
-bot.on('message', (msg) => {
-  console.log(msg);
-});
 
 bot.sendMessage(c.sovrynInternalTelegramId, "hello");

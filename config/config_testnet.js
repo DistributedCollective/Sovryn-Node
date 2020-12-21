@@ -22,7 +22,7 @@ export default  {
     testTokenRBTC: "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab", //wrbtc
     docToken: "0xCB46c0ddc60D18eFEB0E586C17Af6ea36452Dae0", //former susd
     USDTToken: "0x4d5A316d23EBe168D8f887b4447BF8DBfA4901cc",
-    BProToken: "0x4dA7997A819bb46B6758b9102234c289Dd2ad3bf",
+    BProToken: "0x4dA7997A819bb46B6758b9102234c289Dd2ad3bf".toLowerCase(),
     sovrynProtocolAdr: "0x25380305f223B32FDB844152abD2E82BC5Ad99c3",
     swapsImpl: "0x61172B53423E205a399640e5283e51FE60EC2256", //get price from amm/old execute swaps
     priceFeed: "0x7f38c422b99075f63C9c919ECD200DF8d2Cf5BD4", //get oracle price
@@ -30,7 +30,7 @@ export default  {
     thresholdArbitrage: 2, //in %
     amountArbitrage: 0.01, //in RBtc
     errorBotTelegram: telegramBot,
-    sovrynInternalTelegramId: -1001308978723,
+    sovrynInternalTelegramId: -492690059,
     healthMonitorPort: 3, //results in 3003
     gasPriceBuffer: 10 //in %
 }
