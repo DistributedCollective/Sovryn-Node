@@ -9,11 +9,13 @@ import U from '../util/helper';
 import Wallet from './wallet';
 import conf from '../config/config';
 import abiDecoder from 'abi-decoder';
+import abiComplete from "../config/abiComplete";
 import dbCtrl from './db';
 
 class Rollover {
     constructor(){
         this.RolloverErrorList=[];
+        abiDecoder.addABI(abiComplete);
     }
     start(positions) {
         this.positions = positions;
