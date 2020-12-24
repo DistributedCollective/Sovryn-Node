@@ -146,7 +146,7 @@ class Liquidator {
                     console.log("user found");
                     console.log(user);
                     console.log(liquidator);
-                    console.log(LoanId);
+                    console.log(loanId);
                     const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
                     if (!path || path.length !== 3) return;
 

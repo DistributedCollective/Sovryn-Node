@@ -222,10 +222,11 @@ class Arbitrage {
         try {
             console.log("Calculate profit from arbitrage");
             const receipt = await C.web3.eth.getTransactionReceipt(txHash);
+            console.log(receipt);
             if (receipt && receipt.logs) {
                 const logs = abiDecoder.decodeLogs(receipt.logs);
                 const conversionEvent = (logs || []).find(log => log && log.name === "Conversion");
-                // console.log(JSON.stringify(logs, null, 2));
+                console.log(JSON.stringify(logs, null, 2));
 
                 if (conversionEvent && conversionEvent.events) {
                     const priceFeed = Number(btcPriceFeed)/conf.amountArbitrage;
