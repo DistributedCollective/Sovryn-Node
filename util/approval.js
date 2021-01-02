@@ -37,9 +37,15 @@ async function approveLiquidatorWallets() {
         approved = await C.approveToken(C.contractTokenSUSD, from, conf.sovrynProtocolAdr, amount);
         console.log(approved);
 
-        //should approve the rBTC IToken contract to spend sUSD (doc) for the main account
-        approved = await C.approveToken(C.contractTokenSUSD, from, conf.loanTokenRBTC, amount);
+        //should approve the Sovryn contract to spend USDT for the main account
+        console.log(from + " approving " + conf.sovrynProtocolAdr + " for " + amount)
+        approved = await C.approveToken(C.contractTokenUSDT, from, conf.sovrynProtocolAdr, amount);
         console.log(approved);
+ 
+        //should approve the rBTC IToken contract to spend sUSD (doc) for the main account
+        //only needed for opening positions (tests)
+        //approved = await C.approveToken(C.contractTokenSUSD, from, conf.loanTokenRBTC, amount);
+        //console.log(approved);
 
         //only needed for opening positions (tests)
         //should approve the rBTC IToken contract to spend rBTC for the main account
@@ -52,8 +58,9 @@ async function approveLiquidatorWallets() {
         //console.log(approved);
 
         //should approve the sUSD IToken contract to spend sUSD (doc) for the main account
-        approved = await C.approveToken(C.contractTokenSUSD, from, conf.loanTokenSUSD, amount);
-        console.log(approved);
+        //only needed for opening positions (tests)
+        //approved = await C.approveToken(C.contractTokenSUSD, from, conf.loanTokenSUSD, amount);
+        //console.log(approved);
     }
     return;
 }
@@ -77,4 +84,12 @@ async function approveArbitrageWallets() {
     //should approve the wRBTC wrapper contract to spend Doc for the main account
     approved = await C.approveToken(C.contractTokenSUSD, from, conf.wRbtcWrapper, amount);
     console.log(approved);
+
+    //should approve the wRBTC wrapper contract to spend USDT for the main account
+    approved = await C.approveToken(C.contractTokenUSDT, from, conf.wRbtcWrapper, amount);
+    console.log(approved);
+
+     //should approve the swap network contract to spend USDT for the main account
+     approved = await C.approveToken(C.contractTokenUSDT, from, conf.swapsImpl, amount);
+     console.log(approved);
 }

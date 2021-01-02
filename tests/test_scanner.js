@@ -60,11 +60,12 @@ describe('Scanner', async () => {
             }
         });
         
-        it('should find open positions with margin < 20%', async () => {
+        it('should find open positions with margin < 50%', async () => {
             for(let p in PosScanner.positions){
+                //console.log(PosScanner.positions[p])
                 let margin = PosScanner.positions[p].currentMargin/1e18;
                 let mMargin = PosScanner.positions[p].maintenanceMargin/1e18;
-                if(margin<20) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
+                if(margin<70) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
             }
         });
 
@@ -72,7 +73,7 @@ describe('Scanner', async () => {
         it('should process all open pos', async () => {
             for(let p in PosScanner.positions){
                 let ev = await loadEvent(p);  
-                console.log(ev);             
+                console.log(p+" "+ev.user);             
             }
             assert(true);
         });*/
@@ -113,16 +114,19 @@ function parseLog(txHash) {
 function loadEvent(loanId) {
     return new Promise(resolve => {
         C.contractSovryn.getPastEvents('Trade', {
-            fromBlock: 1205639,
+            fromBlock: 2742418,
             toBlock: 'latest',
             filter: {loanId: loanId}
         }, (error, events) => {
             if (error) {
-                console.log("had an error"); console.log(error);
+                //console.log("had an error"); console.log(error);
+                return resolve({});
             }
-            console.log("event "+events[0].address+" loaded")
+            //console.log(events[0].returnValues);
             //console.log(events[0]);
-            resolve(events[0].returnValues.user);
+            if(events[0]&&events[0].returnValues) return resolve(events[0].returnValues);
+
+            resolve({});
         });
     });
 }
