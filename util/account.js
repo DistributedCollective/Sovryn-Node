@@ -47,7 +47,7 @@ async function transferToken(from, to, val) {
     }
 }
 
-createAccount(3);
+createAccount(1);
 //transfer(A.owner[1], A.arbitrage[0].adr, "0.2");
 //transferToken(A.liquidator[2], A.liquidator[1].adr, "20");
 

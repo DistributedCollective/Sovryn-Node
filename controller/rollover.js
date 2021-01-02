@@ -9,11 +9,13 @@ import U from '../util/helper';
 import Wallet from './wallet';
 import conf from '../config/config';
 import abiDecoder from 'abi-decoder';
+import abiComplete from "../config/abiComplete";
 import dbCtrl from './db';
 
 class Rollover {
     constructor(){
         this.RolloverErrorList=[];
+        abiDecoder.addABI(abiComplete);
     }
     start(positions) {
         this.positions = positions;
@@ -94,11 +96,14 @@ class Rollover {
      */
     async addTx(txHash) {
         try {
+            console.log("Add rollover to db");
             const receipt = await C.web3.eth.getTransactionReceipt(txHash);
 
             if (receipt && receipt.logs) {
                 const logs = abiDecoder.decodeLogs(receipt.logs) || [];
-                const loanEvent = logs.find(log => log.name === "LoanSwap");
+                console.log("-------rollover logs");
+                console.log(logs)
+                const loanEvent = logs.find(log => log.name === "Conversion");
                 const params = U.parseEventParams(loanEvent.events);
 
                 if (params && params.loanId) {

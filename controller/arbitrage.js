@@ -91,10 +91,10 @@ class Arbitrage {
         rBtcUsdtPf = C.web3.utils.fromWei(rBtcUsdtPf.toString(), "Ether");
         
         //bpro
-        /*let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
+        let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproAmm = C.web3.utils.fromWei(rBtcBproAmm.toString(), "Ether");
         let rBtcBproPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.BProToken, amount);
-        rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");*/
+        rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");
         
         return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], /*"bpro": [rBtcBproAmm, rBtcBproPf]*/};
     }
@@ -222,10 +222,11 @@ class Arbitrage {
         try {
             console.log("Calculate profit from arbitrage");
             const receipt = await C.web3.eth.getTransactionReceipt(txHash);
+            console.log(receipt);
             if (receipt && receipt.logs) {
                 const logs = abiDecoder.decodeLogs(receipt.logs);
                 const conversionEvent = (logs || []).find(log => log && log.name === "Conversion");
-                // console.log(JSON.stringify(logs, null, 2));
+                console.log(JSON.stringify(logs, null, 2));
 
                 if (conversionEvent && conversionEvent.events) {
                     const priceFeed = Number(btcPriceFeed)/conf.amountArbitrage;

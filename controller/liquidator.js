@@ -14,12 +14,14 @@ import U from '../util/helper';
 import Wallet from './wallet';
 import conf from '../config/config';
 import abiDecoder from 'abi-decoder';
+import abiComplete from "../config/abiComplete";
 import dbCtrl from './db';
 
 class Liquidator {
     constructor() {
         this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
         this.liquidationErrorList=[];
+        abiDecoder.addABI(abiComplete);
     }
 
     start(liquidations) {
@@ -83,7 +85,7 @@ class Liquidator {
             .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
-                console.log(tx.txHash);
+                console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
                 p.addLiqLog(tx.transactionHash);
             })
@@ -127,15 +129,24 @@ class Liquidator {
         console.log("Add liquidation "+txHash+" to db");
         try {
             const receipt = await C.web3.eth.getTransactionReceipt(txHash);
-
+            
             if (receipt && receipt.logs) {
                 const logs = abiDecoder.decodeLogs(receipt.logs) || [];
                 const liqEvent = logs.find(log => log && log.name === 'Liquidate');
+                console.log(liqEvent)
                 const {
                     user, liquidator, loanId, loanToken, collateralToken, collateralWithdrawAmount
                 } = U.parseEventParams(liqEvent && liqEvent.events);
 
-                if (user && liquidator, loanId) {
+                console.log(user);
+                console.log(liquidator);
+                console.log(loanId)
+
+                if (user && liquidator && loanId) {
+                    console.log("user found");
+                    console.log(user);
+                    console.log(liquidator);
+                    console.log(loanId);
                     const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
                     if (!path || path.length !== 3) return;
 
