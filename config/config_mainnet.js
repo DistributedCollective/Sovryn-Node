@@ -27,7 +27,7 @@ export default {
     priceFeed: "0x437AC62769f386b2d238409B7f0a7596d36506e4", //get oracle price
     wRbtcWrapper: "0x78E7e79F1acc1f57a3291d5BfA8436A0771C1800", //real contract not available on this version
     thresholdArbitrage: 2, //in %
-    amountArbitrage: 0.005, //in rbtc
+    amountArbitrage: 0.01, //in rbtc
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
     healthMonitorPort: 10, //results in 3010
