@@ -39,15 +39,25 @@ class Arbitrage {
 
             let res, arb, profit;
             let prices = await this.getRBtcPrices();
+            console.log(prices)
 
             for(let p in prices) {
+                console.log("-------------")
+                console.log(p)
+                //set arb to the lower price in USD (prices are actually return values given for 0.005 rbtc)
                 if(prices[p][0]>0 && prices[p][1]>0) arb = this.calcArbitrage(prices[p][0], prices[p][1], conf.thresholdArbitrage);
+                console.log("arb: "+arb);
+                console.log(prices[p][0]);
+                //the AMM price is lower -> buy BTC
                 if (arb && (arb === prices[p][0])) {
+                    console.log(1)
                     let convertedAmount = C.web3.utils.toWei(prices[p][0].toString(), "Ether");
-                    res = await this.sendLiquidity(convertedAmount, p);
+                    res = await this.sendLiquidity(convertedAmount, p, 'rbtc');
                 }
+                //the oracle price is lower -> sell btc
                 else if (arb && (arb === prices[p][1])) {
-                    res = await this.sendLiquidity(C.web3.utils.toWei(conf.amountArbitrage.toString()), p);
+                    console.log(2)
+                    res = await this.sendLiquidity(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
                 }
 
                 if(res) profit = await this.calculateProfit(res);
@@ -70,7 +80,7 @@ class Arbitrage {
             if(smallerAmount === p1) console.log("Buy doc!")
             else console.log("Buy RBtc");
 
-            return smallerAmount;
+            return smallerAmount.toFixed(5);
         }
         console.log(arbitrage+ " % price difference is too small for arbitrage");
         return;
@@ -81,21 +91,25 @@ class Arbitrage {
         //doc
         let rBtcDocAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.docToken, amount);
         rBtcDocAmm = C.web3.utils.fromWei(rBtcDocAmm.toString(), "Ether");
+        rBtcDocAmm = parseFloat(rBtcDocAmm).toFixed(5);
         let rBtcDocPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.docToken, amount);
         rBtcDocPf = C.web3.utils.fromWei(rBtcDocPf.toString(), "Ether");
-        
+        rBtcDocPf = parseFloat(rBtcDocPf).toFixed(5);
+
         //usdt
         let rBtcUsdtAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.USDTToken, amount);
         rBtcUsdtAmm = C.web3.utils.fromWei(rBtcUsdtAmm.toString(), "Ether");
+        rBtcUsdtAmm = parseFloat(rBtcUsdtAmm).toFixed(5);
         let rBtcUsdtPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.USDTToken, amount);
         rBtcUsdtPf = C.web3.utils.fromWei(rBtcUsdtPf.toString(), "Ether");
-        
+        rBtcUsdtPf = parseFloat(rBtcUsdtPf).toFixed(5);
+
         //bpro
-        let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
+       /* let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproAmm = C.web3.utils.fromWei(rBtcBproAmm.toString(), "Ether");
         let rBtcBproPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");
-        
+        */
         return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], /*"bpro": [rBtcBproAmm, rBtcBproPf]*/};
     }
 
@@ -164,18 +178,18 @@ class Arbitrage {
      * Amount in wei
      * todo: convert minReturn with web3-big-number lib
      */
-    sendLiquidity(amount, currency) {
+    sendLiquidity(amount, sourceCurrency, destCurrency) {
         console.log("Send " + amount + " "+currency+" to the amm");
         let sourceToken, destToken;
 
-        if(currency === "doc") sourceToken = conf.docToken;
-        else if(currency === "usdt") sourceToken = conf.USDTToken;
-        else if(currency === "bpro") sourceToken = conf.BProToken;
+        if(sourceCurrency === "doc") sourceToken = conf.docToken;
+        else if(sourceCurrency === "usdt") sourceToken = conf.USDTToken;
+        else if(sourceCurrency === "bpro") sourceToken = conf.BProToken;
         else sourceToken = conf.testTokenRBTC;
 
-        if(currency === "doc") destToken = conf.docToken;
-        else if(currency === "usdt") destToken = conf.USDTToken;
-        else if(currency === "bpro") destToken = conf.BProToken;
+        if(destCurrency === "doc") destToken = conf.docToken;
+        else if(destCurrency === "usdt") destToken = conf.USDTToken;
+        else if(destCurrency === "bpro") destToken = conf.BProToken;
         else destToken = conf.testTokenRBTC;
 
         const contract1 = C.contractSwaps;
@@ -190,7 +204,7 @@ class Arbitrage {
             try {
                 contract1.methods["conversionPath"](sourceToken, destToken).call(async (error, result) => {
                     if (error || !result || result.length !== 3) {
-                        console.error("error loading conversion path from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
+                        console.error("error loading conversion path from " + contract1._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                         console.error(error);
                         return resolve();
                     }
@@ -210,7 +224,7 @@ class Arbitrage {
                 });
             }
             catch (e) {
-                console.error("error loading price from " + contract1._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
+                console.error("error loading price from " + contract2._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                 console.error(e);
                 resolve()
             }
