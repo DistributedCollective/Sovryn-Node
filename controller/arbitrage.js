@@ -227,10 +227,10 @@ class Arbitrage {
 
     }
 
-    async calculateProfit(txHash, btcPriceFeed){
+    async calculateProfit(tx, btcPriceFeed){
         try {
             console.log("Calculate profit from arbitrage");
-            const receipt = await C.web3.eth.getTransactionReceipt(txHash);
+            const receipt = await C.web3.eth.getTransactionReceipt(tx.transactionHash);
             console.log(receipt);
             if (receipt && receipt.logs) {
                 const logs = abiDecoder.decodeLogs(receipt.logs);
