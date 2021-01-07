@@ -55,7 +55,7 @@ class Arbitrage {
                     res = await this.sendLiquidity(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
                 }
 
-                if(res) profit = await this.calculateProfit(res);
+                if(res) profit = await this.calculateProfit(res, p[1]);
             }
 
             console.log("Completed checking prices at ");
@@ -231,7 +231,7 @@ class Arbitrage {
         try {
             console.log("Calculate profit from arbitrage");
             const receipt = await C.web3.eth.getTransactionReceipt(tx.transactionHash);
-            console.log(receipt);
+            //console.log(receipt);
             if (receipt && receipt.logs) {
                 const logs = abiDecoder.decodeLogs(receipt.logs);
                 const conversionEvent = (logs || []).find(log => log && log.name === "Conversion");
