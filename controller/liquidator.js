@@ -54,6 +54,9 @@ class Liquidator {
                     continue;
                 } 
                 const liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
+                if(pos.maxLiquidatable<wBalance) console.log("enough balance on wallet");
+                else console.log("not enough balance on wallet. only use "+wBalance);
+
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
                 await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce);
@@ -81,7 +84,7 @@ class Liquidator {
 
         const p = this;
         const gasPrice = await C.getGasPrice();
-        C.contractSovryn.methods.liquidate(loanId, wallet, amount)
+        C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
             .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
