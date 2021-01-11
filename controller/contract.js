@@ -160,8 +160,8 @@ class Contract {
     getTokenInstance(adr) {
         if (adr && adr.toLowerCase() === conf.docToken.toLowerCase()) return this.contractTokenSUSD;
         else if (adr && adr.toLowerCase() === conf.testTokenRBTC.toLowerCase()) return this.contractTokenRBTC;
-        else if (adr && adr.toLowerCase() === conf.testTokenUSDT.toLowerCase()) return this.contractTokenUSDT;
-        else if (adr && adr.toLowerCase() === conf.testTokenBPRO.toLowerCase()) return this.contractTokenBPRO;
+        else if (adr && adr.toLowerCase() === conf.USDTToken.toLowerCase()) return this.contractTokenUSDT;
+        else if (adr && adr.toLowerCase() === conf.BProToken.toLowerCase()) return this.contractTokenBPRO;
         return false;
     }
 
