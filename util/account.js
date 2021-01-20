@@ -14,7 +14,8 @@ var docContract = new web3.eth.Contract(abiDocToken, conf.docToken);
 function createAccount(nr) {
     for(let i=0;i<nr;i++) {
         var account = web3.eth.accounts.create();
-        console.log(account);
+        let out = {adr: account.address, pKey:account.privateKey};
+        console.log(out);
     }
 }
 
@@ -47,7 +48,7 @@ async function transferToken(from, to, val) {
     }
 }
 
-createAccount(1);
+createAccount(5);
 //transfer(A.owner[1], A.arbitrage[0].adr, "0.2");
 //transferToken(A.liquidator[2], A.liquidator[1].adr, "20");
 

@@ -231,7 +231,8 @@ class Arbitrage {
         try {
             console.log("Calculate profit from arbitrage");
             const receipt = await C.web3.eth.getTransactionReceipt(tx.transactionHash);
-            //console.log(receipt);
+            console.log(receipt);
+
             if (receipt && receipt.logs) {
                 const logs = abiDecoder.decodeLogs(receipt.logs);
                 const conversionEvent = (logs || []).find(log => log && log.name === "Conversion");
@@ -239,11 +240,14 @@ class Arbitrage {
 
                 if (conversionEvent && conversionEvent.events) {
                     const priceFeed = Number(btcPriceFeed)/conf.amountArbitrage;
+                    console.log(priceFeed)
                     let {fromToken, toToken, fromAmount, toAmount, trader} = U.parseEventParams(conversionEvent.events);
                     let toAmountWithPFeed, trade;
 
                     fromAmount = Number(C.web3.utils.fromWei(fromAmount.toString(), 'ether'));
                     toAmount = Number(C.web3.utils.fromWei(toAmount.toString(), 'ether'));
+
+                    console.log(fromAmount); console.log(toAmount);
 
                     if (fromToken.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
                         toAmountWithPFeed = Number(fromAmount) * priceFeed;
@@ -253,6 +257,7 @@ class Arbitrage {
                         trade = 'buy btc';
                     }
                     const profit = toAmount - toAmountWithPFeed;
+                    console.log(profit)
 
                     console.log({trader,
                         fromToken, toToken,
