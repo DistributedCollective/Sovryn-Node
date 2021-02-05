@@ -101,17 +101,19 @@ class Rollover {
 
             if (receipt && receipt.logs) {
                 const logs = abiDecoder.decodeLogs(receipt.logs) || [];
-                console.log("-------rollover logs");
-                console.log(logs)
-                const loanEvent = logs.find(log => log.name === "Conversion");
-                const params = U.parseEventParams(loanEvent.events);
 
-                if (params && params.loanId) {
-                    await dbCtrl.addRollover({
-                        loanId: params.loanId,
-                        txHash: receipt.transactionHash,
-                        adr: params.borrower
-                    })
+                for(let log in logs){
+                    if(!logs[log] || logs[log].name != "Conversion") continue;
+
+                    const params = U.parseEventParams(logs[log].events);
+                
+                    if (params && params.loanId) {
+                        await dbCtrl.addRollover({
+                            loanId: params.loanId,  
+                            txHash: receipt.transactionHash,
+                            adr: params.borrower
+                        })
+                    }
                 }
             }
         } catch (e) {
