@@ -9,6 +9,7 @@ import U from '../util/helper';
 const assert = require('assert');
 const abiDecoder = require('abi-decoder');
 abiDecoder.addABI(abiComplete);
+import config from "../config/config";
 
 let positions = {}
 let liquidations = {};
@@ -42,7 +43,7 @@ describe('Scanner', async () => {
                 else if(pos && pos.length==0) {
                     for (let k in PosScanner.positionsTmp) {
                         if (PosScanner.positionsTmp.hasOwnProperty(k)) {
-                            positions[k] = JSON.parse(JSON.stringify(PosScanner.positionsTmp[k]));
+                            positions[k] = PosScanner.positionsTmp[k]; //JSON.parse(JSON.stringify(PosScanner.positionsTmp[k]));
                         }
                     }
 
@@ -68,6 +69,26 @@ describe('Scanner', async () => {
                 if(margin<70) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
             }
         });
+
+        it('should calc value of all open pos', async () => {
+            let totalSum = 0, sumDoc = 0;
+            for(let p in PosScanner.positions){
+                // console.log(PosScanner.positions[p])
+                let margin = PosScanner.positions[p].currentMargin/1e18;
+                let mMargin = PosScanner.positions[p].maintenanceMargin/1e18;
+                if(margin<70) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
+
+                totalSum += (Number(PosScanner.positions[p].collateral) || 0);
+                if (PosScanner.positions[p].collateralToken === config.docToken) {
+                    sumDoc += (Number(PosScanner.positions[p].collateral) || 0);
+                }
+            }
+
+            console.log("total value of all positions", totalSum/1e18);
+            console.log("total value of all open DOC positions", sumDoc/1e18);
+            console.log("total value of all open RBTC positions", (totalSum - sumDoc)/1e18);
+        });
+
 
         /*
         it('should process all open pos', async () => {

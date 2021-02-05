@@ -11,6 +11,7 @@ import abiRBTCWrapperProxy from '../config/abiRBTCWrapperProxy';
 import conf from '../config/config';
 import wallets from '../secrets/accounts';
 
+
 class Contract {
     /**
      * Creates all the contract instances to query open positions, balances, prices
@@ -18,7 +19,6 @@ class Contract {
     constructor() {
         this.web3 = new Web3(conf.nodeProvider);
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
-
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.docToken);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
         this.contractTokenUSDT = new this.web3.eth.Contract(abiTestToken, conf.USDTToken);
@@ -27,8 +27,12 @@ class Contract {
         this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
         this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);
         this.wRbtcWrapper = new this.web3.eth.Contract(abiRBTCWrapperProxy, conf.wRbtcWrapper);
+
         //Add wallets to web3, so they are ready for sending transactions
-        for(let w in wallets) for (let a of wallets[w]) this.web3.eth.accounts.wallet.add(a.pKey);
+        for(let w in wallets) for (let a of wallets[w]) {
+            let pKey = this.web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
+            this.web3.eth.accounts.wallet.add(pKey);
+        }
    }
 
     /**

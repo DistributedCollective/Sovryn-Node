@@ -42,19 +42,20 @@ Webpack
 3. To build the client create an empty directory "public/dist" and run "npm run build-client"
 4. Create empty directories "logs" and "db" in the project root
 5. Create directory "secrets" and within a file accounts.js with the credentials of the liquidator/rollover/arbitrage wallets
+ks = encrypted keystore file in v3 standard.
 
 export default {
     "liquidator": [{
         adr: "",
-        pKey: ""
+        ks: ""
     }],
     "rollover": [{
         adr: "",
-        pKey: ""
+        ks: ""
     }],
     "arbitrage": [{
         adr: "",
-        pKey: ""
+        ks: ""
     }],
 }
 
@@ -62,9 +63,8 @@ To receive notifications on telegram about new transactions and errors create a 
 export default "[telegram-bot-token]";
 export default ""; for no notifications
 
-6. Charge the watcher wallets with RBtc and Doc
-7. Execute node -r esm util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets as well as the swap network contract to spend
-Doc on behalf of the arbitrage wallet.
+6. Charge the watcher wallets with all relevant tokens and enough Rbtc to cover tx cost.
+7. Execute node -r esm util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets as well as the swap network contract to spend tokens on behalf of the arbitrage wallet.
 
 ```
 
@@ -72,7 +72,7 @@ Doc on behalf of the arbitrage wallet.
 ### Start
 
 ```sh
-npm run start:[mainnet || testnet]
+npm run start:[mainnet || testnet] [wallet-password]
 ```
 Check  
 http://your-ip:3000/ to see some liquidation processing info

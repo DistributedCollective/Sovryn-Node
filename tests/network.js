@@ -4,8 +4,8 @@
 
 import Web3 from 'web3';
 
-let web3 = new Web3('https://testnet.sovryn.app/rpc');
-let web3S = new Web3('wss://testnet.sovryn.app/ws');
+let web3 = new Web3('https://mainnet2.sovryn.app/rpc');
+let web3S = new Web3('wss://mainnet2.sovryn.app/ws');
 let web3Iov = new Web3('https://public-node.testnet.rsk.co');
 
 async function t() {

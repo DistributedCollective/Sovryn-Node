@@ -15,7 +15,8 @@ function createAccount(nr) {
     for(let i=0;i<nr;i++) {
         var account = web3.eth.accounts.create();
         let out = {adr: account.address, pKey:account.privateKey};
-        console.log(out);
+        //console.log(out);
+        console.log("'"+account.address.toLowerCase()+"',");
     }
 }
 
@@ -48,7 +49,7 @@ async function transferToken(from, to, val) {
     }
 }
 
-createAccount(5);
+createAccount(110);
 //transfer(A.owner[1], A.arbitrage[0].adr, "0.2");
 //transferToken(A.liquidator[2], A.liquidator[1].adr, "20");
 
