@@ -198,7 +198,7 @@ class Arbitrage {
         return new Promise(async (resolve) => {
             try {
                 contract1.methods["conversionPath"](sourceToken, destToken).call(async (error, result) => {
-                    if (error || !result || result.length !== 3) {
+                    if (error || !result || (result.length !== 3 && !address)) {
                         console.error("error loading conversion path from " + contract1._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                         console.error(error);
                         return resolve();
