@@ -69,14 +69,13 @@ class Liquidator {
         }
     }
 
-    async swapBackAfterLiquidation(value, token, sourceToken = 'rbtc') {
-        console.log(`Swapping back ${value} ${sourceToken} from ${tokensDictionary[token]}`);
+    async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc') {
+        console.log(`Swapping back ${value} ${tokensDictionary[sourceCurrency]} to ${destCurrency}`);
         try {
             const prices = await Arbitrage.getRBtcPrices();
-            const tokenPriceInRBtc = prices[tokensDictionary[token]];
-            if (!tokenPriceInRBtc) throw "No prices found for the " + tokensDictionary[token] + " token";
-            let convertedAmount = C.web3.utils.toWei(tokenPriceInRBtc[0].toString(), "Ether");
-            const p = await Arbitrage.sendLiquidity(convertedAmount, tokenPriceInRBtc[0].toString(), sourceToken);
+            const tokenPriceInRBtc = prices[tokensDictionary[sourceCurrency]];
+            if (!tokenPriceInRBtc) throw "No prices found for the " + tokensDictionary[sourceCurrency] + " token";
+            const p = await Arbitrage.sendLiquidity(value, sourceCurrency, destCurrency);
             console.log("Swap successful!", p);
         } catch(err) {
             console.log("Swap failed", err);
