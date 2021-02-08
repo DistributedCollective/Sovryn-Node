@@ -12,7 +12,9 @@ const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
+import Arbitrage from '../controller/arbitrage';
 import conf from '../config/config';
+import tokensDictionary from '../config/tokensDictionary.json'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
 import dbCtrl from './db';
@@ -67,6 +69,20 @@ class Liquidator {
         }
     }
 
+    async swapBackAfterLiquidation(value, token, sourceToken = 'rbtc') {
+        console.log(`Swapping back ${value} ${sourceToken} from ${tokensDictionary[token]}`);
+        try {
+            const prices = await Arbitrage.getRBtcPrices();
+            const tokenPriceInRBtc = prices[tokensDictionary[token]];
+            if (!tokenPriceInRBtc) throw "No prices found for the " + tokensDictionary[token] + " token";
+            let convertedAmount = C.web3.utils.toWei(tokenPriceInRBtc[0].toString(), "Ether");
+            const p = await Arbitrage.sendLiquidity(convertedAmount, tokenPriceInRBtc[0].toString(), sourceToken);
+            console.log("Swap successful!", p);
+        } catch(err) {
+            console.log("Swap failed", err);
+        }
+    }
+
     /*
     * Tries to liquidate a position
     * If Loan token == WRBTC -> pass value
@@ -91,6 +107,7 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
                 p.addLiqLog(tx.transactionHash);
+                await p.swapBackAfterLiquidation(val, token);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
