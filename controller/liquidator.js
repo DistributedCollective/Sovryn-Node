@@ -11,6 +11,7 @@
 const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
+import A from '../secrets/accounts';
 import Wallet from './wallet';
 import Arbitrage from '../controller/arbitrage';
 import conf from '../config/config';
@@ -75,8 +76,8 @@ class Liquidator {
             const prices = await Arbitrage.getRBtcPrices();
             const tokenPriceInRBtc = prices[tokensDictionary[sourceCurrency]];
             if (!tokenPriceInRBtc) throw "No prices found for the " + tokensDictionary[sourceCurrency] + " token";
-            const p = await Arbitrage.sendLiquidity(value, sourceCurrency, destCurrency);
-            console.log("Swap successful!", p);
+            const res = await Arbitrage.sendLiquidity(value, sourceCurrency, destCurrency, A.liquidator[0].adr);
+            if (res) console.log("Swap successful!");
         } catch(err) {
             console.log("Swap failed", err);
         }

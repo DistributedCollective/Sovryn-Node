@@ -173,7 +173,7 @@ class Arbitrage {
      * Amount in wei
      * todo: convert minReturn with web3-big-number lib
      */
-    sendLiquidity(amount, sourceCurrency, destCurrency) {
+    sendLiquidity(amount, sourceCurrency, destCurrency, address) {
         console.log("Send " + amount + " src "+sourceCurrency+" dest "+destCurrency+" to the amm");
         let sourceToken, destToken;
 
@@ -190,7 +190,7 @@ class Arbitrage {
         const contract1 = C.contractSwaps;
         const contract2 = C.wRbtcWrapper;
         const minReturn = 1; //amount / 100 * 99; //minReturn = 1 -> No assurance
-        const beneficiary = A.arbitrage[0].adr;
+        const beneficiary = address || A.arbitrage[0].adr;
         const affiliateAcc = "0x0000000000000000000000000000000000000000";
         const affiliateFee = 0;
         const val = sourceCurrency === "rbtc"? amount:0;
