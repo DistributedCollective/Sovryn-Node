@@ -1,5 +1,5 @@
 {
-  "name": "Watcher",
+  "name": "sovryn-node",
   "private": true,
   "version": "1.0.0",
   "description": "liquidation handler and rollover of open positions for sovryn smart contracts",
