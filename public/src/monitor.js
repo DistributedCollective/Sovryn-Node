@@ -100,3 +100,8 @@ class Monitor {
         $('#openLiqQueue').text(oL);
     }
 }
+
+$(document).ready(function(){
+    const m = new Monitor();
+    m.start();
+});
