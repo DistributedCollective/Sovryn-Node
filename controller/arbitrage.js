@@ -100,12 +100,12 @@ class Arbitrage {
         rBtcUsdtPf = parseFloat(rBtcUsdtPf).toFixed(5);
 
         //bpro
-       /* let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
+        let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproAmm = C.web3.utils.fromWei(rBtcBproAmm.toString(), "Ether");
         let rBtcBproPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");
-        */
-        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], /*"bpro": [rBtcBproAmm, rBtcBproPf]*/};
+
+        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], "bpro": [rBtcBproAmm, rBtcBproPf]};
     }
 
     /**
@@ -194,11 +194,12 @@ class Arbitrage {
         const affiliateAcc = "0x0000000000000000000000000000000000000000";
         const affiliateFee = 0;
         const val = sourceCurrency === "rbtc"? amount:0;
+        const numberOfHops = destCurrency === "rbtc" ? 3 : 5
 
         return new Promise(async (resolve) => {
             try {
                 contract1.methods["conversionPath"](sourceToken, destToken).call(async (error, result) => {
-                    if (error || !result || result.length !== 3) {
+                    if (error || !result || result.length !== numberOfHops) {
                         console.error("error loading conversion path from " + contract1._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                         console.error(error);
                         return resolve();
