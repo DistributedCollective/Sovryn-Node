@@ -55,6 +55,7 @@ class Liquidator {
                 } 
                 const liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
                 if(pos.maxLiquidatable<wBalance) console.log("enough balance on wallet");
+                else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
                 else console.log("not enough balance on wallet. only use "+wBalance);
 
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
