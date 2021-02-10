@@ -151,7 +151,9 @@ class Liquidator {
                     console.log(liquidator);
                     console.log(loanId);
                     const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
-                    if (!path || path.length !== 3) return;
+                    const numberOfHops = loanToken === "rbtc" ? 3 : 5
+
+                    if (!path || path.length !== numberOfHops) return;
 
                     const balBefore = await C.getWalletTokenBalance(liquidator, loanToken);
                     const affiliateAcc = "0x0000000000000000000000000000000000000000";
