@@ -100,12 +100,12 @@ class Arbitrage {
         rBtcUsdtPf = parseFloat(rBtcUsdtPf).toFixed(5);
 
         //bpro
-       /* let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
+        let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproAmm = C.web3.utils.fromWei(rBtcBproAmm.toString(), "Ether");
         let rBtcBproPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");
-        */
-        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], /*"bpro": [rBtcBproAmm, rBtcBproPf]*/};
+
+        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], "bpro": [rBtcBproAmm, rBtcBproPf]};
     }
 
     /**
