@@ -1,6 +1,6 @@
-# Sovryn watcher
+# Sovryn node
 
-The watcher reads all open positions from the Sovryn marginTrade contracts and continuously monitors for changes.
+The Sovryn node reads all open positions from the Sovryn marginTrade contracts and continuously monitors for changes.
 The app has three main functions: Liquidation of expired positions, rollover of open positions and taking advantage of arbitrage opportunities on the amm.  
   
 
@@ -63,8 +63,8 @@ To receive notifications on telegram about new transactions and errors create a 
 export default "[telegram-bot-token]";
 export default ""; for no notifications
 
-6. Charge the watcher wallets with all relevant tokens and enough Rbtc to cover tx cost.
-7. Execute node -r esm util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the watcher wallets as well as the swap network contract to spend tokens on behalf of the arbitrage wallet.
+6. Charge the Sovryn node wallets with all relevant tokens and enough Rbtc to cover tx cost.
+7. Execute node -r esm util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the Sovryn node wallets as well as the swap network contract to spend tokens on behalf of the arbitrage wallet.
 
 ```
 
@@ -79,7 +79,7 @@ http://your-ip:3000/ to see some liquidation processing info
 
 
 ### Logging
-The watcher uses pm2 for log handling.    
+The Sovryn node uses pm2 for log handling.    
 To enable Log-rotationdo "pm2 install pm2-logrotate" and afterwards "pm2 set pm2-logrotate:max_size 1000K"   
 
 License

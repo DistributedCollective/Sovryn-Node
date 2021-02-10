@@ -1,5 +1,5 @@
 /**
- * Provides a web3- and contract instance for the watcher modules
+ * Provides a web3- and contract instance for the Sovryn node modules
  */
 
 import Web3 from 'web3';

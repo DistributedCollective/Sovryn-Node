@@ -5,7 +5,7 @@ export default {
     nodeProvider: 'https://mainnet.sovryn.app/rpc',
     publicNodeProvider: 'https://public-node.rsk.co',
     network: "main",
-    db: "watcher_mainnet.db",
+    db: "sovryn_node_mainnet.db",
     nrOfProcessingPositions: 100,
     scannerInterval: 60, //sec
     rolloverScanInterval: 180, //sec

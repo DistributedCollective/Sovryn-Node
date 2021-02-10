@@ -19,7 +19,7 @@ import dbCtrl from './db';
 
 class Liquidator {
     constructor() {
-        this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
+        this.telegramBotSovrynNode = new Telegram(conf.errorBotTelegram);
         this.liquidationErrorList=[];
         abiDecoder.addABI(abiComplete);
     }
@@ -103,7 +103,7 @@ class Liquidator {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
         const msg = conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
-        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, msg);
+        await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, msg);
     }
 
     /**
@@ -119,13 +119,13 @@ class Liquidator {
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed.");
+            await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed.");
         }
     }
 
     async handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
+        await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
     }
 
     async addLiqLog(txHash) {
