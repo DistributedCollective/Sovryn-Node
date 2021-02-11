@@ -50,17 +50,17 @@ class MonitorController {
 
         const sInfo = await this.getSignals();
         for (let b in sInfo.accountInfoLiq) {
-            if (sInfo.accountInfoLiq[b] < 0.001 && this.telegramBotSovrynNode)
+            if (sInfo.accountInfoLiq[b] < 0.001)
                 await common.telegramBot.sendMessage("No money left for liquidator-wallet " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoRoll) {
-            if (sInfo.accountInfoRoll[b] < 0.001 && this.telegramBotSovrynNode)
+            if (sInfo.accountInfoRoll[b] < 0.001)
                 await common.telegramBot.sendMessage("No money left for rollover-wallet " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoArb) {
-            if (sInfo.accountInfoArb[b] < 0.001 && this.telegramBotSovrynNode)
+            if (sInfo.accountInfoArb[b] < 0.001)
                 await common.telegramBot.sendMessage("No money left for arbitrage-wallet " + b + " on " + conf.network + " network");
         }
     }
