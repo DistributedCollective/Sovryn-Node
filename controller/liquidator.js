@@ -19,7 +19,7 @@ import dbCtrl from './db';
 
 class Liquidator {
     constructor() {
-        this.telegramBotSovrynNode = new Telegram(conf.errorBotTelegram);
+        this.telegramBotSovrynNode = conf.errorBotTelegram ? new Telegram(conf.errorBotTelegram) : null;
         this.liquidationErrorList=[];
         abiDecoder.addABI(abiComplete);
     }
@@ -104,7 +104,7 @@ class Liquidator {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
         const msg = conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
-        await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, msg);
+        if (telegramBotSovrynNode) await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, msg);
     }
 
     /**
@@ -120,13 +120,13 @@ class Liquidator {
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed.");
+            if (this.telegramBotSovrynNode) await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed.");
         }
     }
 
     async handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
+        if (this.telegramBotSovrynNode) await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
     }
 
     async addLiqLog(txHash) {

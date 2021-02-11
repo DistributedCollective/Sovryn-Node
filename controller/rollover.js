@@ -19,7 +19,7 @@ class Rollover {
     }
     start(positions) {
         this.positions = positions;
-        this.telegramBotSovrynNode = new Telegram(conf.errorBotTelegram);
+        this.telegramBotSovrynNode = conf.errorBotTelegram ? new Telegram(conf.errorBotTelegram) : null;
         this.checkPositionsExpiration();
     }
 
@@ -123,7 +123,7 @@ class Rollover {
 
     async handleNoWalletError() {
         console.error("No wallet available for rollover");
-        await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, "No wallet available for rollover");
+        if (this.telegramBotSovrynNode) await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, "No wallet available for rollover");
     }
 }
 

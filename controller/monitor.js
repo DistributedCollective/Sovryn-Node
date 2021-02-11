@@ -16,7 +16,7 @@ class MonitorController {
         this.posScanner = posScanner;
 
         if(conf.errorBotTelegram!="") {
-            this.telegramBotSovrynNode = new Telegram(conf.errorBotTelegram);
+            this.telegramBotSovrynNode = conf.errorBotTelegram ? new Telegram(conf.errorBotTelegram) : null;
             let p = this;
             setInterval(() => {
                // p.checkSystem();
@@ -51,17 +51,17 @@ class MonitorController {
 
         const sInfo = await this.getSignals();
         for (let b in sInfo.accountInfoLiq) {
-            if (sInfo.accountInfoLiq[b] < 0.001)
+            if (sInfo.accountInfoLiq[b] < 0.001 && this.telegramBotSovrynNode)
                 await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, "No money left for liquidator " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoRoll) {
-            if (sInfo.accountInfoRoll[b] < 0.001)
+            if (sInfo.accountInfoRoll[b] < 0.001 && this.telegramBotSovrynNode)
                 await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, "No money left for rollover-wallet " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoArb) {
-            if (sInfo.accountInfoArb[b] < 0.001)
+            if (sInfo.accountInfoArb[b] < 0.001 && this.telegramBotSovrynNode)
                 await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, "No money left for arbitrage-wallet " + b + " on " + conf.network + " network");
         }
     }

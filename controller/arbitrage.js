@@ -23,7 +23,7 @@ import db from "./db";
 
 class Arbitrage {
     constructor() {
-        this.telegramBotSovrynNode = new Telegram(conf.errorBotTelegram);
+        this.telegramBotSovrynNode = conf.errorBotTelegram ? new Telegram(conf.errorBotTelegram) : null;
         abiDecoder.addABI(abiSwap);
     }
 
