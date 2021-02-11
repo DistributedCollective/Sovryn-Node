@@ -13,13 +13,13 @@ import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
 import conf from '../config/config';
+import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
 import dbCtrl from './db';
 
 class Liquidator {
     constructor() {
-        this.telegramBotSovrynNode = conf.errorBotTelegram ? new Telegram(conf.errorBotTelegram) : null;
         this.liquidationErrorList=[];
         abiDecoder.addABI(abiComplete);
     }
@@ -104,7 +104,7 @@ class Liquidator {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
         const msg = conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
-        if (telegramBotSovrynNode) await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, msg);
+        await common.telegramBot.sendMessage(msg);
     }
 
     /**

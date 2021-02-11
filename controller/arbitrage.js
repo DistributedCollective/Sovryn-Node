@@ -11,11 +11,11 @@
  * The swap network contract (conf.swapsImpl) need to be approved by the arbitrage wallet to spend tokens on his behalf
  */
 
-const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
 import A from '../secrets/accounts';
 import conf from '../config/config';
+import  common from './common';
 import abiDecoder from 'abi-decoder';
 import abiSwap from "../config/abiSovrynSwapNetwork";
 import db from "./db";
@@ -23,7 +23,6 @@ import db from "./db";
 
 class Arbitrage {
     constructor() {
-        this.telegramBotSovrynNode = conf.errorBotTelegram ? new Telegram(conf.errorBotTelegram) : null;
         abiDecoder.addABI(abiSwap);
     }
 
@@ -212,9 +211,10 @@ class Arbitrage {
                             console.log("Arbitrage tx successful");
                             return resolve(tx);
                         })
-                        .catch((err) => {
+                        .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
+                            await common.telegramBot.sendMessage(err);
                             return resolve();
                         });
                 });
