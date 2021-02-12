@@ -3,11 +3,11 @@
  * Rollover = extend deadline and pay interest
  */
 
-const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
 import Wallet from './wallet';
 import conf from '../config/config';
+import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
 import dbCtrl from './db';
@@ -19,7 +19,6 @@ class Rollover {
     }
     start(positions) {
         this.positions = positions;
-        this.telegramBotSovrynNode = new Telegram(conf.errorBotTelegram);
         this.checkPositionsExpiration();
     }
 
@@ -123,7 +122,7 @@ class Rollover {
 
     async handleNoWalletError() {
         console.error("No wallet available for rollover");
-        await this.telegramBotSovrynNode.sendMessage(conf.sovrynInternalTelegramId, "No wallet available for rollover");
+        await common.telegramBot.sendMessage("No wallet available for rollover");
     }
 }
 
