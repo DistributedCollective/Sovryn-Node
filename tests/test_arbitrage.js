@@ -52,18 +52,18 @@ describe('Arbitrage', async () => {
        
         it('Should send Doc to the amm', async () => {
             const amount = C.web3.utils.toWei("100", "Ether");
-            let p = await Arbitrage.swap(amount, "Doc");
+            let p = await Arbitrage.swap(amount, "doc");
             console.log(p);
             assert(p);
         });
-/*
+
         it('Should send WRbtc to the amm', async () => {
             const amount = C.web3.utils.toWei("0.01", "Ether");
-            let p = await Arbitrage.swap(amount, "RBtc");
+            let p = await Arbitrage.swap(amount, "doc", "rbtc");
             console.log(p);
             assert(p);
             await Arbitrage.calculateProfit(p.transactionHash, pPriceFeed)
-        });*/
+        });
 
         /*
         it('Should test the arbitrage loop', async () => {
