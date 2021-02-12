@@ -77,8 +77,8 @@ class Liquidator {
             const prices = await Arbitrage.getRBtcPrices();
             const tokenPriceInRBtc = prices[tokensDictionary[sourceCurrency]];
             if (!tokenPriceInRBtc) throw "No prices found for the " + tokensDictionary[sourceCurrency] + " token";
-            const amount = C.web3.utils.toWei(value, "Ether");
-            const res = await Arbitrage.swap(amount, sourceCurrency, destCurrency, A.liquidator[0].adr);
+            const amount = C.web3.utils.toWei(value.toString(), "Ether");
+            const res = await Arbitrage.swap(amount, tokensDictionary[sourceCurrency], destCurrency, A.liquidator[0].adr);
             if (res) console.log("Swap successful!");
         } catch(err) {
             console.log("Swap failed", err);
