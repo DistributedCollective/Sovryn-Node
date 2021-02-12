@@ -16,13 +16,13 @@ import Wallet from './wallet';
 import Arbitrage from '../controller/arbitrage';
 import conf from '../config/config';
 import tokensDictionary from '../config/tokensDictionary.json'
+import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
 import dbCtrl from './db';
 
 class Liquidator {
     constructor() {
-        this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
         this.liquidationErrorList=[];
         abiDecoder.addABI(abiComplete);
     }
@@ -58,6 +58,7 @@ class Liquidator {
                 } 
                 const liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
                 if(pos.maxLiquidatable<wBalance) console.log("enough balance on wallet");
+                else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
                 else console.log("not enough balance on wallet. only use "+wBalance);
 
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
@@ -120,7 +121,7 @@ class Liquidator {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
         const msg = conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
-        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, msg);
+        await common.telegramBot.sendMessage(msg);
     }
 
     /**
@@ -136,13 +137,13 @@ class Liquidator {
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed.");
+            await common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed.");
         }
     }
 
     async handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
+        await common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
     }
 
     async addLiqLog(txHash) {
@@ -168,7 +169,9 @@ class Liquidator {
                     console.log(liquidator);
                     console.log(loanId);
                     const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
-                    if (!path || path.length !== 3) return;
+                    const numberOfHops = loanToken === "rbtc" ? 3 : 5
+
+                    if (!path || path.length !== numberOfHops) return;
 
                     const balBefore = await C.getWalletTokenBalance(liquidator, loanToken);
                     const affiliateAcc = "0x0000000000000000000000000000000000000000";

@@ -84,8 +84,8 @@ class Wallet {
      */
     removeFromQueue(which, address, loanId) {
         console.log("Remove wallet "+address+" loanId "+loanId+" from queue");
-        console.log(this.queue[which][address]);
         this.queue[which][address] = this.removeLoan(this.queue[which][address], loanId);
+        console.log(this.queue[which][address]);
     }
 
     removeLoan(queue, loanId) {

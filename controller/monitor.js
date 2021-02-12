@@ -1,12 +1,12 @@
 /**
- *  Accepts client requests and checks the health of the watcher in 60s interval
+ *  Accepts client requests and checks the health of the Sovryn node in 60s interval
  *  If the system is not healthy it sends a message to the telegram group
  */
 const axios = require('axios');
-const Telegram = require('telegraf/telegram');
 import A from '../secrets/accounts';
 import C from './contract';
 import conf from '../config/config';
+import  common from './common';
 
 class MonitorController {
 
@@ -16,7 +16,6 @@ class MonitorController {
         this.posScanner = posScanner;
 
         if(conf.errorBotTelegram!="") {
-            this.telegramBotWatcher = new Telegram(conf.errorBotTelegram);
             let p = this;
             setInterval(() => {
                // p.checkSystem();
@@ -52,17 +51,17 @@ class MonitorController {
         const sInfo = await this.getSignals();
         for (let b in sInfo.accountInfoLiq) {
             if (sInfo.accountInfoLiq[b] < 0.001)
-                await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for liquidator " + b + " on " + conf.network + " network");
+                await common.telegramBot.sendMessage("No money left for liquidator-wallet " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoRoll) {
             if (sInfo.accountInfoRoll[b] < 0.001)
-                await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for rollover-wallet " + b + " on " + conf.network + " network");
+                await common.telegramBot.sendMessage("No money left for rollover-wallet " + b + " on " + conf.network + " network");
         }
 
         for (let b in sInfo.accountInfoArb) {
             if (sInfo.accountInfoArb[b] < 0.001)
-                await this.telegramBotWatcher.sendMessage(conf.sovrynInternalTelegramId, "No money left for arbitrage-wallet " + b + " on " + conf.network + " network");
+                await common.telegramBot.sendMessage("No money left for arbitrage-wallet " + b + " on " + conf.network + " network");
         }
     }
 
