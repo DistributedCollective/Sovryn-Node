@@ -77,13 +77,15 @@ class Liquidator {
     * @param sourceCurrency should be that hash of the contract
     * @param destCurrency is defaulting for now to 'rbtc'. It is also the hash of the contract
     */
-    async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = '0x25380305f223B32Fdb844152Abd2E82Bc5AD99c3') {
-        console.log(`Swapping back ${value} ${tokensDictionary[sourceCurrency]} to ${destCurrency}`);
+    async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc') {
+        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : tokensDictionary[sourceCurrency]
+        destCurrency = destCurrency === 'rbtc' ? destCurrency : tokensDictionary[destCurrency]
+        console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency}`);
         try {
             const prices = await Arbitrage.getRBtcPrices();
-            const tokenPriceInRBtc = prices[tokensDictionary[sourceCurrency]];
-            if (!tokenPriceInRBtc) throw "No prices found for the " + tokensDictionary[sourceCurrency] + " token";
-            const res = await Arbitrage.swap(value, tokensDictionary[sourceCurrency], tokensDictionary[destCurrency], A.liquidator[0].adr);
+            const tokenPriceInRBtc = prices[sourceCurrency];
+            if (!tokenPriceInRBtc) throw "No prices found for the " + sourceCurrency + " token";
+            const res = await Arbitrage.swap(value, sourceCurrency, destCurrency, A.liquidator[0].adr);
             if (res) console.log("Swap successful!");
         } catch(err) {
             console.log("Swap failed", err);
