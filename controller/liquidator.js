@@ -11,8 +11,11 @@
 const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
+import A from '../secrets/accounts';
 import Wallet from './wallet';
+import Arbitrage from '../controller/arbitrage';
 import conf from '../config/config';
+import tokensDictionary from '../config/tokensDictionary.json'
 import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
@@ -68,6 +71,25 @@ class Liquidator {
         }
     }
 
+    /**
+    * swaps back to collateral currency after liquidation is completed
+    * @param value should be sent in Wei format as String
+    * @param sourceCurrency should be that hash of the contract
+    * @param destCurrency is defaulting for now to 'rbtc'. It is also the hash of the contract
+    */
+    async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = '0x25380305f223B32Fdb844152Abd2E82Bc5AD99c3') {
+        console.log(`Swapping back ${value} ${tokensDictionary[sourceCurrency]} to ${destCurrency}`);
+        try {
+            const prices = await Arbitrage.getRBtcPrices();
+            const tokenPriceInRBtc = prices[tokensDictionary[sourceCurrency]];
+            if (!tokenPriceInRBtc) throw "No prices found for the " + tokensDictionary[sourceCurrency] + " token";
+            const res = await Arbitrage.swap(value, tokensDictionary[sourceCurrency], tokensDictionary[destCurrency], A.liquidator[0].adr);
+            if (res) console.log("Swap successful!");
+        } catch(err) {
+            console.log("Swap failed", err);
+        }
+    }
+
     /*
     * Tries to liquidate a position
     * If Loan token == WRBTC -> pass value
@@ -92,6 +114,7 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
                 p.addLiqLog(tx.transactionHash);
+                await p.swapBackAfterLiquidation(val, token);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);

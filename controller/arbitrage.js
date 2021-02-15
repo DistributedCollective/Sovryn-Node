@@ -47,11 +47,11 @@ class Arbitrage {
                 //the AMM price is lower -> buy BTC
                 if (arb && (arb === prices[p][0])) {
                     let convertedAmount = C.web3.utils.toWei(prices[p][0].toString(), "Ether");
-                    res = await this.sendLiquidity(convertedAmount, p, 'rbtc');
+                    res = await this.swap(convertedAmount, p, 'rbtc');
                 }
                 //the oracle price is lower -> sell btc
                 else if (arb && (arb === prices[p][1])) {
-                    res = await this.sendLiquidity(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
+                    res = await this.swap(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
                 }
 
                 if(res) profit = await this.calculateProfit(res, p[1]);
@@ -172,7 +172,7 @@ class Arbitrage {
      * Amount in wei
      * todo: convert minReturn with web3-big-number lib
      */
-    sendLiquidity(amount, sourceCurrency, destCurrency) {
+    swap(amount, sourceCurrency, destCurrency, address) {
         console.log("Send " + amount + " src "+sourceCurrency+" dest "+destCurrency+" to the amm");
         let sourceToken, destToken;
 
@@ -189,7 +189,7 @@ class Arbitrage {
         const contract1 = C.contractSwaps;
         const contract2 = C.wRbtcWrapper;
         const minReturn = 1; //amount / 100 * 99; //minReturn = 1 -> No assurance
-        const beneficiary = A.arbitrage[0].adr;
+        const beneficiary = address || A.arbitrage[0].adr;
         const affiliateAcc = "0x0000000000000000000000000000000000000000";
         const affiliateFee = 0;
         const val = sourceCurrency === "rbtc"? amount:0;
