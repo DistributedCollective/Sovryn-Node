@@ -8,7 +8,6 @@
  * alternative: liquidate only with wrbtc
  */
 
-const Telegram = require('telegraf/telegram');
 import C from './contract';
 import U from '../util/helper';
 import A from '../secrets/accounts';
@@ -78,8 +77,8 @@ class Liquidator {
     * @param destCurrency is defaulting for now to 'rbtc'. It is also the hash of the contract
     */
     async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc') {
-        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : tokensDictionary[sourceCurrency]
-        destCurrency = destCurrency === 'rbtc' ? destCurrency : tokensDictionary[destCurrency]
+        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : tokensDictionary[conf.network][sourceCurrency];
+        destCurrency = destCurrency === 'rbtc' ? destCurrency : tokensDictionary[conf.network][destCurrency];
         console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency}`);
         try {
             const prices = await Arbitrage.getRBtcPrices();
