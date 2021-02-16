@@ -8,9 +8,8 @@
     "test-network": "node -r esm ./tests/network.js",
     "start:testnet": "nodemon -r esm start.js testnet",
     "start:mainnet": "nodemon -r esm start.js mainnet",
-    "dev:testnet": "nodemon -r esm dev.js testnet",
-    "dev:mainnet": "nodemon -r esm dev.js mainnet",
-    "build-client": "npx webpack --config ./public/webpack.config.ts && cp public/src/index.html public/dist/index.html",
+    "dev": "npx webpack-dev-server --open --config ./public/webpack.config.ts",
+    "build-client": "npx webpack --config ./public/webpack.config.ts",
     "approveWalletsMain": "node -r esm ./util/approval.js mainnet",
     "approveWalletsTest": "node -r esm ./util/approval.js testnet"
   },
@@ -19,9 +18,8 @@
   "dependencies": {
     "abi-decoder": "^2.3.0",
     "axios": "^0.20.0",
-    "clean-webpack-plugin": "^3.0.0",
+    "copy-webpack-plugin": "6.2.1",
     "esm": "^3.2.25",
-    "html-webpack-plugin": "^4.0.0-alpha => 4.0.0-alpha",
     "lodash": "^4.17.20",
     "pm2-server-monitor": "^1.0.0",
     "socket.io": "^2.3.0",
