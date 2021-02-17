@@ -98,7 +98,11 @@ async function approveArbitrageWallets() {
     approved = await C.approveToken(C.contractTokenUSDT, from, conf.swapsImpl, amount);
     console.log(approved);
 
-    //should approve the swap network contract to spend USDT for the main account
+    //should approve the wRBTC wrapper contract to spend BPRO for the main account
+    approved = await C.approveToken(C.contractTokenBPRO, from, conf.wRbtcWrapper, amount);
+    console.log(approved);
+
+    //should approve the swap network contract to spend BPRO for the main account
     approved = await C.approveToken(C.contractTokenBPRO, from, conf.swapsImpl, amount);
     console.log(approved);
 }
