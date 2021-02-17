@@ -103,8 +103,10 @@ class Liquidator {
         console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
-        //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
-        delete this.liquidations[loanId];
+        if (this.liquidations && this.liquidations.length > 0) {
+            //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
+            delete this.liquidations[loanId];
+        }
 
         const p = this;
         const gasPrice = await C.getGasPrice();
