@@ -28,12 +28,12 @@ async function approveLiquidatorWallets() {
         const from = W.liquidator[w].adr.toLowerCase();
         let approved;
 
-        tokenContracts.forEach(async (tokenContract) => {
+        for (let tokenContract in tokenContracts) {
             //should approve the Sovryn contract to spend the token for the main account
             console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount)
             approved = await C.approveToken(tokenContract, from, conf.sovrynProtocolAdr, amount);
             console.log(approved);
-        })
+        }
  
         //should approve the rBTC IToken contract to spend sUSD (doc) for the main account
         //only needed for opening positions (tests)
@@ -65,7 +65,7 @@ async function approveArbitrageWallets() {
     const from = W.arbitrage[0].adr.toLowerCase();
     let approved;
 
-    tokenContracts.forEach(async (tokenContract) => {
+    for (let tokenContract in tokenContracts) {
         //should approve the swap network contract (conf.swapsImpl) to spend the token for the main account
         console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount)
         approved = await C.approveToken(tokenContract, from, conf.swapsImpl, amount);
@@ -76,5 +76,5 @@ async function approveArbitrageWallets() {
             approved = await C.approveToken(tokenContract, from, conf.wRbtcWrapper, amount);
             console.log(approved);
         }
-    })
+    }
 }
