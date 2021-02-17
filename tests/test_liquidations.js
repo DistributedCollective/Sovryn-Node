@@ -14,6 +14,7 @@ import C from '../controller/contract';
 import A from '../secrets/accounts';
 import Liquidator from '../controller/liquidator';
 import PosScanner from '../controller/scanner';
+import Wallet from '../controller/wallet';
 import common from '../controller/common'
 
 const abiDecoder = require('abi-decoder');
@@ -31,15 +32,26 @@ describe('Liquidation', async () => {
             PosScanner.positions=positions;
             PosScanner.liquidations=liquidations;
             PosScanner.positionsTmp={};
-            await common.getCurrentActivePositions()
+            await common.getCurrentActivePositions();
         });
 
         it('should successfully liquidate first position below the maintenance margin', async () => {
             const currentOpenPositions = Object.values(PosScanner.positionsTmp)
-            const loan = currentOpenPositions.find(({ currentMargin }) => (Number(currentMargin) / 1000000000000000000) < maintenanceMargin)
+            const pos = currentOpenPositions.find(({ currentMargin }) => (Number(currentMargin) / 1000000000000000000) < maintenanceMargin && (Number(currentMargin) / 1000000000000000000) > 0)
+            const token = pos.loanToken === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+
+            // check balance
+            const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
+            if (!wallet) {
+                return console.error("no wallet")
+            } 
+            const liquidateAmount = pos.maxLiquidatable < wBalance ? pos.maxLiquidatable : wBalance;
+            if (pos.maxLiquidatable < wBalance) console.log("enough balance on wallet");
+            else console.log("not enough balance on wallet. only use "+wBalance);
+            
             const nonce = await C.web3.eth.getTransactionCount(A.liquidator[0].adr, 'pending');
-            console.log('\n LOAN', loan)
-            let liquidated = await Liquidator.liquidate(loan.loanId, A.liquidator[0].adr, loan.maxLiquidatable, loan.loanToken, nonce); // TODO: add loan.collateralToken for swap back
+
+            let liquidated = await Liquidator.liquidate(pos.loanId, wallet.adr, liquidateAmount, pos.loanToken, nonce); // TODO: add loan.collateralToken for swap back
             assert(!liquidated);
         });
     })
