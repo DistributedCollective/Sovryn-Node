@@ -59,6 +59,7 @@ describe('Liquidation', async () => {
             assert(!liquidated);
         });
     })
+
     // Deprecated contracts
     describe.skip('#liquidate a position', async () => {
         before(async () => {
