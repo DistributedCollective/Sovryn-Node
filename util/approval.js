@@ -41,6 +41,11 @@ async function approveLiquidatorWallets() {
         console.log(from + " approving " + conf.sovrynProtocolAdr + " for " + amount)
         approved = await C.approveToken(C.contractTokenUSDT, from, conf.sovrynProtocolAdr, amount);
         console.log(approved);
+
+        //should approve the Sovryn contract to spend BPRO for the main account
+        console.log(from + " approving " + conf.sovrynProtocolAdr + " for " + amount)
+        approved = await C.approveToken(C.contractTokenBPRO, from, conf.sovrynProtocolAdr, amount);
+        console.log(approved);
  
         //should approve the rBTC IToken contract to spend sUSD (doc) for the main account
         //only needed for opening positions (tests)
@@ -89,7 +94,11 @@ async function approveArbitrageWallets() {
     approved = await C.approveToken(C.contractTokenUSDT, from, conf.wRbtcWrapper, amount);
     console.log(approved);
 
-     //should approve the swap network contract to spend USDT for the main account
-     approved = await C.approveToken(C.contractTokenUSDT, from, conf.swapsImpl, amount);
-     console.log(approved);
+    //should approve the swap network contract to spend USDT for the main account
+    approved = await C.approveToken(C.contractTokenUSDT, from, conf.swapsImpl, amount);
+    console.log(approved);
+
+    //should approve the swap network contract to spend USDT for the main account
+    approved = await C.approveToken(C.contractTokenBPRO, from, conf.swapsImpl, amount);
+    console.log(approved);
 }
