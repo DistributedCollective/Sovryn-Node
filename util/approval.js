@@ -12,7 +12,7 @@ import abiRBTCWrapperProxy from '../config/abiRBTCWrapperProxy';
 import conf from '../config/config';
 
 const web3 = new Web3(conf.nodeProvider);
-const tokenContracts = Object.keys(tokensDictionary[conf.network])
+const tokenContracts = tokensDictionary[conf.network]
 const amount = C.web3.utils.toWei("1000000000", 'ether');
 
 setTimeout(()=> {
@@ -31,13 +31,14 @@ async function approveLiquidatorWallets() {
     for (let w in W.liquidator) {
         const from = W.liquidator[w].adr.toLowerCase();
         let approved;
+        let tokenContract
 
-        for (let tokenContract in tokenContracts) {
-            if (tokenContract === conf.wRbtcWrapper) tokenContract = new web3.eth.Contract(abiRBTCWrapperProxy, tokenContract.toLowerCase());
-            else tokenContract = new web3.eth.Contract(abiTestToken, tokenContract.toLowerCase());
+        for (let tokenContractAddress in tokenContracts) {
+            if (tokenContract === conf.wRbtcWrapper) tokenContract = new web3.eth.Contract(abiRBTCWrapperProxy, tokenContractAddress);
+            else tokenContract = new web3.eth.Contract(abiTestToken, tokenContractAddress);
 
             //should approve the Sovryn contract to spend the token for the main account
-            console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount)
+            console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount + " " + tokenContracts[tokenContractAddress])
             approved = await C.approveToken(tokenContract, from, conf.sovrynProtocolAdr, amount);
             console.log(approved);
         }
@@ -72,12 +73,12 @@ async function approveArbitrageWallets() {
     const from = W.arbitrage[0].adr.toLowerCase();
     let approved;
 
-    for (let tokenContract in tokenContracts) {
-        if (tokenContract === conf.wRbtcWrapper) tokenContract = new web3.eth.Contract(abiRBTCWrapperProxy, tokenContract.toLowerCase());
-        else tokenContract = new web3.eth.Contract(abiTestToken, tokenContract.toLowerCase());
+    for (let tokenContractAddress in tokenContracts) {
+        if (tokenContract === conf.wRbtcWrapper) tokenContract = new web3.eth.Contract(abiRBTCWrapperProxy, tokenContractAddress);
+        else tokenContract = new web3.eth.Contract(abiTestToken, tokenContractAddress);
         
         //should approve the swap network contract (conf.swapsImpl) to spend the token for the main account
-        console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount)
+        console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount + " " + tokenContracts[tokenContractAddress])
         approved = await C.approveToken(tokenContract, from, conf.swapsImpl, amount);
         console.log(approved);
 
