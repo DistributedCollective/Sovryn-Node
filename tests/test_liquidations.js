@@ -37,8 +37,9 @@ describe('Liquidation', async () => {
         it('should successfully liquidate first position below the maintenance margin', async () => {
             const currentOpenPositions = Object.values(PosScanner.positionsTmp)
             const loan = currentOpenPositions.find(({ currentMargin }) => (Number(currentMargin) / 1000000000000000000) < maintenanceMargin)
+            const nonce = await C.web3.eth.getTransactionCount(A.liquidator[0].adr, 'pending');
             console.log('\n LOAN', loan)
-            let liquidated = await Liquidator.liquidate(loan.loanId, A.liquidator[0].adr, loan.maxLiquidatable, loan.loanToken); // TODO: add loan.collateralToken for swap back
+            let liquidated = await Liquidator.liquidate(loan.loanId, A.liquidator[0].adr, loan.maxLiquidatable, loan.loanToken, nonce); // TODO: add loan.collateralToken for swap back
             assert(!liquidated);
         });
     })
