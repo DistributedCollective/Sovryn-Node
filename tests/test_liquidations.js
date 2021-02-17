@@ -11,17 +11,39 @@ import conf from '../config/config';
 import abiComplete from '../config/abiComplete';
 import abiLoanToken from './abi/abiLoanToken';
 import C from '../controller/contract';
-import Liquidator from '../controller/liquidator';
 import A from '../secrets/accounts';
+import Liquidator from '../controller/liquidator';
+import PosScanner from '../controller/scanner';
+import common from '../controller/common'
 
 const abiDecoder = require('abi-decoder');
 const assert = require('assert');
 
-var loanIdHigh, loanIdLow, loanHigh, loanLow;
+let loanIdHigh, loanIdLow, loanHigh, loanLow;
 
+let positions = {}
+let liquidations = {};
+const maintenanceMargin = 15 // 15% of maintenance margin
 
 describe('Liquidation', async () => {
-    describe('#liquidate a position', async () => {
+    describe('Liquidate a position', async () => {
+        before(async () => {
+            PosScanner.positions=positions;
+            PosScanner.liquidations=liquidations;
+            PosScanner.positionsTmp={};
+            await common.getCurrentActivePositions()
+        });
+
+        it('should successfully liquidate first position below the maintenance margin', async () => {
+            const currentOpenPositions = Object.values(PosScanner.positionsTmp)
+            const loan = currentOpenPositions.find(({ currentMargin }) => (Number(currentMargin) / 1000000000000000000) < maintenanceMargin)
+            console.log('\n LOAN', loan)
+            let liquidated = await Liquidator.liquidate(loan.loanId, A.liquidator[0].adr, loan.maxLiquidatable, loan.loanToken); // TODO: add loan.collateralToken for swap back
+            assert(!liquidated);
+        });
+    })
+    // Deprecated contracts
+    describe.skip('#liquidate a position', async () => {
         before(async () => {
             console.log("init");
             abiDecoder.addABI(abiComplete);
