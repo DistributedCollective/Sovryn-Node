@@ -6,8 +6,9 @@
 import conf from '../config/config';
 import C from '../controller/contract';
 import W from '../secrets/accounts';
+import tokensDictionary from '../config/tokensDictionary.json'
 
-
+const tokenContracts = Object.keys(tokensDictionary[conf.network])
 const amount = C.web3.utils.toWei("1000000000", 'ether');
 
 setTimeout(()=> {
@@ -27,20 +28,12 @@ async function approveLiquidatorWallets() {
         const from = W.liquidator[w].adr.toLowerCase();
         let approved;
 
-        //should approve the Sovryn contract to spend RBTC for the main account
-        console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount)
-        approved = await C.approveToken(C.contractTokenRBTC, from, conf.sovrynProtocolAdr, amount);
-        console.log(approved);
-
-        //should approve the Sovryn contract to spend SUSD (doc) for the main account
-        console.log(from + " approving " + conf.sovrynProtocolAdr + " for " + amount)
-        approved = await C.approveToken(C.contractTokenSUSD, from, conf.sovrynProtocolAdr, amount);
-        console.log(approved);
-
-        //should approve the Sovryn contract to spend USDT for the main account
-        console.log(from + " approving " + conf.sovrynProtocolAdr + " for " + amount)
-        approved = await C.approveToken(C.contractTokenUSDT, from, conf.sovrynProtocolAdr, amount);
-        console.log(approved);
+        tokenContracts.forEach(async (tokenContract) => {
+            //should approve the Sovryn contract to spend the token for the main account
+            console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount)
+            approved = await C.approveToken(tokenContract, from, conf.sovrynProtocolAdr, amount);
+            console.log(approved);
+        })
  
         //should approve the rBTC IToken contract to spend sUSD (doc) for the main account
         //only needed for opening positions (tests)
@@ -72,24 +65,16 @@ async function approveArbitrageWallets() {
     const from = W.arbitrage[0].adr.toLowerCase();
     let approved;
 
-    //should approve the swap network contract (conf.swapsImpl) to spend Doc for the main account
-    console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount)
-    approved = await C.approveToken(C.contractTokenSUSD, from, conf.swapsImpl, amount);
-    console.log(approved);
+    tokenContracts.forEach(async (tokenContract) => {
+        //should approve the swap network contract (conf.swapsImpl) to spend the token for the main account
+        console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount)
+        approved = await C.approveToken(tokenContract, from, conf.swapsImpl, amount);
+        console.log(approved);
 
-    //should approve the swap network contract to spend WrBTC for the main account
-    approved = await C.approveToken(C.contractTokenRBTC, from, conf.swapsImpl, amount);
-    console.log(approved);
-
-    //should approve the wRBTC wrapper contract to spend Doc for the main account
-    approved = await C.approveToken(C.contractTokenSUSD, from, conf.wRbtcWrapper, amount);
-    console.log(approved);
-
-    //should approve the wRBTC wrapper contract to spend USDT for the main account
-    approved = await C.approveToken(C.contractTokenUSDT, from, conf.wRbtcWrapper, amount);
-    console.log(approved);
-
-     //should approve the swap network contract to spend USDT for the main account
-     approved = await C.approveToken(C.contractTokenUSDT, from, conf.swapsImpl, amount);
-     console.log(approved);
+        if (tokenContracts !== C.contractTokenRBTC) {
+            //should approve the wRBTC wrapper contract to spend the token for the main account
+            approved = await C.approveToken(tokenContract, from, conf.wRbtcWrapper, amount);
+            console.log(approved);
+        }
+    })
 }
