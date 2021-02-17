@@ -5,7 +5,7 @@
 import abiComplete from '../config/abiComplete';
 import PosScanner from '../controller/scanner';
 import C from '../controller/contract';
-import U from '../util/helper';
+import common from '../controller/common'
 const assert = require('assert');
 const abiDecoder = require('abi-decoder');
 abiDecoder.addABI(abiComplete);
@@ -23,42 +23,8 @@ describe('Scanner', async () => {
         });
 
         it('should find open positions on the Sovryn contract', async () => {
-            let spread=100;
-            let from = 0;
-            let to = spread;
-            let posFound=0;
-
-            while (true) {
-                const pos = await PosScanner.loadActivePositions(from, to);
-                //console.log(pos);
-                if (pos && pos.length > 0) {
-                    console.log(pos.length + " active positions found");
-                    PosScanner.addPosition(pos);
-                    from = to;
-                    to = from + spread;
-                    posFound+=pos.length;
-                    await U.wasteTime(1);
-                }
-                //reached current state
-                else if(pos && pos.length==0) {
-                    for (let k in PosScanner.positionsTmp) {
-                        if (PosScanner.positionsTmp.hasOwnProperty(k)) {
-                            positions[k] = PosScanner.positionsTmp[k]; //JSON.parse(JSON.stringify(PosScanner.positionsTmp[k]));
-                        }
-                    }
-
-                    console.log("Round ended. "+Object.keys(positions).length + " active positions found");
-                    assert(Object.keys(positions).length==posFound);
-                    break;
-                }
-                //error retrieving pos for this interval
-                else {
-                    console.log("error retrieving pos for this interval. continue")
-                    from = to;
-                    to = from + spread;
-                    await U.wasteTime(1);
-                }
-            }
+            await common.getCurrentActivePositions()
+            assert(true);
         });
         
         it('should find open positions with margin < 50%', async () => {

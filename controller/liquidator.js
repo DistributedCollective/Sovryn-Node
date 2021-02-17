@@ -99,12 +99,14 @@ class Liquidator {
     async liquidate(loanId, wallet, amount, token, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
-        const val = token === "rBtc" ? amount : 0;
+        const val = (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") ? amount : 0;
         console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
-        //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
-        delete this.liquidations[loanId];
+        if (this.liquidations && this.liquidations.length > 0) {
+            //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
+            delete this.liquidations[loanId];
+        }
 
         const p = this;
         const gasPrice = await C.getGasPrice();

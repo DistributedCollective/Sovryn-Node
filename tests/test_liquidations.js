@@ -11,17 +11,57 @@ import conf from '../config/config';
 import abiComplete from '../config/abiComplete';
 import abiLoanToken from './abi/abiLoanToken';
 import C from '../controller/contract';
-import Liquidator from '../controller/liquidator';
 import A from '../secrets/accounts';
+import Liquidator from '../controller/liquidator';
+import PosScanner from '../controller/scanner';
+import Wallet from '../controller/wallet';
+import common from '../controller/common'
 
 const abiDecoder = require('abi-decoder');
 const assert = require('assert');
 
-var loanIdHigh, loanIdLow, loanHigh, loanLow;
+let loanIdHigh, loanIdLow, loanHigh, loanLow;
 
+let positions = {}
+let liquidations = {};
+const maintenanceMargin = 15 // 15% of maintenance margin
 
 describe('Liquidation', async () => {
-    describe('#liquidate a position', async () => {
+    describe('Liquidate a position', async () => {
+        before(async () => {
+            PosScanner.positions=positions;
+            PosScanner.liquidations=liquidations;
+            PosScanner.positionsTmp={};
+            await common.getCurrentActivePositions();
+        });
+
+        it('should successfully liquidate first position below the maintenance margin', async () => {
+            const currentOpenPositions = Object.values(PosScanner.positionsTmp)
+            const pos = currentOpenPositions.find(({ currentMargin, maxLiquidatable }) => 
+                C.web3.utils.fromWei(currentMargin) < maintenanceMargin && 
+                C.web3.utils.fromWei(currentMargin) > 0 && 
+                Number(maxLiquidatable) > 0 
+            )
+            const token = pos.loanToken === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+
+            // check balance
+            const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
+            if (!wallet) {
+                return console.error("no wallet")
+            } 
+            const liquidateAmount = pos.maxLiquidatable < wBalance ? pos.maxLiquidatable : wBalance;
+            if (pos.maxLiquidatable < wBalance) console.log("enough balance on wallet");
+            else console.log("not enough balance on wallet. only use "+wBalance);
+            
+            const nonce = await C.web3.eth.getTransactionCount(A.liquidator[0].adr, 'pending');
+
+            let liquidated = await Liquidator.liquidate(pos.loanId, wallet.adr, liquidateAmount, pos.loanToken, nonce); // TODO: add loan.collateralToken for swap back
+            assert(!liquidated);
+        });
+    })
+
+    // Deprecated contracts
+    describe.skip('#liquidate a position', async () => {
         before(async () => {
             console.log("init");
             abiDecoder.addABI(abiComplete);
