@@ -37,7 +37,10 @@ describe('Liquidation', async () => {
 
         it('should successfully liquidate first position below the maintenance margin', async () => {
             const currentOpenPositions = Object.values(PosScanner.positionsTmp)
-            const pos = currentOpenPositions.find(({ currentMargin }) => (Number(currentMargin) / 1000000000000000000) < maintenanceMargin && (Number(currentMargin) / 1000000000000000000) > 0)
+            const pos = currentOpenPositions.find(({ currentMargin, maxLiquidatable, loanToken }) => (Number(currentMargin) / 1000000000000000000) < maintenanceMargin && (Number(currentMargin) / 1000000000000000000) > 0
+                && maxLiquidatable > 0 
+                && loanToken === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab"
+            )
             const token = pos.loanToken === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
 
             // check balance
