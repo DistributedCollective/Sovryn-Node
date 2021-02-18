@@ -155,6 +155,19 @@ class Liquidator {
         await common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
     }
 
+    async calculateLiqProfit(liqEvent) {
+        console.log("Calculate profit for liquidation", liqEvent.loanId);
+        // To calculate the profit from a liquidation we need to get the difference between the amount we deposit in the contract, repayAmount,
+        // and the amount we get back, collateralWithdrawAmount. But to do this we need to convert both to the same currency
+        if (liqEvent.loanToken === liqEvent.collateralToken) {
+            return C.web3.utils.fromWei(liqEvent.collateralWithdrawAmount) - C.web3.utils.fromWei(liqEvent.repayAmount);
+        } else {
+            // convert spent amount to collateral token 
+            const convertedPaidAmount = await this.swapBackAfterLiquidation(liqEvent.repayAmount, loanToken, collateralToken);
+            return C.web3.utils.fromWei(convertedPaidAmount) - C.web3.utils.fromWei(liqEvent.repayAmount);
+        }
+    }
+
     async addLiqLog(txHash) {
         console.log("Add liquidation "+txHash+" to db");
         try {
@@ -206,6 +219,10 @@ class Liquidator {
                         profit: profit,
                         txHash: txHash
                     });
+
+                    const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
+                    console.log("You made "+liqProfit+" "+tokensDictionary[collateralToken]+" with this liquidation");
+
                     return addedLog;
                 }
             }
