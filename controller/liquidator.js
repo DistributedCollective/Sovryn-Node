@@ -160,11 +160,14 @@ class Liquidator {
         // To calculate the profit from a liquidation we need to get the difference between the amount we deposit in the contract, repayAmount,
         // and the amount we get back, collateralWithdrawAmount. But to do this we need to convert both to the same currency
         if (liqEvent.loanToken === liqEvent.collateralToken) {
-            return C.web3.utils.fromWei(liqEvent.collateralWithdrawAmount) - C.web3.utils.fromWei(liqEvent.repayAmount);
+            return C.web3.utils.fromWei(liqEvent.collateralWithdrawAmount.toString()) - C.web3.utils.fromWei(liqEvent.repayAmount.toString());
         } else {
             // convert spent amount to collateral token 
-            const convertedPaidAmount = await this.swapBackAfterLiquidation(liqEvent.repayAmount, loanToken, collateralToken);
-            return C.web3.utils.fromWei(convertedPaidAmount) - C.web3.utils.fromWei(liqEvent.repayAmount);
+            const convertedPaidAmount = await this.swapBackAfterLiquidation(liqEvent.repayAmount, liqEvent.loanToken, liqEvent.collateralToken);
+            if (convertedPaidAmount)
+                return C.web3.utils.fromWei(convertedPaidAmount.toString()) - C.web3.utils.fromWei(liqEvent.repayAmount.toString());
+            else
+                console.log("Couldn't calculate the profit for the given liquidation");
         }
     }
 
