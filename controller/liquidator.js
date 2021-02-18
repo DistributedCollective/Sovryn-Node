@@ -166,7 +166,7 @@ class Liquidator {
                 C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount))
             )).toFixed(4);
             console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
-            return C.web3.utils.fromWei(convertedPaidAmount.toString()) - C.web3.utils.fromWei(liqEvent.repayAmount.toString());
+            return liqProfit;
         }
         else {
             console.log("Couldn't calculate the profit for the given liquidation");
