@@ -159,18 +159,17 @@ class Liquidator {
         console.log("Calculate profit for liquidation", liqEvent.loanId);
         // To calculate the profit from a liquidation we need to get the difference between the amount we deposit in the contract, repayAmount,
         // and the amount we get back, collateralWithdrawAmount. But to do this we need to convert both to the same currency
-        if (liqEvent.loanToken === liqEvent.collateralToken) {
-            return C.web3.utils.fromWei(liqEvent.collateralWithdrawAmount.toString()) - C.web3.utils.fromWei(liqEvent.repayAmount.toString());
-        } else {
-            // convert spent amount to collateral token 
-            const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
-            if (convertedPaidAmount) {
-                const liqProfit = C.web3.utils.fromWei(liqEvent.collateralWithdrawAmount.toString()) - C.web3.utils.fromWei(convertedPaidAmount.toString())
-                console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
-                return C.web3.utils.fromWei(convertedPaidAmount.toString()) - C.web3.utils.fromWei(liqEvent.repayAmount.toString());
-            }
-            else
-                console.log("Couldn't calculate the profit for the given liquidation");
+        // Convert spent amount to collateral token 
+        const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
+        if (convertedPaidAmount) {
+            const liqProfit = Number(C.web3.utils.fromWei(
+                C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount))
+            )).toFixed(4);
+            console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
+            return C.web3.utils.fromWei(convertedPaidAmount.toString()) - C.web3.utils.fromWei(liqEvent.repayAmount.toString());
+        }
+        else {
+            console.log("Couldn't calculate the profit for the given liquidation");
         }
     }
 
