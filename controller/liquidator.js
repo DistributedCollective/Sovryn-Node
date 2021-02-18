@@ -162,9 +162,7 @@ class Liquidator {
         // Convert spent amount to collateral token 
         const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
         if (convertedPaidAmount) {
-            const liqProfit = Number(C.web3.utils.fromWei(
-                C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount))
-            )).toFixed(4);
+            const liqProfit = C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount));
             console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
             return liqProfit;
         }
@@ -215,6 +213,7 @@ class Liquidator {
                     const profit = parseFloat(balAfter) - parseFloat(balBefore);
                     //wrong -> update
                     const pos = loanToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+                    const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
 
                     const addedLog = await dbCtrl.addLiquidate({
                         liquidatorAdr: liquidator,
@@ -223,10 +222,9 @@ class Liquidator {
                         pos: pos,
                         loanId: loanId,
                         profit: profit,
-                        txHash: txHash
+                        txHash: txHash,
+                        profit: liqProfit
                     });
-
-                    const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
 
                     return addedLog;
                 }
