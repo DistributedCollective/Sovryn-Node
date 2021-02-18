@@ -38,7 +38,7 @@ async function approveLiquidatorWallets() {
     for (let w in W.liquidator) {
         const from = W.liquidator[w].adr.toLowerCase();
         let approved;
-        let tokenContract
+        let tokenContract;
 
         for (let tokenContractAddress in tokenContracts) {
             if (tokenContract === conf.wRbtcWrapper) tokenContract = new web3.eth.Contract(abiRBTCWrapperProxy, tokenContractAddress);
@@ -79,6 +79,7 @@ async function approveArbitrageWallets() {
 
     const from = W.arbitrage[0].adr.toLowerCase();
     let approved;
+    let tokenContract;
 
     for (let tokenContractAddress in tokenContracts) {
         if (tokenContract === conf.wRbtcWrapper) tokenContract = new web3.eth.Contract(abiRBTCWrapperProxy, tokenContractAddress);
