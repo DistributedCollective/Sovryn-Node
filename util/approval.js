@@ -10,10 +10,17 @@ import tokensDictionary from '../config/tokensDictionary.json'
 import abiTestToken from '../config/abiTestToken';
 import abiRBTCWrapperProxy from '../config/abiRBTCWrapperProxy';
 import conf from '../config/config';
+import wallets from '../secrets/accounts';
 
 const web3 = new Web3(conf.nodeProvider);
 const tokenContracts = tokensDictionary[conf.network]
 const amount = C.web3.utils.toWei("1000000000", 'ether');
+
+//Add wallets to web3, so they are ready for sending transactions
+for(let w in wallets) for (let a of wallets[w]) {
+    let pKey = this.web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
+    web3.eth.accounts.wallet.add(pKey);
+}
 
 setTimeout(()=> {
 approve();
