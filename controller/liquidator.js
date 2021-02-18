@@ -163,9 +163,12 @@ class Liquidator {
             return C.web3.utils.fromWei(liqEvent.collateralWithdrawAmount.toString()) - C.web3.utils.fromWei(liqEvent.repayAmount.toString());
         } else {
             // convert spent amount to collateral token 
-            const convertedPaidAmount = await this.swapBackAfterLiquidation(liqEvent.repayAmount, liqEvent.loanToken, liqEvent.collateralToken);
-            if (convertedPaidAmount)
+            const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
+            if (convertedPaidAmount) {
+                const liqProfit = C.web3.utils.fromWei(liqEvent.collateralWithdrawAmount.toString()) - C.web3.utils.fromWei(convertedPaidAmount.toString())
+                console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
                 return C.web3.utils.fromWei(convertedPaidAmount.toString()) - C.web3.utils.fromWei(liqEvent.repayAmount.toString());
+            }
             else
                 console.log("Couldn't calculate the profit for the given liquidation");
         }
@@ -187,6 +190,7 @@ class Liquidator {
                 console.log(user);
                 console.log(liquidator);
                 console.log(loanId)
+                console.log('\n LIQEVENT', U.parseEventParams(liqEvent && liqEvent.events))
 
                 if (user && liquidator && loanId) {
                     console.log("user found");
@@ -224,7 +228,7 @@ class Liquidator {
                     });
 
                     const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
-                    console.log("You made "+liqProfit+" "+tokensDictionary[collateralToken]+" with this liquidation");
+                    console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][collateralToken]+" with this liquidation");
 
                     return addedLog;
                 }
