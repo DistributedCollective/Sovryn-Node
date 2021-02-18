@@ -227,7 +227,6 @@ class Liquidator {
                     });
 
                     const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
-                    console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][collateralToken]+" with this liquidation");
 
                     return addedLog;
                 }
