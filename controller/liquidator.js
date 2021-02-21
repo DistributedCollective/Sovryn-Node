@@ -155,6 +155,22 @@ class Liquidator {
         await common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
     }
 
+    async calculateLiqProfit(liqEvent) {
+        console.log("Calculate profit for liquidation", liqEvent.loanId);
+        // To calculate the profit from a liquidation we need to get the difference between the amount we deposit in the contract, repayAmount,
+        // and the amount we get back, collateralWithdrawAmount. But to do this we need to convert both to the same currency
+        // Convert spent amount to collateral token 
+        const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
+        if (convertedPaidAmount) {
+            const liqProfit = C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount));
+            console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
+            return liqProfit;
+        }
+        else {
+            console.log("Couldn't calculate the profit for the given liquidation");
+        }
+    }
+
     async addLiqLog(txHash) {
         console.log("Add liquidation "+txHash+" to db");
         try {
@@ -171,6 +187,7 @@ class Liquidator {
                 console.log(user);
                 console.log(liquidator);
                 console.log(loanId)
+                console.log('\n LIQEVENT', U.parseEventParams(liqEvent && liqEvent.events))
 
                 if (user && liquidator && loanId) {
                     console.log("user found");
@@ -196,6 +213,7 @@ class Liquidator {
                     const profit = parseFloat(balAfter) - parseFloat(balBefore);
                     //wrong -> update
                     const pos = loanToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+                    const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
 
                     const addedLog = await dbCtrl.addLiquidate({
                         liquidatorAdr: liquidator,
@@ -204,8 +222,10 @@ class Liquidator {
                         pos: pos,
                         loanId: loanId,
                         profit: profit,
-                        txHash: txHash
+                        txHash: txHash,
+                        profit: liqProfit
                     });
+
                     return addedLog;
                 }
             }

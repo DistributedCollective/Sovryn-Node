@@ -82,6 +82,8 @@ class Arbitrage {
 
     async getRBtcPrices() {
         const amount = C.web3.utils.toWei(conf.amountArbitrage.toString(), "Ether");
+        // TODO: refactor to automatically include all tokens from tokensDictionary
+
         //doc
         let rBtcDocAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.docToken, amount);
         rBtcDocAmm = C.web3.utils.fromWei(rBtcDocAmm.toString(), "Ether");
