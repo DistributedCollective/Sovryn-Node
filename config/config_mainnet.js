@@ -14,18 +14,18 @@ export default {
     enableLiquidator: true,
     enableRollover: true,
     enableArbitrage: true,
-    loanTokenSUSD: "0xd8D25f03EBbA94E15Df2eD4d6D38276B595593c1", //underlying token = doc
-    loanTokenRBTC: "0xa9DcDC63eaBb8a2b6f39D7fF9429d88340044a7A",
-    loanTokenUSDT: "0x849C47f9C259E9D62F289BF1b2729039698D8387".toLowerCase(),
-    loanTokenBPRO: "0x6E2fb26a60dA535732F8149b25018C9c0823a715".toLowerCase(),
-    testTokenRBTC: "0x542fDA317318eBF1d3DEAf76E0b632741A7e677d", //wrbtc
+    loanTokenSUSD: "0xd8d25f03ebba94e15df2ed4d6d38276b595593c1", //underlying token = doc
+    loanTokenRBTC: "0xa9dcdc63eabb8a2b6f39d7ff9429d88340044a7a",
+    loanTokenUSDT: "0x849c47f9c259e9d62f289bf1b2729039698d8387",
+    loanTokenBPRO: "0x6e2fb26a60da535732f8149b25018c9c0823a715",
+    testTokenRBTC: "0x542fda317318ebf1d3deaf76e0b632741a7e677d", //wrbtc
     docToken: "0xe700691da7b9851f2f35f8b8182c69c53ccad9db", //former susd
-    USDTToken: "0xEf213441a85DF4d7acBdAe0Cf78004E1e486BB96".toLowerCase(), 
-    BProToken: "0x440cd83C160de5C96DDb20246815EA44C7Abbca8".toLowerCase(), 
-    sovrynProtocolAdr: "0x5A0D867e0D70Fcc6Ade25C3F1B89d618b5B4Eaa7",
-    swapsImpl: "0x98aCE08D2b759a265ae326F010496bcD63C15afc", //get price from amm/old execute swaps
-    priceFeed: "0x437AC62769f386b2d238409B7f0a7596d36506e4", //get oracle price
-    wRbtcWrapper: "0x78E7e79F1acc1f57a3291d5BfA8436A0771C1800", //real contract not available on this version
+    USDTToken: "0xef213441a85df4d7acbdae0cf78004e1e486bb96",
+    BProToken: "0x440cd83c160de5c96ddb20246815ea44c7abbca8", 
+    sovrynProtocolAdr: "0x5a0d867e0d70fcc6ade25c3f1b89d618b5b4eaa7",
+    swapsImpl: "0x98ace08d2b759a265ae326f010496bcd63c15afc", //get price from amm/old execute swaps
+    priceFeed: "0x437ac62769f386b2d238409b7f0a7596d36506e4", //get oracle price
+    wRbtcWrapper: "0x78e7e79f1acc1f57a3291d5bfa8436a0771c1800", //real contract not available on this version
     thresholdArbitrage: 2, //in %
     amountArbitrage: 0.01, //in rbtc
     errorBotTelegram: telegramBot,
