@@ -44,13 +44,18 @@ class Arbitrage {
                 //set arb to the lower price in USD (prices are actually return values given for 0.005 rbtc)
                 if(prices[p][0]>0 && prices[p][1]>0) arb = this.calcArbitrage(prices[p][0], prices[p][1], conf.thresholdArbitrage);
 
+                console.log(arb);
+
+
                 //the AMM price is lower -> buy BTC
-                if (arb && (arb === prices[p][0])) {
+                if (arb && (arb === parseFloat(prices[p][0]).toFixed(5))) {
+                    console.log("1")
                     let convertedAmount = C.web3.utils.toWei(prices[p][0].toString(), "Ether");
                     res = await this.swap(convertedAmount, p, 'rbtc');
                 }
                 //the oracle price is lower -> sell btc
-                else if (arb && (arb === prices[p][1])) {
+                else if (arb && (arb === parseFloat(prices[p][1]).toFixed(5))) {
+                    console.log("2")
                     res = await this.swap(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
                 }
 
