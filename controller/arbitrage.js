@@ -44,18 +44,13 @@ class Arbitrage {
                 //set arb to the lower price in USD (prices are actually return values given for 0.005 rbtc)
                 if(prices[p][0]>0 && prices[p][1]>0) arb = this.calcArbitrage(prices[p][0], prices[p][1], conf.thresholdArbitrage);
 
-                console.log(arb);
-
-
                 //the AMM price is lower -> buy BTC
                 if (arb && (arb === parseFloat(prices[p][0]).toFixed(5))) {
-                    console.log("1")
                     let convertedAmount = C.web3.utils.toWei(prices[p][0].toString(), "Ether");
                     res = await this.swap(convertedAmount, p, 'rbtc');
                 }
                 //the oracle price is lower -> sell btc
                 else if (arb && (arb === parseFloat(prices[p][1]).toFixed(5))) {
-                    console.log("2")
                     res = await this.swap(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
                 }
 
@@ -106,12 +101,13 @@ class Arbitrage {
         rBtcUsdtPf = parseFloat(rBtcUsdtPf).toFixed(5);
 
         //bpro
+        /*
         let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproAmm = C.web3.utils.fromWei(rBtcBproAmm.toString(), "Ether");
         let rBtcBproPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.BProToken, amount);
-        rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");
+        rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");*/
 
-        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], "bpro": [rBtcBproAmm, rBtcBproPf]};
+        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], /*"bpro": [rBtcBproAmm, rBtcBproPf]*/};
     }
 
     /**
@@ -150,14 +146,14 @@ class Arbitrage {
             try {
                 contract.methods["conversionPath"](sourceToken, destToken).call((error, result) => {
                     if (error) {
-                        console.error("error loading conversion path from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
+                        console.error("error loading conversion path 1 from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                         console.error(error);
                         return resolve(0);
                     }
 
                     contract.methods["rateByPath"](result, amount).call((err, res) => {
                         if (err) {
-                            console.error("error loading conversion path from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
+                            console.error("error loading rate path from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                             console.error(err);
                             return resolve(0);
                         }
@@ -200,7 +196,7 @@ class Arbitrage {
         const affiliateAcc = "0x0000000000000000000000000000000000000000";
         const affiliateFee = 0;
         const val = sourceCurrency === "rbtc"? amount:0;
-        const numberOfHops = destCurrency === "rbtc" ? 3 : 5
+        const numberOfHops = destCurrency === "rbtc" || sourceCurrency === "rbtc" ? 3 : 5;
 
         return new Promise(async (resolve) => {
             try {
