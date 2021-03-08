@@ -162,7 +162,10 @@ class Liquidator {
         // Convert spent amount to collateral token 
         const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
         if (convertedPaidAmount) {
-            const liqProfit = C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount));
+            const liqProfit = Number(C.web3.utils.fromWei(
+                C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount)),
+                "ether"
+            )).toFixed(5);
             console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
             return liqProfit;
         }
@@ -184,10 +187,7 @@ class Liquidator {
                     user, liquidator, loanId, loanToken, collateralToken, collateralWithdrawAmount
                 } = U.parseEventParams(liqEvent && liqEvent.events);
 
-                console.log(user);
-                console.log(liquidator);
-                console.log(loanId)
-                console.log('\n LIQEVENT', U.parseEventParams(liqEvent && liqEvent.events))
+                console.log(U.parseEventParams(liqEvent && liqEvent.events))
 
                 if (user && liquidator && loanId) {
                     console.log("user found");
