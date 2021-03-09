@@ -37,7 +37,7 @@ class Wallet {
             if (this.queue[type][wallet.adr].length >= 4) continue;
 
             let wBalance;
-            if (token === "rBtc" || token.toLowerCase() === conf.testTokenRBTC) wBalance = await C.web3.eth.getBalance(wallet.adr);
+            if (token === "rBtc") wBalance = await C.web3.eth.getBalance(wallet.adr);
             else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
 
             if (parseFloat(wBalance) >= parseFloat(reqTokenBalance)) return [wallet, parseFloat(wBalance)];
@@ -49,7 +49,7 @@ class Wallet {
             if (this.queue[type][wallet.adr].length >= 4) continue;
 
             let wBalance;
-            if (token === "rBtc" || token.toLowerCase() === conf.testTokenRBTC) wBalance = await C.web3.eth.getBalance(wallet.adr);
+            if (token === "rBtc") wBalance = await C.web3.eth.getBalance(wallet.adr);
             else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
 
             if (parseFloat(wBalance) >= 0) return [wallet, parseFloat(wBalance)];
