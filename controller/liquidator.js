@@ -55,10 +55,14 @@ class Liquidator {
                     await this.handleNoWalletError(p);
                     continue;
                 } 
-                const liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
+                let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
                 if(pos.maxLiquidatable<wBalance) console.log("enough balance on wallet");
                 else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
-                else console.log("not enough balance on wallet. only use "+wBalance);
+                else {
+                    const gasPrice = await C.getGasPrice();
+                    liquidateAmount = wBalance - (2500000 * gasPrice);
+                    console.log("not enough balance on wallet. only use "+liquidateAmount);
+                }
 
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
