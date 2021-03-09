@@ -55,7 +55,7 @@ class Wallet {
         }
 
         //completely drained or busy or both
-        return false;
+        return [null, null];
     }
 
 
