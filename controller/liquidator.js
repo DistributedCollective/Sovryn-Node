@@ -60,7 +60,7 @@ class Liquidator {
                 else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
                 else {
                     const gasPrice = await C.getGasPrice();
-                    liquidateAmount = wBalance - (2500000 * gasPrice);
+                    liquidateAmount = C.web3.utils.toBN(wBalance).sub(C.web3.utils.toBN(2500000).mul(gasPrice));
                     console.log("not enough balance on wallet. only use "+liquidateAmount);
                 }
 
