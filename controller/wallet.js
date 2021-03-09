@@ -3,6 +3,7 @@
  * Rsk currently only supports 4 simultaneos transactions per wallet. In order to avoid to use 4x more wallets a transaction queue is needed
  */
 
+import conf from '../config/config';
 import A from '../secrets/accounts';
 import C from './contract';
 
@@ -36,7 +37,7 @@ class Wallet {
             if (this.queue[type][wallet.adr].length >= 4) continue;
 
             let wBalance;
-            if (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") wBalance = await C.web3.eth.getBalance(wallet.adr);
+            if (token === "rBtc" || token.toLowerCase() === conf.testTokenRBTC) wBalance = await C.web3.eth.getBalance(wallet.adr);
             else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
 
             if (parseFloat(wBalance) >= parseFloat(reqTokenBalance)) return [wallet, parseFloat(wBalance)];
@@ -48,7 +49,7 @@ class Wallet {
             if (this.queue[type][wallet.adr].length >= 4) continue;
 
             let wBalance;
-            if (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") wBalance = await C.web3.eth.getBalance(wallet.adr);
+            if (token === "rBtc" || token.toLowerCase() === conf.testTokenRBTC) wBalance = await C.web3.eth.getBalance(wallet.adr);
             else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
 
             if (parseFloat(wBalance) >= 0) return [wallet, parseFloat(wBalance)];

@@ -99,7 +99,7 @@ class Liquidator {
     async liquidate(loanId, wallet, amount, token, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
-        const val = (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") ? amount : 0;
+        const val = (token === "rBtc" || token.toLowerCase() === conf.testTokenRBTC) ? amount : 0;
         console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
