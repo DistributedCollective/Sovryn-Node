@@ -65,7 +65,7 @@ class Liquidator {
                     if (token === "rBtc")
                         liquidateAmount = C.web3.utils.toBN(wBalance).sub(feeCost).toNumber();
                     if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
-                    if (feeCost<rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
+                    if (feeCost>rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
                     console.log("not enough balance on wallet. only use "+liquidateAmount);
                 }
 
