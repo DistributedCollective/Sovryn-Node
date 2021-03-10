@@ -55,15 +55,20 @@ class Liquidator {
                     await this.handleNoWalletError(p);
                     continue;
                 } 
-                const liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
+                let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
                 if(pos.maxLiquidatable<wBalance) console.log("enough balance on wallet");
                 else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
-                else console.log("not enough balance on wallet. only use "+wBalance);
+                else {
+                    const gasPrice = await C.getGasPrice();
+                    liquidateAmount = wBalance - (2500000 * gasPrice);
+                    if (liquidateAmount < 0) { console.log("not enough balance on wallet"); return; }
+                    console.log("not enough balance on wallet. only use "+liquidateAmount);
+                }
 
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
                 await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce);
-                await U.wasteTime(1); //1 second break to avoid rejection from node
+                await U.wasteTime(30); //30 seconds break to avoid rejection from node
             }
             console.log("Completed liquidation round");
             await U.wasteTime(conf.liquidatorScanInterval);
@@ -166,7 +171,7 @@ class Liquidator {
                 C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount)),
                 "ether"
             )).toFixed(5);
-            console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
+            console.log("\n 2. You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
             return liqProfit;
         }
         else {
@@ -211,6 +216,8 @@ class Liquidator {
 
                     const balAfter = await C.getWalletTokenBalance(liquidator, loanToken);
                     const profit = parseFloat(balAfter) - parseFloat(balBefore);
+                    console.log("\n 1. You made "+profit+"with this liquidation");
+
                     //wrong -> update
                     const pos = loanToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
                     const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
