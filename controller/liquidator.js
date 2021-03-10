@@ -43,7 +43,7 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-                const token = pos.loanToken === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+                const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
 
                 //Position already in liquidation wallet-queue
                 if (Wallet.checkIfPositionExists(p)) continue;
@@ -108,7 +108,7 @@ class Liquidator {
     async liquidate(loanId, wallet, amount, token, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
-        const val = (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") ? amount : 0;
+        const val = (token === "rBtc") ? amount : 0;
         console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
@@ -221,7 +221,7 @@ class Liquidator {
                     const balAfter = await C.getWalletTokenBalance(liquidator, loanToken);
                     const profit = parseFloat(balAfter) - parseFloat(balBefore);
                     //wrong -> update
-                    const pos = loanToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+                    const pos = loanToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
                     const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
 
                     const addedLog = await dbCtrl.addLiquidate({
