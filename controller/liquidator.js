@@ -60,7 +60,7 @@ class Liquidator {
                 else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
                 else {
                     const gasPrice = await C.getGasPrice();
-                    liquidateAmount = C.web3.utils.toBN(wBalance).sub(C.web3.utils.toBN(2500000).mul(C.web3.utils.toBN(gasPrice)));
+                    liquidateAmount = C.web3.utils.toBN(wBalance).sub(C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)));
                     if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
                     console.log("not enough balance on wallet. only use "+liquidateAmount);
                 }
@@ -116,7 +116,7 @@ class Liquidator {
         const p = this;
         const gasPrice = await C.getGasPrice();
         C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
-            .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce: nonce, value: val })
+            .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.transactionHash);
@@ -210,7 +210,7 @@ class Liquidator {
                     const approved = await C.approveToken(C.getTokenInstance(collateralToken), liquidator, conf.swapsImpl, collateralWithdrawAmount);
                     const swapTx = await C.contractSwaps.methods['convertByPath'](path, collateralWithdrawAmount, 1, liquidator, affiliateAcc, 0).send({
                         from: liquidator,
-                        gas: 2500000,
+                        gas: conf.gasLimit,
                         gasPrice: gasPrice
                     });
 

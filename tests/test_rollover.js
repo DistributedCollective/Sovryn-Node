@@ -161,7 +161,7 @@ function borrow(collateralTokenSent, withdrawAmount, collateralTokenAddress, adr
             adrReceiver.toLowerCase(), 
             loanDataBytes
             )
-            .send({ from: adrBorrower, gas: 2500000, value: collateralTokenSent })
+            .send({ from: adrBorrower, gas: conf.gasLimit, value: collateralTokenSent })
             .then((tx) => {
                 console.log("borrow Transaction: ");
                 console.log(tx);
