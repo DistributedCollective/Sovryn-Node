@@ -65,7 +65,7 @@ class Rollover {
 
             const gasPrice = await C.getGasPrice();
             C.contractSovryn.methods.rollover(loanId, loanDataBytes)
-                .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce })
+                .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce })
                 .then((tx) => {
                     console.log("Rollover Transaction successful: "+tx.transactionHash);
                     p.handleRolloverSuccess(loanId);

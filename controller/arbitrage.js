@@ -42,7 +42,7 @@ class Arbitrage {
 
             for(let p in prices) {
                 //set arb to the lower price in USD (prices are actually return values given for 0.005 rbtc)
-                if(prices[p][0]>0 && prices[p][1]>0) arb = this.calcArbitrage(prices[p][0], prices[p][1], conf.thresholdArbitrage);
+                if(prices[p][0]>0 && prices[p][1]>0) arb = this.calcArbitrage(prices[p][0], prices[p][1], p, conf.thresholdArbitrage);
 
                 //the AMM price is lower -> buy BTC
                 if (arb && (arb === parseFloat(prices[p][0]).toFixed(5))) {
@@ -66,12 +66,12 @@ class Arbitrage {
      * If price difference between p1 and p2 >= threshold return Min(p1,p2)
      * else return 0
      */
-    calcArbitrage(p1, p2, threshold) {
+    calcArbitrage(p1, p2, token, threshold) {
         const smallerAmount = Math.min(p1, p2);
         const arbitrage = Math.abs(p1 - p2) / smallerAmount * 100;
         if (arbitrage >= threshold) {
-            console.log("Arbitrage (%): "+arbitrage);
-            if(smallerAmount === p1) console.log("Buy doc!")
+            console.log(`Arbitrage ${token}: `+arbitrage);
+            if(smallerAmount === p1) console.log(`Buy ${token}!`)
             else console.log("Buy RBtc");
 
             return smallerAmount.toFixed(5);
@@ -209,7 +209,7 @@ class Arbitrage {
 
                     const gasPrice = await C.getGasPrice();
                     contract2.methods["convertByPath"](result, amount, minReturn)
-                        .send({ from: beneficiary, gas: 2500000, gasPrice: gasPrice, value: val })
+                        .send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
                             console.log("Arbitrage tx successful");
                             return resolve(tx);

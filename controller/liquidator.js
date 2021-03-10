@@ -43,7 +43,7 @@ class Liquidator {
 
             for (let p in this.liquidations) {
                 const pos = this.liquidations[p];
-                const token = pos.loanToken === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+                const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
 
                 //Position already in liquidation wallet-queue
                 if (Wallet.checkIfPositionExists(p)) continue;
@@ -56,12 +56,16 @@ class Liquidator {
                     continue;
                 } 
                 let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
-                if(pos.maxLiquidatable<wBalance) console.log("enough balance on wallet");
+                const gasPrice = await C.getGasPrice();
+                const rbtcBalance = await C.web3.eth.getBalance(wallet.adr);
+                const feeCost = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)).toNumber();
+                if(pos.maxLiquidatable<wBalance && feeCost<rbtcBalance) console.log("enough balance on wallet");
                 else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
                 else {
-                    const gasPrice = await C.getGasPrice();
-                    liquidateAmount = wBalance - (2500000 * gasPrice);
-                    if (liquidateAmount < 0) { console.log("not enough balance on wallet"); return; }
+                    if (token === "rBtc")
+                        liquidateAmount = C.web3.utils.toBN(wBalance).sub(feeCost).toNumber();
+                    if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
+                    if (feeCost>rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
                     console.log("not enough balance on wallet. only use "+liquidateAmount);
                 }
 
@@ -104,7 +108,7 @@ class Liquidator {
     async liquidate(loanId, wallet, amount, token, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
-        const val = (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") ? amount : 0;
+        const val = (token === "rBtc") ? amount : 0;
         console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
@@ -116,7 +120,7 @@ class Liquidator {
         const p = this;
         const gasPrice = await C.getGasPrice();
         C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
-            .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce: nonce, value: val })
+            .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.transactionHash);
@@ -210,7 +214,7 @@ class Liquidator {
                     const approved = await C.approveToken(C.getTokenInstance(collateralToken), liquidator, conf.swapsImpl, collateralWithdrawAmount);
                     const swapTx = await C.contractSwaps.methods['convertByPath'](path, collateralWithdrawAmount, 1, liquidator, affiliateAcc, 0).send({
                         from: liquidator,
-                        gas: 2500000,
+                        gas: conf.gasLimit,
                         gasPrice: gasPrice
                     });
 
@@ -219,7 +223,7 @@ class Liquidator {
                     console.log("\n 1. You made "+profit+"with this liquidation");
 
                     //wrong -> update
-                    const pos = loanToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+                    const pos = loanToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
                     const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
 
                     const addedLog = await dbCtrl.addLiquidate({

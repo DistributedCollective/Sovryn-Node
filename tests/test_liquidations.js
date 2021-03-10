@@ -225,7 +225,7 @@ async function marginTrade(contractToken, loanId, leverageAmount, loanTokenSent,
             trader,
             loanDataBytes
         )
-            .send({ from: trader, gas: 2500000, gasPrice: gasPrice * 2 })
+            .send({ from: trader, gas: conf.gasLimit, gasPrice: gasPrice * 2 })
             .then(async (tx) => {
                 //console.log("marginTrade Transaction: ");
                 //console.log(tx);
@@ -252,7 +252,7 @@ async function changePrice(srcToken, destToken, rate) {
 
     return new Promise(resolve => {
         C.contractPriceFeed.methods.setRates(srcToken, destToken, C.web3.utils.toWei(rate.toString(), 'Ether'))
-            .send({ from: A.owner[0].adr, gas: 2500000, gasPrice: gasPrice })
+            .send({ from: A.owner[0].adr, gas: conf.gasLimit, gasPrice: gasPrice })
             .then(async (tx) => {
                 //console.log("change price Transaction: ", tx);
                 resolve(tx.transactionHash);
@@ -267,7 +267,7 @@ async function changePrice(srcToken, destToken, rate) {
 /*
 function liquidate(loanId, wallet, amount) {
     C.contractSovryn.methods.liquidate(loanId, wallet, amount)
-            .send({ from: wallet, gas: 2500000, value: val })
+            .send({ from: wallet, gas: conf.gasLimit, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.txHash);
