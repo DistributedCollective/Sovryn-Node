@@ -126,7 +126,7 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
                 p.addLiqLog(tx.transactionHash);
-                await p.swapBackAfterLiquidation(val, token);
+                if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase());
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
