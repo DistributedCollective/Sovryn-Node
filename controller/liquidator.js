@@ -58,12 +58,12 @@ class Liquidator {
                 let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
                 const gasPrice = await C.getGasPrice();
                 const rbtcBalance = await C.web3.eth.getBalance(wallet.adr);
-                const feeCost = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice));
-                if(pos.maxLiquidatable<wBalance && feeCost<rbtcBalance) console.log("enough balance on wallet");
+                const feeCost = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)).toNumber();
+                if(pos.maxLiquidatable<wBalance && feeCost>rbtcBalance) console.log("enough balance on wallet");
                 else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
                 else {
                     if (token === "rBtc")
-                        liquidateAmount = C.web3.utils.toBN(wBalance).sub(feeCost);
+                        liquidateAmount = C.web3.utils.toBN(wBalance).sub(feeCost).toNumber();
                     if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
                     if (feeCost<rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
                     console.log("not enough balance on wallet. only use "+liquidateAmount);
