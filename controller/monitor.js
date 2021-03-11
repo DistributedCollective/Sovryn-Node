@@ -7,6 +7,7 @@ import A from '../secrets/accounts';
 import C from './contract';
 import conf from '../config/config';
 import  common from './common';
+import accounts from '../secrets/accounts';
 
 class MonitorController {
 
@@ -40,6 +41,17 @@ class MonitorController {
         }
         if (typeof cb === "function") cb(resp);
         else return resp;
+    }
+
+    async getAddresses(cb) {
+        console.log("get addresses")
+        const resp = {
+            liquidator: accounts.liquidator.map(account => account.adr),
+            rollover: accounts.rollover[0].adr,
+            arbitrage: accounts.arbitrage[0].adr
+        };
+        if (typeof cb === "function") cb(resp);
+        return resp;
     }
 
     /**

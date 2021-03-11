@@ -1,4 +1,4 @@
-import accounts from '../../secrets/accounts.js';
+const socket = io();
 
 class AppCtrl {
     constructor($scope) {
@@ -15,16 +15,25 @@ class AppCtrl {
     }
 
     start() {
-        this.liquidationWallets = accounts.liquidator;
-        this.artbitrageWallet = accounts.arbitrage;
-        this.rolloverWallet = accounts.rollover;
+        this.getAddresses()
+    }
 
-        console.log('\n Liquidations Wallets', this.liquidationWallets)
+    getAddresses() {
+        let p=this;
 
-        this.$scope.$applyAsync();
+        socket.emit("getAddresses", (res) => {
+            console.log("response addresses");
+            console.log(res);
+
+            p.liquidationWallets = res.liquidator;
+            p.artbitrageWallet = res.arbitrage;
+            p.rolloverWallet = res.rollover;
+            console.log('\n Liquidations Wallets', this.liquidationWallets)
+            p.$scope.$applyAsync();
+        });
     }
 }
 
 angular.module('app', []).controller('appCtrl', AppCtrl);
 
-angular.bootstrap(document, ['app']);
+//angular.bootstrap(document, ['app']);
