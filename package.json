@@ -8,8 +8,8 @@
     "test-network": "node -r esm ./tests/network.js",
     "start:test": "nodemon -r esm start.js testnet",
     "start:main": "nodemon -r esm start.js mainnet",
-    "dev": "npx webpack-dev-server --open --config ./webpack.config.ts",
-    "build-client": "npx webpack --config ./webpack.config.ts",
+    "dev": "npx webpack-dev-server --open --config ./public/webpack.config.ts",
+    "build-client": "npx webpack --config ./public/webpack.config.ts",
     "approveWalletsMain": "node -r esm ./util/approval.js mainnet",
     "approveWalletsTest": "node -r esm ./util/approval.js testnet"
   },
