@@ -14,7 +14,7 @@ import A from '../secrets/accounts';
 import Wallet from './wallet';
 import Arbitrage from '../controller/arbitrage';
 import conf from '../config/config';
-import tokensDictionary from '../config/tokensDictionary.json'
+import tokensDictionary from '../config/tokensDictionary.json';
 import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
