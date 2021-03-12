@@ -32,16 +32,16 @@
     <div class="row">
       <div class="col-6">
         <h2>Wallet info</h2>
-        <h4>Liquidaton wallets</h4>
+        <h4>Liquidation wallets</h4>
         <div ng-repeat="wallet in ctrl.liquidationWallets">
           <div role="alert" id="accInfoL1">Balance of <span id="accBalanceL1">{{ wallet.address }}</span><br /><span id="balanceL1">{{ wallet.balance }}</span></div>
         </div>
         <br />
         <h4>Rollover wallet</h4>
-        <div role="alert" id="accInfoR1">Balance of <span id="accBalanceR1">{{ rolloverWallet.address }}</span><br /><span id="balanceR1">{{ rolloverWallet.balance }}</span></div>
+        <div role="alert" id="accInfoR1">Balance of <span id="accBalanceR1">{{ ctrl.rolloverWallet.address }}</span><br /><span id="balanceR1">{{ ctrl.rolloverWallet.balance }}</span></div>
         <br />
         <h4>Arbitrage wallet</h4>
-        <div role="alert" id="accInfoAr1">Balance of <span id="accBalanceAr1">{{ arbitrageWallet.address }}</span><br /><span id="balanceAr1">{{ arbitrageWallet.balance }}</span></div>
+        <div role="alert" id="accInfoAr1">Balance of <span id="accBalanceAr1">{{ ctrl.arbitrageWallet.address }}</span><br /><span id="balanceAr1">{{ ctrl.arbitrageWallet.balance }}</span></div>
       </div>
 
       <div class="col-6">
