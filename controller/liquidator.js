@@ -14,7 +14,6 @@ import A from '../secrets/accounts';
 import Wallet from './wallet';
 import Arbitrage from '../controller/arbitrage';
 import conf from '../config/config';
-import tokensDictionary from '../config/tokensDictionary.json';
 import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
@@ -77,8 +76,8 @@ class Liquidator {
     * @param destCurrency is defaulting for now to 'rbtc'. It is also the hash of the contract
     */
     async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc') {
-        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : tokensDictionary[conf.network][sourceCurrency];
-        destCurrency = destCurrency === 'rbtc' ? destCurrency : tokensDictionary[conf.network][destCurrency];
+        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : conf.tokensDictionary[sourceCurrency.toLowerCase()];
+        destCurrency = destCurrency === 'rbtc' ? destCurrency : conf.tokensDictionary[destCurrency.toLowerCase()];
         console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency}`);
         try {
             const prices = await Arbitrage.getRBtcPrices();
@@ -163,7 +162,7 @@ class Liquidator {
         const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
         if (convertedPaidAmount) {
             const liqProfit = C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount));
-            console.log("You made "+liqProfit+" "+tokensDictionary[conf.network][liqEvent.collateralToken]+" with this liquidation");
+            console.log("You made "+liqProfit+" "+conf.tokensDictionary[liqEvent.collateralToken.toLowerCase()]+" with this liquidation");
             return liqProfit;
         }
         else {

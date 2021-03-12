@@ -3,7 +3,6 @@
  * Rsk currently only supports 4 simultaneos transactions per wallet. In order to avoid to use 4x more wallets a transaction queue is needed
  */
 
-import tokensDictionary from '../config/tokensDictionary.json';
 import conf from '../config/config';
 import A from '../secrets/accounts';
 import C from './contract';
@@ -33,7 +32,7 @@ class Wallet {
      * Careful: Consider decimals for tokens. Rbtc and Doc have 18
      */
     async getWallet(type, reqTokenBalance, token) {
-        console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + tokensDictionary[token.toLowerCase()]);
+        console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + conf.tokensDictionary[token.toLowerCase()]);
         for (let wallet of A[type]) {
             if (this.queue[type][wallet.adr].length >= 4) continue;
 

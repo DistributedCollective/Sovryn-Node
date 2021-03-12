@@ -6,14 +6,12 @@
 import Web3 from 'web3';
 import C from '../controller/contract';
 import W from '../secrets/accounts';
-import tokensDictionary from '../config/tokensDictionary.json';
 import abiTestToken from '../config/abiTestToken';
 import abiRBTCWrapperProxy from '../config/abiRBTCWrapperProxy';
 import conf from '../config/config';
 import wallets from '../secrets/accounts';
 
 const web3 = new Web3(conf.nodeProvider);
-const tokenContracts = tokensDictionary[conf.network]
 const amount = C.web3.utils.toWei("1000000000", 'ether');
 
 //Add wallets to web3, so they are ready for sending transactions
@@ -40,7 +38,7 @@ async function approveLiquidatorWallets() {
         let approved;
         let tokenContract;
 
-        for (let tokenContractAddress in tokenContracts) {
+        for (let tokenContractAddress in conf.tokensDictionary) {
             if (tokenContract === conf.wRbtcWrapper) tokenContract = new web3.eth.Contract(abiRBTCWrapperProxy, tokenContractAddress);
             else tokenContract = new web3.eth.Contract(abiTestToken, tokenContractAddress);
 
