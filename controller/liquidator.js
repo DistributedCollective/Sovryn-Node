@@ -55,19 +55,8 @@ class Liquidator {
                     await this.handleNoWalletError(p);
                     continue;
                 } 
-                let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
-                const gasPrice = await C.getGasPrice();
-                const rbtcBalance = await C.web3.eth.getBalance(wallet.adr);
-                const feeCost = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)).toNumber();
-                if(pos.maxLiquidatable<wBalance && feeCost<rbtcBalance) console.log("enough balance on wallet");
-                else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
-                else {
-                    if (token === "rBtc")
-                        liquidateAmount = C.web3.utils.toBN(wBalance).sub(feeCost).toNumber();
-                    if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
-                    if (feeCost>rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
-                    console.log("not enough balance on wallet. only use "+liquidateAmount);
-                }
+                const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet)
+                if (!liquidateAmount) return;
 
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
@@ -77,6 +66,23 @@ class Liquidator {
             console.log("Completed liquidation round");
             await U.wasteTime(conf.liquidatorScanInterval);
         }
+    }
+
+    async calculateLiquidateAmount(wBalance, pos, token, wallet) {
+        let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
+        const gasPrice = await C.getGasPrice();
+        const rbtcBalance = await C.web3.eth.getBalance(wallet.adr);
+        const txFees = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)).toNumber();
+        if(pos.maxLiquidatable<wBalance && txFees<rbtcBalance) console.log("enough balance on wallet");
+        else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
+        else {
+            if (token === "rBtc")
+                liquidateAmount = C.web3.utils.toBN(wBalance).sub(C.web3.utils.toBN(txFees)).toNumber();
+            if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
+            if (txFees>rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
+            console.log("not enough balance on wallet. only use "+liquidateAmount);
+        }
+        return liquidateAmount;
     }
 
     /**
