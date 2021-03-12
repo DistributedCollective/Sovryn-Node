@@ -15,7 +15,6 @@ class AppCtrl {
     }
 
     start() {
-        console.log("HELLO FROM ANGULAR")
         this.getAddresses()
     }
 
@@ -26,7 +25,7 @@ class AppCtrl {
             console.log("response addresses:", res);
 
             p.liquidationWallets = res.liquidator;
-            p.artbitrageWallet = res.arbitrage;
+            p.arbitrageWallet = res.arbitrage;
             p.rolloverWallet = res.rollover;
             console.log('\n Liquidations Wallets', this.liquidationWallets)
             p.$scope.$applyAsync();
