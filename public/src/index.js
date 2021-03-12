@@ -15,6 +15,7 @@ class AppCtrl {
     }
 
     start() {
+        console.log("HELLO FROM ANGULAR")
         this.getAddresses()
     }
 
@@ -22,8 +23,7 @@ class AppCtrl {
         let p=this;
 
         socket.emit("getAddresses", (res) => {
-            console.log("response addresses");
-            console.log(res);
+            console.log("response addresses:", res);
 
             p.liquidationWallets = res.liquidator;
             p.artbitrageWallet = res.arbitrage;
@@ -36,4 +36,4 @@ class AppCtrl {
 
 angular.module('app', []).controller('appCtrl', AppCtrl);
 
-//angular.bootstrap(document, ['app']);
+angular.bootstrap(document, ['app']);

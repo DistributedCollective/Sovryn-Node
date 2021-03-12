@@ -51,7 +51,7 @@ class MonitorController {
             arbitrage: accounts.arbitrage[0].adr
         };
         if (typeof cb === "function") cb(resp);
-        return resp;
+        else return resp;
     }
 
     /**
