@@ -42,7 +42,7 @@ describe('Liquidation', async () => {
                 C.web3.utils.fromWei(currentMargin) > 0 && 
                 Number(maxLiquidatable) > 0 
             )
-            const token = pos.loanToken === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+            const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
 
             // check balance
             const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);

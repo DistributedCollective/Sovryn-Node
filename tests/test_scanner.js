@@ -45,7 +45,7 @@ describe('Scanner', async () => {
                 if(margin<70) console.log("Current margin: "+margin+" maintenance margin: "+mMargin+", loanId: "+p);
 
                 totalSum += (Number(PosScanner.positions[p].collateral) || 0);
-                if (PosScanner.positions[p].collateralToken === config.docToken) {
+                if (PosScanner.positions[p].collateralToken.toLowerCase() === config.docToken) {
                     sumDoc += (Number(PosScanner.positions[p].collateral) || 0);
                 }
             }
