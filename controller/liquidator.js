@@ -221,7 +221,7 @@ class Liquidator {
                     const balAfter = await C.getWalletTokenBalance(liquidator, loanToken);
                     const profit = parseFloat(balAfter) - parseFloat(balBefore);
                     //wrong -> update
-                    const pos = loanToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+                    const pos = loanToken.toLowerCase() === conf.testTokenRBTC ? 'long' : 'short';
                     const liqProfit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events));
 
                     const addedLog = await dbCtrl.addLiquidate({
