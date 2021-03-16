@@ -46,10 +46,11 @@ class MonitorController {
     async getAddresses(cb) {
         console.log("get addresses")
         const resp = {
-            liquidator: accounts.liquidator.map(async (account) => ({ 
-                address: account.adr, 
-                balance: await C.web3.eth.getBalance(account.adr) 
-            })),
+            liquidator: await Promise.all(accounts.liquidator.map(async (account) => ({ 
+                    address: account.adr, 
+                    balance: await C.web3.eth.getBalance(account.adr) 
+                }))
+            ),
             rollover: { 
                 address: accounts.rollover[0].adr, 
                 balance: await C.web3.eth.getBalance(accounts.rollover[0].adr) 
