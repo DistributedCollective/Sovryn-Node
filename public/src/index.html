@@ -18,14 +18,14 @@
 
       <div class="col-8">
         <h2>Node monitor</h2>
-        <div role="alert" id="lastBlock">Last block: <span id="lastBlockLn"></span> Sovryn node, <span
-            id="lastBlockPn"></span> IOV node</div>
+        <div role="alert" id="lastBlock">Last block: <span id="lastBlockLn">{{ ctrl.lastBlockOurNode }}</span> Sovryn node, <span
+            id="lastBlockPn">{{ ctrl.lastBlockExternalNode }}</span> IOV node</div>
       </div>
 
       <div class="col-4">
         <h2>Liquidation watcher</h2>
-        <div id="openPos">Current open positions: <span id="openPosQueue"></span></div>
-        <div id="openLiq">Waiting to get liquidated: <span id="openLiqQueue"></span></div>
+        <div id="openPos">Current open positions: <span id="openPosQueue">{{ ctrl.numberOpenPositions }}</span></div>
+        <div id="openLiq">Waiting to get liquidated: <span id="openLiqQueue">{{ ctrl.numberLiquidationsInQueue }}</span></div>
       </div>
     </div>
 

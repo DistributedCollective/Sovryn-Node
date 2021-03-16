@@ -4,7 +4,6 @@ const CopyPlugin = require('copy-webpack-plugin');
 module.exports = {
   entry: [
     './public/src/initWeb3.js',
-    './public/src/monitor.js',
     './public/src/index.js'
   ],
   devtool: 'inline-source-map',
