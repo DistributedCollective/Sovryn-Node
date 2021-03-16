@@ -17,8 +17,14 @@
     <div class="row">
       <div class="col-8">
         <h2>Node monitor</h2>
-        <div role="alert" id="lastBlock">Last block: <span id="lastBlockLn">{{ ctrl.lastBlockOurNode }}</span> Sovryn node, <span
-            id="lastBlockPn">{{ ctrl.lastBlockExternalNode }}</span> IOV node</div>
+        <div role="alert" id="lastBlock" ng-class="{ 
+          'alert alert-success': ctrl.lastBlockOurNode > 0 && ctrl.lastBlockOurNode >= ctrl.lastBlockExternalNode,
+          'alert alert-danger': ctrl.lastBlockOurNode > 0 && ctrl.lastBlockOurNode < ctrl.lastBlockExternalNode 
+        }"
+          >Last block: 
+          <span id="lastBlockLn">{{ ctrl.lastBlockOurNode }}</span> Sovryn node, <span
+            id="lastBlockPn">{{ ctrl.lastBlockExternalNode }}</span> IOV node
+        </div>
       </div>
 
       <div class="col-4">
