@@ -15,7 +15,6 @@ module.exports = {
   plugins: [
     new CopyPlugin({
       patterns: [
-        {from: 'public/src/index.js'},
         {from: 'public/src/index.html'}
       ]
     }),
