@@ -5,6 +5,8 @@ class AppCtrl {
         this.liquidationWallets = [];
         this.artbitrageWallet = {};
         this.rolloverWallet = {};
+        this.fastBtcWallet = null;
+        this.ogWallet = null;
         this.$scope = $scope;
 
         this.start();

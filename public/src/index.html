@@ -44,12 +44,12 @@
         <div role="alert" id="accInfoAr1">Balance of <span id="accBalanceAr1">{{ ctrl.arbitrageWallet.address }}</span><br /><span id="balanceAr1">{{ ctrl.arbitrageWallet.balance }}</span></div>
       </div>
 
-      <div class="col-6">
+      <div ng-if="ctrl.fastBtcWallet || ctrl.ogWallet" class="col-6">
        <h2>Other wallets</h2>
        <h4>Fast-Btc-Relay</h4>
-       <div role="alert" id="accInfoFbr">Balance of <span id="accBalanceFbr"></span><br /><span id="balanceFbr"> </span></div>
+       <div role="alert" id="accInfoFbr">Balance of <span id="accBalanceFbr">>{{ ctrl.fastBtcWallet.address }}</span><br /><span id="balanceFbr">{{ ctrl.fastBtcWallet.balance }}</span></div>
         <h4>Early access token wallet</h4>
-       <div role="alert" id="accInfoOg">Balance of <span id="accBalanceOg"></span><br /><span id="balanceOg"> </span></div>
+       <div role="alert" id="accInfoOg">Balance of <span id="accBalanceOg">>{{ ctrl.ogWallet.address }}</span><br /><span id="balanceOg">{{ ctrl.ogWallet.balance }}</span></div>
         
     </div>
   </div>
