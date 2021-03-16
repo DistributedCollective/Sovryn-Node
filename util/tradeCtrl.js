@@ -3,6 +3,7 @@
  */
 import Web3 from 'web3';
 import conf from '../config/config';
+import A from '../secrets/accounts';
 import abiLoanToken from '../tests/abi/abiLoanToken';
 import abiComplete from '../config/abiComplete';
 import abiDocToken from "../config/abiTestToken";
@@ -28,9 +29,10 @@ class TradeCtrl {
         contractDocToken = new this.web3.eth.Contract(abiDocToken, conf.docToken);
 
         // Open long position with 0.0001 RBTC
-        // await this.createLong("0xc9307DAfE95199485885b3E45B88aa799cAcEbDa".toLowerCase(), "e5d9978070d7feaee96f5c1938307ee4bd4819eba4e908d280557ca3fd786baa", 0.0001)
+        // setInterval(async () => {
+        //     await this.createLong(A.liquidator[0].adr.toLowerCase(), A.liquidator[0].pKey, (Math.random() * 0.001).toFixed(6))       
+        // }, 10000)
     }
-
 
     async createLong(traderAdr, traderPKey, amount, leverage = 3) {
         this.web3.eth.accounts.wallet.add(traderPKey);
@@ -186,7 +188,7 @@ class TradeCtrl {
     }
 }
 
-// const tradeController = new TradeCtrl();
-// tradeController.init()
+const tradeController = new TradeCtrl();
+tradeController.init()
 
-export default new TradeCtrl();
+//export default new TradeCtrl();
