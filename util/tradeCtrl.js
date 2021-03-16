@@ -26,6 +26,9 @@ class TradeCtrl {
         contractIRBTC = new this.web3.eth.Contract(abiLoanToken.concat(abiComplete), conf.loanTokenRBTC);
         contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
         contractDocToken = new this.web3.eth.Contract(abiDocToken, conf.docToken);
+
+        // Open long position with 0.0001 RBTC
+        // await this.createLong("0xc9307DAfE95199485885b3E45B88aa799cAcEbDa".toLowerCase(), "e5d9978070d7feaee96f5c1938307ee4bd4819eba4e908d280557ca3fd786baa", 0.0001)
     }
 
 
@@ -106,7 +109,7 @@ class TradeCtrl {
         return new Promise(resolve => {
             //true = get paid back in collateral tokens (the one we have sent when opening the position)
             contractToken.methods.closeWithSwap(loanId, receiver, collateral, true, loanDataBytes)
-                .send({ from: trader, gas: conf.gas.closePos, gasPrice: gasPrice })
+                .send({ from: trader, gas: conf.gasLimit, gasPrice: gasPrice })
                 .then(async (tx) => {
                     //console.log("close position Transaction: ");
                     //console.log(tx);
@@ -140,7 +143,7 @@ class TradeCtrl {
                 trader,
                 loanDataBytes
             )
-                .send({ from: trader, gas: conf.gas.loan, gasPrice: gasPrice, value: val })
+                .send({ from: trader, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
                 .then(async (tx) => {
                     //console.log("marginTrade Transaction: ");
                     //console.log(tx);
@@ -182,5 +185,8 @@ class TradeCtrl {
         });
     }
 }
+
+// const tradeController = new TradeCtrl();
+// tradeController.init()
 
 export default new TradeCtrl();
