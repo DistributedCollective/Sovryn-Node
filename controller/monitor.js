@@ -6,7 +6,8 @@ const axios = require('axios');
 import A from '../secrets/accounts';
 import C from './contract';
 import conf from '../config/config';
-import  common from './common';
+import common from './common';
+import accounts from '../secrets/accounts';
 
 class MonitorController {
 
@@ -38,6 +39,27 @@ class MonitorController {
             positionInfo: await this.getOpenPositions(),
             liqInfo: await this.getOpenLiquidations()
         }
+        if (typeof cb === "function") cb(resp);
+        else return resp;
+    }
+
+    async getAddresses(cb) {
+        console.log("get addresses")
+        const resp = {
+            liquidator: await Promise.all(accounts.liquidator.map(async (account) => ({ 
+                    address: account.adr, 
+                    balance: await C.web3.eth.getBalance(account.adr) 
+                }))
+            ),
+            rollover: { 
+                address: accounts.rollover[0].adr, 
+                balance: await C.web3.eth.getBalance(accounts.rollover[0].adr) 
+            },
+            arbitrage: { 
+                address: accounts.arbitrage[0].adr, 
+                balance: await C.web3.eth.getBalance(accounts.arbitrage[0].adr) 
+            }
+        };
         if (typeof cb === "function") cb(resp);
         else return resp;
     }
