@@ -29,9 +29,9 @@ class TradeCtrl {
         contractDocToken = new this.web3.eth.Contract(abiDocToken, conf.docToken);
 
         // Open long position with 0.0001 RBTC
-        // setInterval(async () => {
-        //     await this.createLong(A.liquidator[0].adr.toLowerCase(), A.liquidator[0].pKey, (Math.random() * 0.001).toFixed(6))       
-        // }, 10000)
+        setInterval(async () => {
+            await this.createShort(A.liquidator[0].adr.toLowerCase(), A.liquidator[0].pKey, (Math.random() * 0.001).toFixed(6), 4)       
+        }, 30000)
     }
 
     async createLong(traderAdr, traderPKey, amount, leverage = 3) {
