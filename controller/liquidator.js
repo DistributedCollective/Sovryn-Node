@@ -185,7 +185,7 @@ class Liquidator {
                     console.log(liquidator);
                     console.log(loanId);
                     const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
-                    const numberOfHops = loanToken === "rbtc" ? 3 : 5
+                    const numberOfHops = loanToken === "0x69fe5cec81d5ef92600c1a0db1f11986ab3758ab" ? 3 : 5
 
                     if (!path || path.length !== numberOfHops) return;
 
