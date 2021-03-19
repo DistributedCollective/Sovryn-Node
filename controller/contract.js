@@ -30,7 +30,7 @@ class Contract {
 
         //Add wallets to web3, so they are ready for sending transactions
         for(let w in wallets) for (let a of wallets[w]) {
-            let pKey = this.web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
+            let pKey = a.pKey?a.pKey:this.web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
             this.web3.eth.accounts.wallet.add(pKey);
         }
    }

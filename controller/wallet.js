@@ -3,6 +3,7 @@
  * Rsk currently only supports 4 simultaneos transactions per wallet. In order to avoid to use 4x more wallets a transaction queue is needed
  */
 
+import conf from '../config/config';
 import A from '../secrets/accounts';
 import C from './contract';
 

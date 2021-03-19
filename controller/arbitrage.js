@@ -217,7 +217,7 @@ class Arbitrage {
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
-                            await common.telegramBot.sendMessage(err);
+                            //await common.telegramBot.sendMessage(err);
                             return resolve();
                         });
                 });
