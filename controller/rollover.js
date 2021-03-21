@@ -35,6 +35,7 @@ class Rollover {
                 const amn = C.web3.utils.fromWei(this.positions[p].collateral.toString(), "Ether");
 
                 if(this.positions[p].collateralToken.toLowerCase() === conf.docToken.toLowerCase() && amn < 5) continue;
+                else if(this.positions[p].collateralToken.toLowerCase() === conf.USDTToken.toLowerCase() && amn < 5) continue;
                 else if(this.positions[p].collateralToken.toLowerCase() === conf.BProToken.toLowerCase()) continue; //Bpro can't be rolled over. Amm messed up
                 else if(this.positions[p].collateralToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() && amn < 0.00025) continue; 
                 else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
