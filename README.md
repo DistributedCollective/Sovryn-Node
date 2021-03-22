@@ -73,7 +73,7 @@ export default ""; for no notifications
 ### Start
 
 ```sh
-npm run start:[mainnet || testnet] [wallet-password]
+npm run start:[main || test] [wallet-password]
 ```
 Check  
 http://your-ip:3000/ to see some liquidation processing info
