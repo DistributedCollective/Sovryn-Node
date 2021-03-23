@@ -36,7 +36,7 @@ describe('Arbitrage', async () => {
             for(let i=0;i<10;i++) {
                 const p1=100;
                 const p2=100+i;
-                const a = Arbitrage.calcArbitrage(p1,p2,threshold);
+                const a = Arbitrage.calcArbitrage(p1,p2,'example token',threshold);
                 console.log(a);
                 if(i<5) assert(!a);
                 else assert(a>0);
@@ -44,7 +44,7 @@ describe('Arbitrage', async () => {
         });
 
         it('Should detect arbitrage on the contract', async () => {
-            const a = Arbitrage.calcArbitrage(pPriceFeed,pAmm,2);
+            const a = Arbitrage.calcArbitrage(pPriceFeed,pAmm,'example token',2);
             console.log(a);
             assert(a);
         });
