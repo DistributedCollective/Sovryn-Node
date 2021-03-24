@@ -8,6 +8,9 @@ import abiTestToken from '../config/abiTestToken';
 import abiSwaps from '../config/abiSovrynSwapNetwork';
 import abiPriceFeed from '../config/abiPriceFeed';
 import abiRBTCWrapperProxy from '../config/abiRBTCWrapperProxy';
+import abiIContractRegistry from '../config/abiIContractRegistry';
+import abiConverterRegistry from '../config/abiConverterRegistry';
+import abiILiquidityPoolV2Converter from '../config/abiILiquidityPoolV2Converter';
 import conf from '../config/config';
 import wallets from '../secrets/accounts';
 
@@ -157,6 +160,56 @@ class Contract {
         });
     }
 
+    /**
+     * Returns the liquidity pool converter for a token pair
+     *
+     * @param primaryTokenAddress
+     * @param secondaryTokenAddress
+     * @returns {Promise<Contract>}
+     */
+    async getLiquidityPoolByTokens(primaryTokenAddress, secondaryTokenAddress) {
+        // NOTE: this can be optimized by including the AMM addresses to the config,
+        // but then it needs to be updated if the things change.
+        primaryTokenAddress = primaryTokenAddress.toLowerCase();
+        secondaryTokenAddress = secondaryTokenAddress.toLowerCase();
+        const registry = await this.getConverterRegistry();
+        const token1Anchors = await registry.methods.getConvertibleTokenAnchors(primaryTokenAddress).call();
+        const token2Anchors = await registry.methods.getConvertibleTokenAnchors(secondaryTokenAddress).call();
+        let anchor = null;
+        for(const token1Anchor of token1Anchors) {
+            if(token2Anchors.indexOf(token1Anchor) !== -1) {
+                if(anchor) {
+                    throw new Error(`multiple anchors found for ${primaryTokenAddress} and ${secondaryTokenAddress}`);
+                }
+                anchor = token1Anchor;
+            }
+        }
+        if(!anchor) {
+            throw new Error(`no anchors found for ${primaryTokenAddress} and ${secondaryTokenAddress}`);
+        }
+        const converterAddresses = await registry.methods.getConvertersByAnchors([anchor]).call();
+        if(converterAddresses.length === 0) {
+            throw new Error(`no converters found for ${primaryTokenAddress} and ${secondaryTokenAddress}`);
+        }
+        if(converterAddresses.length > 1) {
+            throw new Error(`multiple converters found for ${primaryTokenAddress} and ${secondaryTokenAddress}: ${converterAddresses}`);
+        }
+        const converterAddress = converterAddresses[0];
+        const isLiquidityPool = await registry.methods.isLiquidityPool(converterAddress);
+        if(!isLiquidityPool) {
+            throw new Error(`converter ${converterAddress} for ${primaryTokenAddress} and ${secondaryTokenAddress} is not a liquidity pool`);
+        }
+        const liquidityPoolContract = new this.web3.eth.Contract(abiILiquidityPoolV2Converter, converterAddress);
+        let contractPrimaryTokenAddress = await liquidityPoolContract.methods.primaryReserveToken().call();
+        contractPrimaryTokenAddress = contractPrimaryTokenAddress.toLowerCase();
+        if (contractPrimaryTokenAddress !== primaryTokenAddress) {
+            throw new Error(
+                `primary reserve token ${contractPrimaryTokenAddress} for liquidity pool ${converterAddress} ` +
+                `is not expected primary reserve token ${primaryTokenAddress}`
+            );
+        }
+        return liquidityPoolContract;
+    }
 
     /**
      * helper function
@@ -172,6 +225,18 @@ class Contract {
     async getGasPrice() {
         const gasPrice = await this.web3.eth.getGasPrice();
         return Math.round(gasPrice * (100 + conf.gasPriceBuffer) / 100);
+    }
+
+    async getContractRegistry() {
+        const contractRegistryAddress = await this.contractSwaps.methods.registry().call();
+        return new this.web3.eth.Contract(abiIContractRegistry, contractRegistryAddress);
+    }
+
+    async getConverterRegistry() {
+        const contractRegistry = await this.getContractRegistry();
+        const converterRegistryNameBytes = this.web3.utils.asciiToHex('SovrynSwapConverterRegistry');
+        const converterRegistryAddress = await contractRegistry.methods.addressOf(converterRegistryNameBytes).call();
+        return new this.web3.eth.Contract(abiConverterRegistry, converterRegistryAddress);
     }
 }
 
