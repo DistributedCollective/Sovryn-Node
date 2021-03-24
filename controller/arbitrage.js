@@ -212,12 +212,13 @@ class Arbitrage {
                         .send({ from: beneficiary, gas: 2500000, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
                             console.log("Arbitrage tx successful");
+                            await common.telegramBot.sendMessage(`arbitrage tx successful (${amount} ${sourceCurrency} -> ${destCurrency}). txhash: ${tx.transactionHash}`);
                             return resolve(tx);
                         })
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
-                            //await common.telegramBot.sendMessage(err);
+                            await common.telegramBot.sendMessage(`error on arbitrage tx (${amount} ${sourceCurrency} -> ${destCurrency}): ` + JSON.stringify(err, null, 2));
                             return resolve();
                         });
                 });
