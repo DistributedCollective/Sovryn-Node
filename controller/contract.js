@@ -10,7 +10,7 @@ import abiPriceFeed from '../config/abiPriceFeed';
 import abiRBTCWrapperProxy from '../config/abiRBTCWrapperProxy';
 import abiIContractRegistry from '../config/abiIContractRegistry';
 import abiConverterRegistry from '../config/abiConverterRegistry';
-import abiILiquidityPoolV2Converter from '../config/abiILiquidityPoolV2Converter';
+import abiLiquidityPoolV2Converter from '../config/abiLiquidityPoolV2Converter';
 import conf from '../config/config';
 import wallets from '../secrets/accounts';
 
@@ -162,53 +162,41 @@ class Contract {
 
     /**
      * Returns the liquidity pool converter for a token pair
-     *
-     * @param primaryTokenAddress
-     * @param secondaryTokenAddress
      * @returns {Promise<Contract>}
      */
-    async getLiquidityPoolByTokens(primaryTokenAddress, secondaryTokenAddress) {
+    async getLiquidityPoolByTokens(token1Address, token2Address) {
         // NOTE: this can be optimized by including the AMM addresses to the config,
         // but then it needs to be updated if the things change.
-        primaryTokenAddress = primaryTokenAddress.toLowerCase();
-        secondaryTokenAddress = secondaryTokenAddress.toLowerCase();
+        token1Address = token1Address.toLowerCase();
+        token2Address = token2Address.toLowerCase();
         const registry = await this.getConverterRegistry();
-        const token1Anchors = await registry.methods.getConvertibleTokenAnchors(primaryTokenAddress).call();
-        const token2Anchors = await registry.methods.getConvertibleTokenAnchors(secondaryTokenAddress).call();
+        const token1Anchors = await registry.methods.getConvertibleTokenAnchors(token1Address).call();
+        const token2Anchors = await registry.methods.getConvertibleTokenAnchors(token2Address).call();
         let anchor = null;
         for(const token1Anchor of token1Anchors) {
             if(token2Anchors.indexOf(token1Anchor) !== -1) {
                 if(anchor) {
-                    throw new Error(`multiple anchors found for ${primaryTokenAddress} and ${secondaryTokenAddress}`);
+                    throw new Error(`multiple anchors found for ${token1Address} and ${token2Address}`);
                 }
                 anchor = token1Anchor;
             }
         }
         if(!anchor) {
-            throw new Error(`no anchors found for ${primaryTokenAddress} and ${secondaryTokenAddress}`);
+            throw new Error(`no anchors found for ${token1Address} and ${token2Address}`);
         }
         const converterAddresses = await registry.methods.getConvertersByAnchors([anchor]).call();
         if(converterAddresses.length === 0) {
-            throw new Error(`no converters found for ${primaryTokenAddress} and ${secondaryTokenAddress}`);
+            throw new Error(`no converters found for ${token1Address} and ${token2Address}`);
         }
         if(converterAddresses.length > 1) {
-            throw new Error(`multiple converters found for ${primaryTokenAddress} and ${secondaryTokenAddress}: ${converterAddresses}`);
+            throw new Error(`multiple converters found for ${token1Address} and ${token2Address}: ${converterAddresses}`);
         }
         const converterAddress = converterAddresses[0];
         const isLiquidityPool = await registry.methods.isLiquidityPool(converterAddress);
         if(!isLiquidityPool) {
-            throw new Error(`converter ${converterAddress} for ${primaryTokenAddress} and ${secondaryTokenAddress} is not a liquidity pool`);
+            throw new Error(`converter ${converterAddress} for ${token1Address} and ${token2Address} is not a liquidity pool`);
         }
-        const liquidityPoolContract = new this.web3.eth.Contract(abiILiquidityPoolV2Converter, converterAddress);
-        let contractPrimaryTokenAddress = await liquidityPoolContract.methods.primaryReserveToken().call();
-        contractPrimaryTokenAddress = contractPrimaryTokenAddress.toLowerCase();
-        if (contractPrimaryTokenAddress !== primaryTokenAddress) {
-            throw new Error(
-                `primary reserve token ${contractPrimaryTokenAddress} for liquidity pool ${converterAddress} ` +
-                `is not expected primary reserve token ${primaryTokenAddress}`
-            );
-        }
-        return liquidityPoolContract;
+        return new this.web3.eth.Contract(abiLiquidityPoolV2Converter, converterAddress);
     }
 
     /**
