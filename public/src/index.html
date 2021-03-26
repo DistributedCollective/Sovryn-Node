@@ -40,13 +40,28 @@
         <h4>Liquidation wallets</h4>
         <div ng-repeat="wallet in ctrl.liquidationWallets">
           <div role="alert" id="accInfoL1">Balance of <span id="accBalanceL1">{{ wallet.address }}</span><br /><span id="balanceL1">{{ wallet.balance }}</span></div>
+          <div ng-if="wallet.tokenBalances.length > 0">Tokens: 
+            <div ng-repeat="balance in wallet.tokenBalances">
+              <span>{{ balance.token }}: {{ balance.balance }}</span>
+            </div>
+          </div>
         </div>
         <br />
         <h4>Rollover wallet</h4>
         <div role="alert" id="accInfoR1">Balance of <span id="accBalanceR1">{{ ctrl.rolloverWallet.address }}</span><br /><span id="balanceR1">{{ ctrl.rolloverWallet.balance }}</span></div>
+        <div ng-if="ctrl.rolloverWallet.tokenBalances.length > 0">Tokens: 
+          <div ng-repeat="balance in ctrl.rolloverWallet.tokenBalances">
+            <span>{{ balance.token }}: {{ balance.balance }}</span>
+          </div>
+        </div>
         <br />
         <h4>Arbitrage wallet</h4>
         <div role="alert" id="accInfoAr1">Balance of <span id="accBalanceAr1">{{ ctrl.arbitrageWallet.address }}</span><br /><span id="balanceAr1">{{ ctrl.arbitrageWallet.balance }}</span></div>
+        <div ng-if="ctrl.arbitrageWallet.tokenBalances.length > 0">Tokens: 
+          <div ng-repeat="balance in ctrl.arbitrageWallet.tokenBalances">
+            <span>{{ balance.token }}: {{ balance.balance }}</span>
+          </div>
+        </div>
       </div>
 
       <div ng-if="ctrl.fastBtcWallet || ctrl.ogWallet" class="col-6">

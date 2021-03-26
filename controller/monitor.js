@@ -6,8 +6,12 @@ const axios = require('axios');
 import A from '../secrets/accounts';
 import C from './contract';
 import conf from '../config/config';
+import tokensDictionary from '../config/tokensDictionary.json';
 import common from './common';
 import accounts from '../secrets/accounts';
+
+const tokensArray = Object.values(tokensDictionary[conf.network]);
+const tokensAddressArray = Object.keys(tokensDictionary[conf.network]);
 
 class MonitorController {
 
@@ -50,20 +54,44 @@ class MonitorController {
                     address: account.adr, 
                     balance: Number(
                         C.web3.utils.fromWei(await C.web3.eth.getBalance(account.adr), "Ether")
-                    ).toFixed(5)
+                    ).toFixed(5),
+                    tokenBalances: await Promise.all(
+                        tokensArray.map(async token => ({
+                            token,
+                            balance: Number(
+                                C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                            ).toFixed(5)
+                        }))
+                    )
                 }))
             ),
             rollover: { 
                 address: accounts.rollover[0].adr, 
                 balance: Number(C.web3.utils.fromWei(
                     await C.web3.eth.getBalance(accounts.rollover[0].adr), "Ether")
-                ).toFixed(5)
+                ).toFixed(5),
+                tokenBalances: await Promise.all(
+                    tokensArray.map(async token => ({
+                        token,
+                        balance: Number(
+                            C.web3.utils.fromWei(await C.getWalletTokenBalance(accounts.rollover[0].adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                        ).toFixed(5)
+                    }))
+                )
             },
             arbitrage: { 
                 address: accounts.arbitrage[0].adr, 
                 balance: Number(
                     C.web3.utils.fromWei(await C.web3.eth.getBalance(accounts.arbitrage[0].adr), "Ether")
-                ).toFixed(5)
+                ).toFixed(5),
+                tokenBalances: await Promise.all(
+                    tokensArray.map(async token => ({
+                        token,
+                        balance: Number(
+                            C.web3.utils.fromWei(await C.getWalletTokenBalance(accounts.arbitrage[0].adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                        ).toFixed(5)
+                    }))
+                )
             }
         };
         if (typeof cb === "function") cb(resp);
