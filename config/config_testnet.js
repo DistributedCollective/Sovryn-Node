@@ -29,6 +29,7 @@ export default  {
     wRbtcWrapper: "0x55684391e3d0cf69f41c40ddf736bd1c6d3d538c", //execute swaps new (sending rbtc directly)
     thresholdArbitrage: 2, //in %
     amountArbitrage: 0.05, //in rbtc
+    enableDynamicArbitrageAmount: true,
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -492690059,
     healthMonitorPort: 3, //results in 3003
