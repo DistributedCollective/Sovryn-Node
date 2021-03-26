@@ -31,6 +31,13 @@
         <h2>Liquidation watcher</h2>
         <div id="openPos">Current open positions: <span id="openPosQueue">{{ ctrl.numberOpenPositions }}</span></div>
         <div id="openLiq">Waiting to get liquidated: <span id="openLiqQueue">{{ ctrl.numberLiquidationsInQueue }}</span></div>
+
+        <div ng-if="ctrl.arbitrageDeals.length > 0">
+          <h2>Arbitrage watcher</h2>
+          <div ng-repeat="deal in ctrl.arbitrageDeals">
+            <div>Carried out arbitrages: <span>Swap {{ ctrl.deal.from }} to {{ ctrl.deal.to }}</span></div>
+          </div>
+        </div>
       </div>
     </div>
 

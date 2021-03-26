@@ -14,8 +14,9 @@ import dbCtrl from './db';
 
 class MainController {
     constructor() {
-        this.positions={}
+        this.positions={};
         this.liquidations={};
+        this.arbitrageDeals=[];
     }
 
     async start(io) { 
@@ -26,8 +27,8 @@ class MainController {
         PosScanner.start(this.positions, this.liquidations);
         if(conf.enableLiquidator) Liquidator.start(this.liquidations);
         if(conf.enableRollover) Rollover.start(this.positions);
-        if(conf.enableArbitrage) Arbitrage.start();
-        Monitor.start(this.positions, this.liquidations, PosScanner);
+        if(conf.enableArbitrage) Arbitrage.start(this.arbitrageDeals);
+        Monitor.start(this.positions, this.liquidations, this.arbitrageDeals, PosScanner);
 
         io.on('connection', (socket) => {
             socket.on('getSignals', async (cb) => Monitor.getSignals(cb));

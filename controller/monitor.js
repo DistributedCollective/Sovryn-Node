@@ -11,9 +11,10 @@ import accounts from '../secrets/accounts';
 
 class MonitorController {
 
-    start(positions, liquidations, posScanner) {
+    start(positions, liquidations, arbitrageDeals, posScanner) {
         this.positions = positions;
         this.liquidations = liquidations;
+        this.arbitrageDeals = arbitrageDeals;
         this.posScanner = posScanner;
 
         if(conf.errorBotTelegram!="") {
@@ -37,7 +38,8 @@ class MonitorController {
             accountInfoRoll: await this.getAccountInfo(A.rollover),
             accountInfoArb: await this.getAccountInfo(A.arbitrage),
             positionInfo: await this.getOpenPositions(),
-            liqInfo: await this.getOpenLiquidations()
+            liqInfo: await this.getOpenLiquidations(),
+            arbitrageDeals: await this.getArbitrageDeals()
         }
         if (typeof cb === "function") cb(resp);
         else return resp;
@@ -167,6 +169,10 @@ class MonitorController {
     //todo: add from-to, to be called from client
     async getOpenLiquidationsDetails(cb) {
         if (typeof cb === "function") cb(this.liquidations);
+    }
+
+    async getArbitrageDeals(cb) {
+        if (typeof cb === "function") cb(this.arbitrageDeals);
     }
 }
 

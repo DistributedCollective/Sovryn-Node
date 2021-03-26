@@ -6,6 +6,7 @@ class AppCtrl {
         this.lastBlockExternalNode = 0;
         this.numberOpenPositions = 0;
         this.numberLiquidationsInQueue = 0;
+        this.arbitrageDeals = [];
 
         this.liquidationWallets = [];
         this.artbitrageWallet = {};
@@ -42,6 +43,7 @@ class AppCtrl {
 
             p.numberOpenPositions = res.positionInfo;
             p.numberLiquidationsInQueue = res.liqInfo;
+            p.arbitrageDeals = res.arbitrageDeals;
 
             p.$scope.$applyAsync();
         });
