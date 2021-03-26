@@ -60,7 +60,10 @@ class MonitorController {
                             token,
                             balance: Number(
                                 C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
-                            ).toFixed(5)
+                            ).toFixed(5),
+                            overThreshold: Number(
+                                C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                            ).toFixed(5) > conf.balanceThresholds[token]
                         }))
                     )
                 }))
@@ -75,7 +78,10 @@ class MonitorController {
                         token,
                         balance: Number(
                             C.web3.utils.fromWei(await C.getWalletTokenBalance(accounts.rollover[0].adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
-                        ).toFixed(5)
+                        ).toFixed(5),
+                        overThreshold: Number(
+                            C.web3.utils.fromWei(await C.getWalletTokenBalance(accounts.rollover[0].adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                        ).toFixed(5) > conf.balanceThresholds[token]
                     }))
                 )
             },
@@ -89,7 +95,10 @@ class MonitorController {
                         token,
                         balance: Number(
                             C.web3.utils.fromWei(await C.getWalletTokenBalance(accounts.arbitrage[0].adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
-                        ).toFixed(5)
+                        ).toFixed(5),
+                        overThreshold: Number(
+                            C.web3.utils.fromWei(await C.getWalletTokenBalance(accounts.arbitrage[0].adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                        ).toFixed(5) > conf.balanceThresholds[token]
                     }))
                 )
             }

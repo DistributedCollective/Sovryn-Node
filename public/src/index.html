@@ -42,7 +42,9 @@
           <div role="alert" id="accInfoL1">Balance of <span id="accBalanceL1">{{ wallet.address }}</span><br /><span id="balanceL1">{{ wallet.balance }}</span></div>
           <div ng-if="wallet.tokenBalances.length > 0">Tokens: 
             <div ng-repeat="balance in wallet.tokenBalances">
-              <span>{{ balance.token }}: {{ balance.balance }}</span>
+              <p ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+                {{ balance.token.toUpperCase() }}: {{ balance.balance }}
+              </p>
             </div>
           </div>
         </div>
@@ -51,7 +53,9 @@
         <div role="alert" id="accInfoR1">Balance of <span id="accBalanceR1">{{ ctrl.rolloverWallet.address }}</span><br /><span id="balanceR1">{{ ctrl.rolloverWallet.balance }}</span></div>
         <div ng-if="ctrl.rolloverWallet.tokenBalances.length > 0">Tokens: 
           <div ng-repeat="balance in ctrl.rolloverWallet.tokenBalances">
-            <span>{{ balance.token }}: {{ balance.balance }}</span>
+            <p ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+              {{ balance.token.toUpperCase() }}: {{ balance.balance }}
+            </p>
           </div>
         </div>
         <br />
@@ -59,7 +63,9 @@
         <div role="alert" id="accInfoAr1">Balance of <span id="accBalanceAr1">{{ ctrl.arbitrageWallet.address }}</span><br /><span id="balanceAr1">{{ ctrl.arbitrageWallet.balance }}</span></div>
         <div ng-if="ctrl.arbitrageWallet.tokenBalances.length > 0">Tokens: 
           <div ng-repeat="balance in ctrl.arbitrageWallet.tokenBalances">
-            <span>{{ balance.token }}: {{ balance.balance }}</span>
+            <p ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+              {{ balance.token.toUpperCase() }}: {{ balance.balance }}
+            </p>
           </div>
         </div>
       </div>
