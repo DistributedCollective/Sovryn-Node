@@ -50,9 +50,9 @@ class MonitorController {
     async getAddresses(cb) {
         console.log("get addresses")
         const resp = {
-            liquidator: await Promise.all(accounts.liquidator.map(async (account) => await this.getAccountInfoForFrontend(account))),
-            rollover: await this.getAccountInfoForFrontend(accounts.rollover[0]),
-            arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0])
+            liquidator: await Promise.all(accounts.liquidator.map(async (account) => await this.getAccountInfoForFrontend(account, "liquidator"))),
+            rollover: await this.getAccountInfoForFrontend(accounts.rollover[0], "rollover"),
+            arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0], "arbitrage")
         };
         if (typeof cb === "function") cb(resp);
         else return resp;
@@ -140,9 +140,10 @@ class MonitorController {
         return accBalances;
     }
 
-    async getAccountInfoForFrontend(account) {
+    async getAccountInfoForFrontend(account, type) {
         let accountWithInfo = { 
-            address: account.adr, 
+            address: account.adr,
+            type, 
             balance: Number(C.web3.utils.fromWei(
                 await C.web3.eth.getBalance(account.adr), "Ether")
             ).toFixed(5),

@@ -12,6 +12,8 @@ class AppCtrl {
         this.rolloverWallet = null;
         this.fastBtcWallet = null;
         this.ogWallet = null;
+        this.tokens = [];
+        this.accounts = []
         this.$scope = $scope;
 
         this.start();
@@ -56,6 +58,9 @@ class AppCtrl {
             p.liquidationWallets = res.liquidator;
             p.arbitrageWallet = res.arbitrage;
             p.rolloverWallet = res.rollover;
+            p.tokens = res.arbitrage.tokenBalances.map(balance => balance.token);
+            res.liquidator.push(res.arbitrage, res.rollover);
+            p.accounts = res.liquidator;
 
             p.$scope.$applyAsync();
         });

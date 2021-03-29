@@ -45,54 +45,24 @@
     <div class="row">
       <div class="col-6">
         <h2>Wallet info</h2>
-        <h4>Liquidation wallets</h4>
-        <table ng-repeat="wallet in ctrl.liquidationWallets">
+        <h4>Accounts</h4>
+        <table>
           <tr>
             <th>Account</th>
-            <td>{{ wallet.address }}</td>
+            <th>Account type</th>
+            <th>rBTC</th>
+            <th ng-repeat="token in ctrl.tokens">
+              {{ token.toUpperCase() }}
+            </th>
           </tr>
-          <tr>
-            <th>rBTC Balance</th>
-            <td>{{ wallet.balance }}</td>
-          </tr>
-          <tr ng-if="wallet.tokenBalances.length > 0" ng-repeat="balance in wallet.tokenBalances"
-            ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
-              <th>{{ balance.token.toUpperCase() }} Balance</th>
-              <td>{{ balance.balance }}</td>
-          </tr>
-        </table>
-        <br />
-        <h4>Rollover wallet</h4>
-        <table ng-if="ctrl.rolloverWallet">
-          <tr>
-            <th>Account</th>
-            <td>{{ ctrl.rolloverWallet.address }}</td>
-          </tr>
-          <tr>
-            <th>rBTC Balance</th>
-            <td>{{ ctrl.rolloverWallet.balance }}</td>
-          </tr>
-          <tr ng-if="ctrl.rolloverWallet.tokenBalances.length > 0" ng-repeat="balance in ctrl.rolloverWallet.tokenBalances"
-            ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
-              <th>{{ balance.token.toUpperCase() }} Balance</th>
-              <td>{{ balance.balance }}</td>
-          </tr>
-        </table>
-        <br />
-        <h4>Arbitrage wallet</h4>
-        <table ng-if="ctrl.arbitrageWallet">
-          <tr>
-            <th>Account</th>
-            <td>{{ ctrl.arbitrageWallet.address }}</td>
-          </tr>
-          <tr>
-            <th>rBTC Balance</th>
-            <td>{{ ctrl.arbitrageWallet.balance }}</td>
-          </tr>
-          <tr ng-if="ctrl.arbitrageWallet.tokenBalances.length > 0" ng-repeat="balance in ctrl.arbitrageWallet.tokenBalances"
-            ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
-              <th>{{ balance.token.toUpperCase() }} Balance</th>
-              <td>{{ balance.balance }}</td>
+          <tr ng-repeat="account in ctrl.accounts">
+            <td>{{ account.address }}</td>
+            <td>{{ account.type }}</td>
+            <td>{{ account.balance }}</td>
+            <td ng-if="account.tokenBalances.length > 0" ng-repeat="balance in account.tokenBalances"
+              ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+                {{ balance.balance }}
+            </td>
           </tr>
         </table>
       </div>
