@@ -67,34 +67,8 @@ class MonitorController {
             )).map(balance => {
                 balance.tokenBalances.forEach(tokenBalance =>  ({ ...tokenBalance, overThreshold: tokenBalance.balance > conf.balanceThresholds[tokenBalance.token] }))
             }),
-            rollover: { 
-                address: accounts.rollover[0].adr, 
-                balance: Number(C.web3.utils.fromWei(
-                    await C.web3.eth.getBalance(accounts.rollover[0].adr), "Ether")
-                ).toFixed(5),
-                tokenBalances: (await Promise.all(
-                    tokensArray.map(async token => ({
-                        token,
-                        balance: Number(
-                            C.web3.utils.fromWei(await C.getWalletTokenBalance(accounts.rollover[0].adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
-                        ).toFixed(5),
-                    }))
-                )).map(balance => ({ ...balance, overThreshold: balance.balance > conf.balanceThresholds[balance.token] }))
-            },
-            arbitrage: { 
-                address: accounts.arbitrage[0].adr, 
-                balance: Number(
-                    C.web3.utils.fromWei(await C.web3.eth.getBalance(accounts.arbitrage[0].adr), "Ether")
-                ).toFixed(5),
-                tokenBalances: (await Promise.all(
-                    tokensArray.map(async token => ({
-                        token,
-                        balance: Number(
-                            C.web3.utils.fromWei(await C.getWalletTokenBalance(accounts.arbitrage[0].adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
-                        ).toFixed(5),
-                    }))
-                )).map(balance => ({ ...balance, overThreshold: balance.balance > conf.balanceThresholds[balance.token] }))
-            }
+            rollover: await this.getAccountInfoForFrontend(accounts.rollover[0]),
+            arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0])
         };
         if (typeof cb === "function") cb(resp);
         else return resp;
@@ -180,6 +154,23 @@ class MonitorController {
             }
         }
         return accBalances;
+    }
+
+    async getAccountInfoForFrontend(account) {
+        return { 
+            address: account.adr, 
+            balance: Number(C.web3.utils.fromWei(
+                await C.web3.eth.getBalance(account.adr), "Ether")
+            ).toFixed(5),
+            tokenBalances: (await Promise.all(
+                tokensArray.map(async token => ({
+                    token,
+                    balance: Number(
+                        C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                    ).toFixed(5),
+                }))
+            )).map(balance => ({ ...balance, overThreshold: balance.balance > conf.balanceThresholds[balance.token] }))
+        }
     }
 
     getOpenPositions() {
