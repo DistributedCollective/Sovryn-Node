@@ -50,23 +50,7 @@ class MonitorController {
     async getAddresses(cb) {
         console.log("get addresses")
         const resp = {
-            liquidator: (await Promise.all(accounts.liquidator.map(async (account) => ({ 
-                    address: account.adr, 
-                    balance: Number(
-                        C.web3.utils.fromWei(await C.web3.eth.getBalance(account.adr), "Ether")
-                    ).toFixed(5),
-                    tokenBalances: await Promise.all(
-                        tokensArray.map(async token => ({
-                            token,
-                            balance: Number(
-                                C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
-                            ).toFixed(5),
-                        }))
-                    )
-                }))
-            )).map(balance => {
-                balance.tokenBalances.forEach(tokenBalance =>  ({ ...tokenBalance, overThreshold: tokenBalance.balance > conf.balanceThresholds[tokenBalance.token] }))
-            }),
+            liquidator: await Promise.all(accounts.liquidator.map(async (account) => await this.getAccountInfoForFrontend(account))),
             rollover: await this.getAccountInfoForFrontend(accounts.rollover[0]),
             arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0])
         };
@@ -157,20 +141,24 @@ class MonitorController {
     }
 
     async getAccountInfoForFrontend(account) {
-        return { 
+        let accountWithInfo = { 
             address: account.adr, 
             balance: Number(C.web3.utils.fromWei(
                 await C.web3.eth.getBalance(account.adr), "Ether")
             ).toFixed(5),
-            tokenBalances: (await Promise.all(
+            tokenBalances: await Promise.all(
                 tokensArray.map(async token => ({
                     token,
                     balance: Number(
                         C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
                     ).toFixed(5),
                 }))
-            )).map(balance => ({ ...balance, overThreshold: balance.balance > conf.balanceThresholds[balance.token] }))
+            )
         }
+        accountWithInfo.tokenBalances = accountWithInfo.tokenBalances.map(tokenBalance => ({
+            ...tokenBalance, overThreshold: tokenBalance.balance > conf.balanceThresholds[tokenBalance.token]
+        }))
+        return accountWithInfo;
     }
 
     getOpenPositions() {
