@@ -8,8 +8,8 @@ class AppCtrl {
         this.numberLiquidationsInQueue = 0;
 
         this.liquidationWallets = [];
-        this.artbitrageWallet = {};
-        this.rolloverWallet = {};
+        this.artbitrageWallet = null;
+        this.rolloverWallet = null;
         this.fastBtcWallet = null;
         this.ogWallet = null;
         this.$scope = $scope;
