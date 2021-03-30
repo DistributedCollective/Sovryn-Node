@@ -115,7 +115,7 @@ class Liquidator {
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.transactionHash);
-                await p.handleLiqSuccess(wallet, loanId, tx.transactionHash);
+                await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
                 p.addLiqLog(tx.transactionHash);
                 await p.swapBackAfterLiquidation(val, token);
             })
@@ -126,10 +126,10 @@ class Liquidator {
             });
     }
 
-    async handleLiqSuccess(wallet, loanId, txHash) {
+    async handleLiqSuccess(wallet, loanId, txHash, amount, token) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
-        const msg = conf.network + "net-liquidation of loan " + loanId + " successful. \n " + txHash;
+        const msg = `${conf.network} net-liquidation of loan ${loanId} of ${amount} ${tokensDictionary[conf.network][token].toUpperCase()} successful. \n ${txHash}`;
         await common.telegramBot.sendMessage(msg);
     }
 
