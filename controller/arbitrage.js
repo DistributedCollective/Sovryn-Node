@@ -34,8 +34,7 @@ class Arbitrage {
      * Token x if price(Amm) < price(PriceFeed), RBtc otherwise
      */
     async start() {
-        this.swap('0.001', 'rbtc', '0xcb46c0ddc60d18efeb0e586c17af6ea36452dae0', '0xc9307DAfE95199485885b3E45B88aa799cAcEbDa')
-        while (false) {
+        while (true) {
             console.log("started checking prices");
 
             let res, arb, profit;
@@ -213,7 +212,7 @@ class Arbitrage {
                     contract2.methods["convertByPath"](result, amount, minReturn)
                         .send({ from: beneficiary, gas: 2500000, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
-                            const msg = `Arbitrage tx successful: traded ${amount} ${tokensDictionary[conf.network][sourceToken].toUpperCase()} for ${tokensDictionary[conf.network][destToken].toUpperCase()}`;
+                            const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val, 'Ether')} ${tokensDictionary[conf.network][sourceToken].toUpperCase()} for ${tokensDictionary[conf.network][destToken].toUpperCase()}`;
                             console.log(msg);
                             await common.telegramBot.sendMessage(`${conf.network}-${msg}`)
                             return resolve(tx);
@@ -221,7 +220,7 @@ class Arbitrage {
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
-                            await common.telegramBot.sendMessage(err);
+                            await common.telegramBot.sendMessage(err.toString());
                             return resolve();
                         });
                 });
