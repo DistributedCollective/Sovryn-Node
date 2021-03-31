@@ -22,6 +22,14 @@ class AppCtrl {
         this.totalArbitrageProfit = 0;
         this.totalRolloverProfit = 0;
 
+        this.last24HLiquidations = 0;
+        this.last24HArbitrages = 0;
+        this.last24HRollovers = 0;
+
+        this.last24HLiquidatorProfit = 0;
+        this.last24HArbitrageProfit = 0;
+        this.last24HRolloverProfit = 0;
+
         this.$scope = $scope;
 
         this.start();
@@ -35,10 +43,12 @@ class AppCtrl {
         this.getSignals();
         this.getAddresses();
         this.getTotals(); // fire only once
+        this.getLast24HTotals();
 
         setInterval(() => {
             this.getSignals();
             this.getAddresses();
+            this.getLast24HTotals();
         }, 15000);
     }
 
@@ -77,7 +87,7 @@ class AppCtrl {
         let p=this;
 
         socket.emit("getTotals", (res) => {
-            console.log("get totals for liquidations, arbitrages and rollovers:", res);
+            console.log("response totals for liquidations, arbitrages and rollovers:", res);
 
             p.totalLiquidations = res.totalLiquidations;
             p.totalArbitrages = res.totalArbitrages;
@@ -86,6 +96,24 @@ class AppCtrl {
             p.totalLiquidatorProfit = res.totalLiquidatorProfit;
             p.totalArbitrageProfit = res.totalArbitrageProfit;
             p.totalRolloverProfit = res.totalRolloverProfit;
+
+            p.$scope.$applyAsync();
+        })
+    }
+
+    getLast24HTotals() {
+        let p=this;
+
+        socket.emit("getLast24HTotals", (res) => {
+            console.log("response last 24h totals for liquidations, arbitrages and rollovers:", res);
+
+            p.last24HLiquidations = res.totalLiquidations;
+            p.last24HArbitrages = res.totalArbitrages;
+            p.last24HRollovers = res.totalRollovers;
+
+            p.last24HLiquidatorProfit = res.totalLiquidatorProfit;
+            p.last24HArbitrageProfit = res.totalArbitrageProfit;
+            p.last24HRolloverProfit = res.totalRolloverProfit;
 
             p.$scope.$applyAsync();
         })

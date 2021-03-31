@@ -85,7 +85,7 @@ class DbCtrl {
         }
     }
 
-    async getTotals(repo) {
+    async getTotals(repo, last24H) {
         try {
             let table;
             let profit = 0;
@@ -95,7 +95,10 @@ class DbCtrl {
                 case 'rollover': table = this.rollRepo; break;
                 default: console.log("Not a known table. Returning liquidations table as default"); table = this.liqRepo;
             }
-            const allRows = await table.all(`SELECT * FROM ${repo}`, (err, rows) => { return rows });
+            const sqlQuery = last24H ? // select either all actions or only the last 24h ones
+                `SELECT * FROM ${repo} WHERE dateAdded BETWEEN TIME(TIME(), '-24 hours') AND TIME()` :
+                `SELECT * FROM ${repo}`;
+            const allRows = await table.all(sqlQuery, (err, rows) => { return rows });
             allRows.forEach((row) => {
                 profit = profit + Number(row.profit);
                 return row;

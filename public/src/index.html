@@ -117,8 +117,8 @@
             <td>Liquidator</td>
             <td>Total liquidations: <span>{{ ctrl.totalLiquidations }}</span></td>
             <td>{{ ctrl.totalLiquidatorProfit }}</td>
-            <td></td>
-            <td></td>
+            <td>{{ ctrl.last24HLiquidations }}</td>
+            <td>{{ ctrl.last24HLiquidatorProfit }}</td>
             <td>
               <div>Current open positions: <span>{{ ctrl.numberOpenPositions }}</span></div>
               <div>Waiting to get liquidated: <span>{{ ctrl.numberLiquidationsInQueue }}</span></div>
@@ -128,18 +128,18 @@
             <td>Arbitrage</td>
             <td>Total arbitrages: <span>{{ ctrl.totalArbitrages }}</span></td>
             <td>{{ ctrl.totalArbitrageProfit }}</td>
-            <td></td>
-            <td></td>
+            <td>{{ ctrl.last24HArbitrages }}</td>
+            <td>{{ ctrl.last24HArbitrageProfit }}</td>
             <td ng-if="ctrl.arbitrageDeals.length > 0" ng-repeat="deal in ctrl.arbitrageDeals">
-              <div>Carried out arbitrages: <span>Swap {{ ctrl.deal.from }} to {{ ctrl.deal.to }}</span></div>
+              <span>Swap {{ ctrl.deal.from }} to {{ ctrl.deal.to }}</span>
             </td>
           </tr>
           <tr>
             <td>Rollover</td>
             <td>Total rollovers: <span>{{ ctrl.totalRollovers }}</span></td>
             <td>{{ ctrl.totalRolloverProfit }}</td>
-            <td></td>
-            <td></td>
+            <td>{{ ctrl.last24HRollovers }}</td>
+            <td>{{ ctrl.last24HRolloverProfit }}</td>
             <td></td>
           </tr>
         </table>
