@@ -96,7 +96,7 @@ class DbCtrl {
                 default: console.log("Not a known table. Returning liquidations table as default"); table = this.liqRepo;
             }
             const sqlQuery = last24H ? // select either all actions or only the last 24h ones
-                `SELECT * FROM ${repo} WHERE dateAdded BETWEEN TIME(TIME(), '-24 hours') AND TIME()` :
+                `SELECT * FROM ${repo} WHERE dateAdded > DATETIME('now', '-24 hour')` :
                 `SELECT * FROM ${repo}`;
             const allRows = await table.all(sqlQuery, (err, rows) => { return rows });
             allRows.forEach((row) => {
