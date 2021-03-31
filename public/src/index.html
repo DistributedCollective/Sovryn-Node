@@ -10,6 +10,14 @@
   <title>Sovryn node</title>
 </head>
 
+<style type="text/css" media="screen">
+  td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+</style>
+
 <body ng-controller="appCtrl as ctrl">
   <div class="container">
     <h1>Sovryn Node</h1>
@@ -45,15 +53,55 @@
       <div class="col-6">
         <h2>Wallet info</h2>
         <h4>Liquidation wallets</h4>
-        <div ng-repeat="wallet in ctrl.liquidationWallets">
-          <div role="alert" id="accInfoL1">Balance of <span id="accBalanceL1">{{ wallet.address }}</span><br /><span id="balanceL1">{{ wallet.balance }}</span></div>
-        </div>
+        <table ng-repeat="wallet in ctrl.liquidationWallets">
+          <tr>
+            <th>Account</th>
+            <td>{{ wallet.address }}</td>
+          </tr>
+          <tr>
+            <th>rBTC Balance</th>
+            <td>{{ wallet.balance }}</td>
+          </tr>
+          <tr ng-if="wallet.tokenBalances.length > 0" ng-repeat="balance in wallet.tokenBalances"
+            ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+              <th>{{ balance.token.toUpperCase() }} Balance</th>
+              <td>{{ balance.balance }}</td>
+          </tr>
+        </table>
         <br />
         <h4>Rollover wallet</h4>
-        <div role="alert" id="accInfoR1">Balance of <span id="accBalanceR1">{{ ctrl.rolloverWallet.address }}</span><br /><span id="balanceR1">{{ ctrl.rolloverWallet.balance }}</span></div>
+        <table ng-if="ctrl.rolloverWallet">
+          <tr>
+            <th>Account</th>
+            <td>{{ ctrl.rolloverWallet.address }}</td>
+          </tr>
+          <tr>
+            <th>rBTC Balance</th>
+            <td>{{ ctrl.rolloverWallet.balance }}</td>
+          </tr>
+          <tr ng-if="ctrl.rolloverWallet.tokenBalances.length > 0" ng-repeat="balance in ctrl.rolloverWallet.tokenBalances"
+            ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+              <th>{{ balance.token.toUpperCase() }} Balance</th>
+              <td>{{ balance.balance }}</td>
+          </tr>
+        </table>
         <br />
         <h4>Arbitrage wallet</h4>
-        <div role="alert" id="accInfoAr1">Balance of <span id="accBalanceAr1">{{ ctrl.arbitrageWallet.address }}</span><br /><span id="balanceAr1">{{ ctrl.arbitrageWallet.balance }}</span></div>
+        <table ng-if="ctrl.arbitrageWallet">
+          <tr>
+            <th>Account</th>
+            <td>{{ ctrl.arbitrageWallet.address }}</td>
+          </tr>
+          <tr>
+            <th>rBTC Balance</th>
+            <td>{{ ctrl.arbitrageWallet.balance }}</td>
+          </tr>
+          <tr ng-if="ctrl.arbitrageWallet.tokenBalances.length > 0" ng-repeat="balance in ctrl.arbitrageWallet.tokenBalances"
+            ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+              <th>{{ balance.token.toUpperCase() }} Balance</th>
+              <td>{{ balance.balance }}</td>
+          </tr>
+        </table>
       </div>
 
       <div ng-if="ctrl.fastBtcWallet || ctrl.ogWallet" class="col-6">
