@@ -63,10 +63,16 @@ class MonitorController {
 
     async getTotals(cb) {
         console.log("get totals")
+        const liquidator = await dbCtrl.getTotals('liquidator');
+        const arbitrage = await dbCtrl.getTotals('arbitrage');
+        const rollover = await dbCtrl.getTotals('rollover');
         const resp = {
-            totalLiquidations: await dbCtrl.getTotals('liquidator'),
-            totalArbitrages: await dbCtrl.getTotals('arbitrage'),
-            totalRollovers: await dbCtrl.getTotals('rollover')
+            totalLiquidations: liquidator.totalActionsNumber,
+            totalArbitrages: arbitrage.totalActionsNumber,
+            totalRollovers: rollover.totalActionsNumber,
+            totalLiquidatorProfit: liquidator.profit,
+            totalArbitrageProfit: arbitrage.profit,
+            totalRolloverProfit: rollover.profit
         }
         if (typeof cb === "function") cb(resp);
         else return resp;

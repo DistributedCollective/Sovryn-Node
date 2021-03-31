@@ -103,6 +103,7 @@
     <div class="row">
       <div class="col-12">
         <br />
+        <br />
         <table>
           <tr>
             <th>Node type</th>
@@ -115,7 +116,7 @@
           <tr>
             <td>Liquidator</td>
             <td>Total liquidations: <span>{{ ctrl.totalLiquidations }}</span></td>
-            <td></td>
+            <td>{{ ctrl.totalLiquidatorProfit }}</td>
             <td></td>
             <td></td>
             <td>
@@ -126,7 +127,7 @@
           <tr>
             <td>Arbitrage</td>
             <td>Total arbitrages: <span>{{ ctrl.totalArbitrages }}</span></td>
-            <td></td>
+            <td>{{ ctrl.totalArbitrageProfit }}</td>
             <td></td>
             <td></td>
             <td ng-if="ctrl.arbitrageDeals.length > 0" ng-repeat="deal in ctrl.arbitrageDeals">
@@ -136,7 +137,7 @@
           <tr>
             <td>Rollover</td>
             <td>Total rollovers: <span>{{ ctrl.totalRollovers }}</span></td>
-            <td></td>
+            <td>{{ ctrl.totalRolloverProfit }}</td>
             <td></td>
             <td></td>
             <td></td>

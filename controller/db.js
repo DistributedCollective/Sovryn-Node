@@ -61,18 +61,6 @@ class DbCtrl {
         }
     }
 
-    async addRollover({loanId, txHash, adr}) {
-        try {
-            return await this.rollRepo.insert({
-                loanId,
-                txHash,
-                rolloverAdr: adr
-            });
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
     async addArbitrage({adr, tokenFrom, tokenTo, amountFrom, amountTo, profit, trade, txHash}) {
         try {
             return await this.arbRepo.insert({
@@ -85,21 +73,34 @@ class DbCtrl {
         }
     }
 
+    async addRollover({loanId, txHash, adr}) {
+        try {
+            return await this.rollRepo.insert({
+                loanId,
+                txHash,
+                rolloverAdr: adr
+            });
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
     async getTotals(repo) {
         try {
             let table;
+            let profit = 0;
             switch(repo) {
                 case 'liquidator': table = this.liqRepo; break;
                 case 'arbitrage': table = this.arbRepo; break;
                 case 'rollover': table = this.rollRepo; break;
                 default: console.log("Not a known table. Returning liquidations table as default"); table = this.liqRepo;
             }
-            const allActions = await table.all(`SELECT * FROM ${repo}`, (err, rows) => {
-                rows.forEach((row) => {
-                    return row
-                })
-            });
-            return allActions.length;
+            const allRows = await table.all(`SELECT * FROM ${repo}`, (err, rows) => { return rows });
+            allRows.forEach((row) => {
+                profit = profit + Number(row.profit);
+                return row;
+            })
+            return { totalActionsNumber: allRows.length, profit };
         } catch (e) {
             console.log(e);
         }

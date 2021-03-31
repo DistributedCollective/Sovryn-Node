@@ -18,6 +18,10 @@ class AppCtrl {
         this.totalArbitrages = 0;
         this.totalRollovers = 0;
 
+        this.totalLiquidatorProfit =0;
+        this.totalArbitrageProfit = 0;
+        this.totalRolloverProfit = 0;
+
         this.$scope = $scope;
 
         this.start();
@@ -78,6 +82,10 @@ class AppCtrl {
             p.totalLiquidations = res.totalLiquidations;
             p.totalArbitrages = res.totalArbitrages;
             p.totalRollovers = res.totalRollovers;
+
+            p.totalLiquidatorProfit = res.totalLiquidatorProfit;
+            p.totalArbitrageProfit = res.totalArbitrageProfit;
+            p.totalRolloverProfit = res.totalRolloverProfit;
 
             p.$scope.$applyAsync();
         })
