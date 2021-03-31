@@ -130,8 +130,10 @@
             <td>{{ ctrl.totalArbitrageProfit }}</td>
             <td>{{ ctrl.last24HArbitrages }}</td>
             <td>{{ ctrl.last24HArbitrageProfit }}</td>
-            <td ng-if="ctrl.arbitrageDeals.length > 0" ng-repeat="deal in ctrl.arbitrageDeals">
-              <span>Swap {{ ctrl.deal.from }} to {{ ctrl.deal.to }}</span>
+            <td>
+              <div ng-if="ctrl.arbitrageDeals.length > 0" ng-repeat="deal in ctrl.arbitrageDeals">
+                <span>Swap {{ ctrl.deal.from }} to {{ ctrl.deal.to }}</span>
+              </div>
             </td>
           </tr>
           <tr>
