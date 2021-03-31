@@ -13,6 +13,11 @@ class AppCtrl {
         this.rolloverWallet = null;
         this.fastBtcWallet = null;
         this.ogWallet = null;
+
+        this.totalLiquidations = 0;
+        this.totalArbitrages = 0;
+        this.totalRollovers = 0;
+
         this.$scope = $scope;
 
         this.start();
@@ -25,6 +30,7 @@ class AppCtrl {
     start() {
         this.getSignals();
         this.getAddresses();
+        this.getTotals(); // fire only once
 
         setInterval(() => {
             this.getSignals();
@@ -61,6 +67,20 @@ class AppCtrl {
 
             p.$scope.$applyAsync();
         });
+    }
+
+    getTotals() {
+        let p=this;
+
+        socket.emit("getTotals", (res) => {
+            console.log("get totals for liquidations, arbitrages and rollovers:", res);
+
+            p.totalLiquidations = res.totalLiquidations;
+            p.totalArbitrages = res.totalArbitrages;
+            p.totalRollovers = res.totalRollovers;
+
+            p.$scope.$applyAsync();
+        })
     }
 }
 

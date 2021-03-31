@@ -33,6 +33,7 @@ class MainController {
         io.on('connection', (socket) => {
             socket.on('getSignals', async (cb) => Monitor.getSignals(cb));
             socket.on('getAddresses', async (cb) => Monitor.getAddresses(cb));
+            socket.on('getTotals', async (cb) => Monitor.getTotals(cb));
             socket.on('getOpenPositionsDetails', async (cb) => Monitor.getOpenPositionsDetails(cb));
             socket.on('getOpenLiquidationsDetails', async (cb) => Monitor.getOpenLiquidationsDetails(cb));
         });

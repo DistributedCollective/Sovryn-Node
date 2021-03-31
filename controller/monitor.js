@@ -8,6 +8,7 @@ import C from './contract';
 import conf from '../config/config';
 import tokensDictionary from '../config/tokensDictionary.json';
 import common from './common';
+import dbCtrl from './db';
 import accounts from '../secrets/accounts';
 
 const tokensArray = Object.values(tokensDictionary[conf.network]);
@@ -56,6 +57,17 @@ class MonitorController {
             rollover: await this.getAccountInfoForFrontend(accounts.rollover[0]),
             arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0])
         };
+        if (typeof cb === "function") cb(resp);
+        else return resp;
+    }
+
+    async getTotals(cb) {
+        console.log("get totals")
+        const resp = {
+            totalLiquidations: await dbCtrl.getTotals('liquidator'),
+            totalArbitrages: await dbCtrl.getTotals('arbitrage'),
+            totalRollovers: await dbCtrl.getTotals('rollover')
+        }
         if (typeof cb === "function") cb(resp);
         else return resp;
     }
