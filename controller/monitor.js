@@ -70,9 +70,9 @@ class MonitorController {
             totalLiquidations: liquidator.totalActionsNumber,
             totalArbitrages: arbitrage.totalActionsNumber,
             totalRollovers: rollover.totalActionsNumber,
-            totalLiquidatorProfit: liquidator.profit,
-            totalArbitrageProfit: arbitrage.profit,
-            totalRolloverProfit: rollover.profit
+            totalLiquidatorProfit: Number(liquidator.profit).toFixed(6),
+            totalArbitrageProfit: Number(arbitrage.profit).toFixed(6),
+            totalRolloverProfit: Number(rollover.profit).toFixed(6)
         }
         if (typeof cb === "function") cb(resp);
         else return resp;
