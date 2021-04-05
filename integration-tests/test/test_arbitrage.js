@@ -32,6 +32,7 @@ const ChainlinkPriceOracle = artifacts.require("TestChainlinkPriceOracle");
 const Whitelist = artifacts.require("Whitelist");
 
 const WRBTC = artifacts.require("WRBTC");
+const RBTCWrapperProxy = artifacts.require("RBTCWrapperProxy");
 
 const C = require('../../controller/contract').default;
 
@@ -84,7 +85,7 @@ describe("Arbitrage controller", () => {
     let docToken;
     let bproToken;
     let usdtToken;
-    let wrbtcWrapper;  // TODO
+    let rbtcWrapperProxy;
     let upgrader;
     let chainlinkPriceOracleA;
     let chainlinkPriceOracleB;
@@ -141,6 +142,8 @@ describe("Arbitrage controller", () => {
 
         await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY, converterRegistry.address);
         await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY_DATA, converterRegistryData.address);
+
+        rbtcWrapperProxy = await RBTCWrapperProxy.new(wrbtcToken.address, sovrynSwapNetwork.address);
 
         const converter = await newConverter(wrbtcToken, usdtToken);
         await converterRegistry.addConverter(converter.address);
