@@ -11,7 +11,7 @@
   "scripts": {
     "build": "truffle compile",
     "xtest": "truffle test",
-    "test": "hardhat test",
+    "test": "node -r esm node_modules/.bin/hardhat test",
     "publish": "echo no && false"
   },
   "devDependencies": {
