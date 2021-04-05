@@ -41,7 +41,7 @@ describe("Arbitrage controller", () => {
         const anchor = await PoolTokensContainer.new(
             "Pool",
             "POOL",
-            2  // really 2? should it not be 18?
+            18  // decimals. this was 2 in the original tests, but should probably be 18.
         );
         const reserveAddresses = [reserveToken1.address, reserveToken2.address];
         const reserveWeights = [500000, 500000];
@@ -59,7 +59,7 @@ describe("Arbitrage controller", () => {
             await anchor.transferOwnership(converter.address);
             await converter.acceptAnchorOwnership();
 
-            await converter.activate(reserveToken1.address, chainlinkPriceOracleA.address, chainlinkPriceOracleB.address);
+            await converter.activate(reserveToken1.address, chainlinkPriceOraclePrimary.address, chainlinkPriceOracleSecondary.address);
         }
 
         return converter;
@@ -87,8 +87,8 @@ describe("Arbitrage controller", () => {
     let usdtToken;
     let rbtcWrapperProxy;
     let upgrader;
-    let chainlinkPriceOracleA;
-    let chainlinkPriceOracleB;
+    let chainlinkPriceOraclePrimary;
+    let chainlinkPriceOracleSecondary;
 
     before(async () => {
         accounts = await web3.eth.getAccounts();
@@ -118,11 +118,11 @@ describe("Arbitrage controller", () => {
         const oracleWhitelist = await Whitelist.new();
         await contractRegistry.registerAddress(registry.CHAINLINK_ORACLE_WHITELIST, oracleWhitelist.address);
 
-        chainlinkPriceOracleA = await createChainlinkOracle(10000);
-        chainlinkPriceOracleB = await createChainlinkOracle(20000);
+        chainlinkPriceOraclePrimary = await createChainlinkOracle(10000);
+        chainlinkPriceOracleSecondary = await createChainlinkOracle(20000);
 
-        await oracleWhitelist.addAddress(chainlinkPriceOracleA.address);
-        await oracleWhitelist.addAddress(chainlinkPriceOracleB.address);
+        await oracleWhitelist.addAddress(chainlinkPriceOraclePrimary.address);
+        await oracleWhitelist.addAddress(chainlinkPriceOracleSecondary.address);
 
         // this part cannot be moved to before
         sovrynSwapNetwork = await SovrynSwapNetwork.new(contractRegistry.address);
@@ -131,22 +131,23 @@ describe("Arbitrage controller", () => {
         upgrader = await ConverterUpgrader.new(contractRegistry.address, ZERO_ADDRESS);
         await contractRegistry.registerAddress(registry.CONVERTER_UPGRADER, upgrader.address);
 
-        docToken = await ERC20Token.new("Dollar on Chain", "DOC", 18, 1000000000);
-        usdtToken = await ERC20Token.new("USDT", "USDT", 18, 1000000000);
-        bproToken = await ERC20Token.new("BPro", "BPRO", 18, 1000000000);
-        wrbtcToken = await WRBTC.new();
-        await wrbtcToken.deposit({ value: 1000000 });
-
         const converterRegistry = await ConverterRegistry.new(contractRegistry.address);
         const converterRegistryData = await ConverterRegistryData.new(contractRegistry.address);
 
         await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY, converterRegistry.address);
         await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY_DATA, converterRegistryData.address);
 
+        docToken = await ERC20Token.new("Dollar on Chain", "DOC", 18, 1000000000);
+        usdtToken = await ERC20Token.new("rUSDT", "rUSDT", 18, 1000000000);
+        bproToken = await ERC20Token.new("BitPRO", "BITP", 18, 1000000000);
+        wrbtcToken = await WRBTC.new();
+        await wrbtcToken.deposit({ value: 1000000 });
+
         rbtcWrapperProxy = await RBTCWrapperProxy.new(wrbtcToken.address, sovrynSwapNetwork.address);
 
         const converter = await newConverter(wrbtcToken, usdtToken);
         await converterRegistry.addConverter(converter.address);
+        // TODO: should we rather deploy like this:
         //await converterRegistry.newConverter(
         //    2,
         //    "test",
@@ -158,7 +159,31 @@ describe("Arbitrage controller", () => {
         //);
 
         // We need to modify conf, since everything depends on it
+        // Maybe we should modify the archtitecture so that this would not be necessary
         conf.swapsImpl = sovrynSwapNetwork.address.toLowerCase();
+        conf.docToken = docToken.address.toLowerCase();
+        conf.USDTToken = usdtToken.address.toLowerCase();
+        conf.BProToken = bproToken.address.toLowerCase();
+        conf.testTokenRBTC = wrbtcToken.address.toLowerCase();
+        conf.wRbtcWrapper = rbtcWrapperProxy.address.toLowerCase();
+        //conf.priceFeed  // TODO: handle this. contract is PriceFeeds, initialize with wbtc and DoC
+        //conf.sovrynProtocolAdr  // TODO: handle this, if needed. contract is sovrynProtocol (Protocol.sol)
+
+        // THESE are not yet handled
+        conf.loanTokenSUSD = ZERO_ADDRESS;
+        conf.loanTokenUSDT = ZERO_ADDRESS;
+        conf.loanTokenBPRO = ZERO_ADDRESS;
+        conf.loanTokenRBTC = ZERO_ADDRESS;
+
+        // Set these just to be safe
+        conf.nodeProvider = 'http://example.invalid';
+        conf.publicNodeProvider = 'http://example.invalid';
+        conf.errorBotTelegram = undefined;
+
+        // Use a different DB too
+        conf.db = 'sovryn_node_integration_tests.db';
+
+        // We also need to re-init contracts, since it stores stuff in constructor
         C.init(web3);
     });
 
