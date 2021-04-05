@@ -1,0 +1,3 @@
+[submodule "integration-tests/oracle-based-amm"]
+	path = integration-tests/oracle-based-amm
+	url = https://github.com/DistributedCollective/oracle-based-amm.git
