@@ -1,6 +1,8 @@
 import conf from '../../config/config';
 conf.nodeProvider = 'http://example.invalid';
 conf.publicNodeProvider = 'http://example.invalid';
+conf.errorBotTelegram = undefined;
+conf.db = 'sovryn_node_integration_tests.db';
 
 const { expect } = require("chai");
 const { constants, time } = require("@openzeppelin/test-helpers");
@@ -32,7 +34,7 @@ const Whitelist = artifacts.require("Whitelist");
 const C = require('../../controller/contract').default;
 
 describe("Arbitrage controller", () => {
-    const initConverter = async (reserveToken1, reserveToken2, activate = true, maxConversionFee = 0) => {
+    const newConverter = async (reserveToken1, reserveToken2, activate = true, maxConversionFee = 0) => {
         const anchor = await PoolTokensContainer.new(
             "Pool",
             "POOL",
@@ -137,7 +139,7 @@ describe("Arbitrage controller", () => {
         await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY, converterRegistry.address);
         await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY_DATA, converterRegistryData.address);
 
-        const converter = await initConverter(wrbtcToken, usdtToken);
+        const converter = await newConverter(wrbtcToken, usdtToken);
         await converterRegistry.addConverter(converter.address);
         //await converterRegistry.newConverter(
         //    2,
