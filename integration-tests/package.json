@@ -1,5 +1,6 @@
 {
   "name": "sovryn-node-integration-tests",
+  "private": true,
   "version": "0.0.1",
   "description": "The solidity version of the Bancor smart contracts is composed of many different components that work together to create the Bancor Network deployment.",
   "author": "Rainer Koirikivi",
@@ -9,10 +10,13 @@
   },
   "scripts": {
     "build": "truffle compile",
-    "test": "truffle test",
+    "xtest": "truffle test",
+    "test": "hardhat test",
     "publish": "echo no && false"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-truffle5": "^2.0.0",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/test-helpers": "^0.5.6",
     "@truffle/contract": "^4.2.14",
     "bignumber.js": "^9.0.0",
@@ -31,7 +35,8 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "ganache-core": "^2.13.2",
+    "hardhat": "^2.1.2",
     "truffle": "5.1.36",
-    "web3": "1.2.11"
+    "web3": "^1.2.11"
   }
 }
