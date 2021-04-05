@@ -5,7 +5,7 @@ conf.publicNodeProvider = 'http://example.invalid';
 const { expect } = require("chai");
 const { constants, time } = require("@openzeppelin/test-helpers");
 
-const { ETH_RESERVE_ADDRESS, registry } = require("../oracle-based-amm/solidity/test/helpers/Constants");
+const { registry } = require("../oracle-based-amm/solidity/test/helpers/Constants");
 
 const { latest } = time;
 const { ZERO_ADDRESS } = constants;
@@ -14,21 +14,17 @@ const SovrynSwapNetwork = artifacts.require("SovrynSwapNetwork");
 const SovrynSwapFormula = artifacts.require("SovrynSwapFormula");
 const ContractRegistry = artifacts.require("ContractRegistry");
 const ERC20Token = artifacts.require("ERC20Token");
-const TestNonStandardToken = artifacts.require("TestNonStandardToken");
 const ConverterFactory = artifacts.require("ConverterFactory");
 const ConverterUpgrader = artifacts.require("ConverterUpgrader");
 const ConverterRegistry = artifacts.require("ConverterRegistry");
 const ConverterRegistryData = artifacts.require("ConverterRegistryData");
 
-const LiquidTokenConverter = artifacts.require("LiquidTokenConverter");
-const LiquidityPoolV1Converter = artifacts.require("LiquidityPoolV1Converter");
 const LiquidityPoolV2Converter = artifacts.require("LiquidityPoolV2Converter");
 const LiquidTokenConverterFactory = artifacts.require("LiquidTokenConverterFactory");
 const LiquidityPoolV1ConverterFactory = artifacts.require("LiquidityPoolV1ConverterFactory");
 const LiquidityPoolV2ConverterFactory = artifacts.require("LiquidityPoolV2ConverterFactory");
 const LiquidityPoolV2ConverterAnchorFactory = artifacts.require("LiquidityPoolV2ConverterAnchorFactory");
 const LiquidityPoolV2ConverterCustomFactory = artifacts.require("LiquidityPoolV2ConverterCustomFactory");
-const SmartToken = artifacts.require("SmartToken");
 const PoolTokensContainer = artifacts.require("PoolTokensContainer");
 const ChainlinkPriceOracle = artifacts.require("TestChainlinkPriceOracle");
 const Whitelist = artifacts.require("Whitelist");
@@ -36,107 +32,32 @@ const Whitelist = artifacts.require("Whitelist");
 const C = require('../../controller/contract').default;
 
 describe("Arbitrage controller", () => {
-    const createConverter = async (type, anchorAddress, registryAddress = contractRegistry.address, maxConversionFee = 0) => {
-        switch (type) {
-            case 0:
-                return LiquidTokenConverter.new(anchorAddress, registryAddress, maxConversionFee);
-            case 1:
-                return LiquidityPoolV1Converter.new(anchorAddress, registryAddress, maxConversionFee);
-            case 2:
-                return LiquidityPoolV2Converter.new(anchorAddress, registryAddress, maxConversionFee);
-        }
-    };
+    const initConverter = async (reserveToken1, reserveToken2, activate = true, maxConversionFee = 0) => {
+        const anchor = await PoolTokensContainer.new(
+            "Pool",
+            "POOL",
+            2  // really 2? should it not be 18?
+        );
+        const reserveAddresses = [reserveToken1.address, reserveToken2.address];
+        const reserveWeights = [500000, 500000];
 
-    const getConverterReserveAddresses = (type, isETHReserve) => {
-        switch (type) {
-            case 0:
-                return [getReserve1Address(isETHReserve)];
-            case 1:
-                return [getReserve1Address(isETHReserve), reserveToken2.address];
-            case 2:
-                return [getReserve1Address(isETHReserve), reserveToken2.address];
-        }
-
-        return "Unknown";
-    };
-
-    const getConverterReserveWeights = (type) => {
-        switch (type) {
-            case 0:
-                return [250000];
-            case 1:
-                return [250000, 150000];
-            case 2:
-                return [500000, 500000];
-        }
-
-        return "Unknown";
-    };
-
-    const initConverter = async (type, activate, isETHReserve, maxConversionFee = 0) => {
-        await createAnchor(type);
-        const reserveAddresses = getConverterReserveAddresses(type, isETHReserve);
-        const reserveWeights = getConverterReserveWeights(type);
-
-        const converter = await createConverter(type, anchorAddress, contractRegistry.address, maxConversionFee);
+        const converter = await LiquidityPoolV2Converter.new(anchor.address, contractRegistry.address, maxConversionFee);
 
         for (let i = 0; i < reserveAddresses.length; i++) {
             await converter.addReserve(reserveAddresses[i], reserveWeights[i]);
         }
 
-        switch (type) {
-            case 0:
-                await anchor.issue(owner, 20000);
-                break;
-
-            case 1:
-                await reserveToken2.transfer(converter.address, 8000);
-                await anchor.issue(owner, 20000);
-                break;
-
-            case 2:
-                await reserveToken2.transfer(converter.address, 8000);
-                break;
-        }
-
-        if (isETHReserve) {
-            await converter.send(5000);
-        } else {
-            await reserveToken.transfer(converter.address, 5000);
-        }
+        await reserveToken1.transfer(converter.address, 5000);
+        await reserveToken2.transfer(converter.address, 8000);
 
         if (activate) {
             await anchor.transferOwnership(converter.address);
             await converter.acceptAnchorOwnership();
 
-            if (type === 2) {
-                await converter.activate(getReserve1Address(isETHReserve), chainlinkPriceOracleA.address, chainlinkPriceOracleB.address);
-            }
+            await converter.activate(reserveToken1.address, chainlinkPriceOracleA.address, chainlinkPriceOracleB.address);
         }
 
         return converter;
-    };
-
-    const createAnchor = async (type) => {
-        switch (type) {
-            case 0:
-                anchor = await SmartToken.new("Token1", "TKN1", 2);
-                break;
-
-            case 1:
-                anchor = await SmartToken.new("Pool1", "POOL1", 2);
-                break;
-
-            case 2:
-                anchor = await PoolTokensContainer.new("Pool", "POOL", 2);
-                break;
-        }
-
-        anchorAddress = anchor.address;
-    };
-
-    const getReserve1Address = (isETH) => {
-        return isETH ? ETH_RESERVE_ADDRESS : reserveToken.address;
     };
 
     const createChainlinkOracle = async (answer) => {
@@ -148,19 +69,21 @@ describe("Arbitrage controller", () => {
     };
 
     let accounts;
-    let sovrynSwapNetwork;
-    let factory;
-    let anchor;
-    let anchorAddress;
-    let contractRegistry;
-    let reserveToken;
-    let reserveToken2;
-    let upgrader;
-    let chainlinkPriceOracleA;
-    let chainlinkPriceOracleB;
     let owner;
     let nonOwner;
     let receiver;
+
+    let sovrynSwapNetwork;
+    let factory;
+    let contractRegistry;
+    let wrbtcToken;
+    let docToken;
+    let bproToken;
+    let usdtToken;
+    let wrbtcWrapper;  // TODO
+    let upgrader;
+    let chainlinkPriceOracleA;
+    let chainlinkPriceOracleB;
 
     before(async () => {
         accounts = await web3.eth.getAccounts();
@@ -203,8 +126,10 @@ describe("Arbitrage controller", () => {
         upgrader = await ConverterUpgrader.new(contractRegistry.address, ZERO_ADDRESS);
         await contractRegistry.registerAddress(registry.CONVERTER_UPGRADER, upgrader.address);
 
-        reserveToken = await ERC20Token.new("ERC Token 1", "ERC1", 18, 1000000000);
-        reserveToken2 = await TestNonStandardToken.new("ERC Token 2", "ERC2", 18, 2000000000);
+        docToken = await ERC20Token.new("Dollar on Chain", "DOC", 18, 1000000000);
+        usdtToken = await ERC20Token.new("USDT", "USDT", 18, 1000000000);
+        bproToken = await ERC20Token.new("BPro", "BPRO", 18, 1000000000);
+        wrbtcToken = await ERC20Token.new("Wrapped BTC", "WRBTC", 18, 1000000000);
 
         const converterRegistry = await ConverterRegistry.new(contractRegistry.address);
         const converterRegistryData = await ConverterRegistryData.new(contractRegistry.address);
@@ -212,11 +137,10 @@ describe("Arbitrage controller", () => {
         await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY, converterRegistry.address);
         await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY_DATA, converterRegistryData.address);
 
-        const converterType = 2; // LiquidityPoolV2Converter
-        const converter = await initConverter(converterType, true, false);
+        const converter = await initConverter(wrbtcToken, usdtToken);
         await converterRegistry.addConverter(converter.address);
         //await converterRegistry.newConverter(
-        //    converterType,
+        //    2,
         //    "test",
         //    "TST",
         //    2,
@@ -232,9 +156,14 @@ describe("Arbitrage controller", () => {
 
     describe('Contract controller', () => {
         it("Should get the liquidity pool", async () => {
-            const liquidityPool = await C.getLiquidityPoolByTokens(reserveToken.address, reserveToken2.address);
+            const liquidityPool = await C.getLiquidityPoolByTokens(wrbtcToken.address, usdtToken.address);
             const contractPrimaryToken = await liquidityPool.methods.primaryReserveToken().call();
-            expect(contractPrimaryToken.toLowerCase()).to.equal(reserveToken.address.toLowerCase());
+            expect(contractPrimaryToken.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+            const balance1 = await liquidityPool.methods.reserveStakedBalance(wrbtcToken.address).call();
+            const balance2 = await liquidityPool.methods.reserveStakedBalance(usdtToken.address).call();
+            console.log('balances', balance1, balance2);
+            //const weights = await liquidityPool.methods.effectiveReserveWeights().call();
+            //console.log('weights', weights);
         });
     });
 });
