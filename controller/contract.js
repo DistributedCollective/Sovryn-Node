@@ -20,13 +20,18 @@ class Contract {
      * Creates all the contract instances to query open positions, balances, prices
      */
     constructor() {
-        this.web3 = new Web3(conf.nodeProvider);
+        this.init();
+    }
+
+    init(web3) {
+        // having this as its own method allows us to re-initialize in tests
+        this.web3 = web3 || new Web3(conf.nodeProvider);
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.docToken);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
         this.contractTokenUSDT = new this.web3.eth.Contract(abiTestToken, conf.USDTToken);
         this.contractTokenBPRO = new this.web3.eth.Contract(abiTestToken, conf.BProToken);
-    
+
         this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
         this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);
         this.wRbtcWrapper = new this.web3.eth.Contract(abiRBTCWrapperProxy, conf.wRbtcWrapper);
@@ -36,7 +41,7 @@ class Contract {
             let pKey = a.pKey?a.pKey:this.web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
             this.web3.eth.accounts.wallet.add(pKey);
         }
-   }
+    }
 
     /**
      * Loads complete position info from the Sovryn contract
