@@ -31,6 +31,8 @@ const PoolTokensContainer = artifacts.require("PoolTokensContainer");
 const ChainlinkPriceOracle = artifacts.require("TestChainlinkPriceOracle");
 const Whitelist = artifacts.require("Whitelist");
 
+const WRBTC = artifacts.require("WRBTC");
+
 const C = require('../../controller/contract').default;
 
 describe("Arbitrage controller", () => {
@@ -131,7 +133,8 @@ describe("Arbitrage controller", () => {
         docToken = await ERC20Token.new("Dollar on Chain", "DOC", 18, 1000000000);
         usdtToken = await ERC20Token.new("USDT", "USDT", 18, 1000000000);
         bproToken = await ERC20Token.new("BPro", "BPRO", 18, 1000000000);
-        wrbtcToken = await ERC20Token.new("Wrapped BTC", "WRBTC", 18, 1000000000);
+        wrbtcToken = await WRBTC.new();
+        await wrbtcToken.deposit({ value: 1000000 });
 
         const converterRegistry = await ConverterRegistry.new(contractRegistry.address);
         const converterRegistryData = await ConverterRegistryData.new(contractRegistry.address);

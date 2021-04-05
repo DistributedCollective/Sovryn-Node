@@ -6,6 +6,6 @@ setting things up in RSK testnet.
 
 Usage:
 
-1. `git submodule update --init --recursive`
-2. `npm install`
+1. `npm install`
+2. `npm run init  # initializes submodule, copies contracts to ./contracts`
 3. `npm test`

@@ -3,9 +3,19 @@ require("@nomiclabs/hardhat-web3");
 const truffleConfig = require('./truffle-config');
 
 module.exports = {
-  solidity: "0.4.26",
+  solidity: {
+    compilers: [
+      {
+        version: "0.4.26",
+      },
+      {
+        version: "0.5.16",
+      },
+    ]
+  },
   paths: {
-    sources: './oracle-based-amm/solidity/contracts',
+    // Contracts are copied from oracle-based-amm to this directory
+    sources: './contracts',
   },
   networks: {
     hardhat: {
