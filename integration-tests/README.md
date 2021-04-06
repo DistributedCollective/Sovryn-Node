@@ -7,5 +7,5 @@ setting things up in RSK testnet.
 Usage:
 
 1. `npm install`
-2. `npm run init  # initializes submodule, copies contracts to ./contracts`
+2. `npm run init-contracts  # initializes submodule, copies contracts to ./contracts`
 3. `npm test`

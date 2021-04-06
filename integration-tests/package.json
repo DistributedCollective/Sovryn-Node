@@ -9,7 +9,7 @@
     "npm": "^3.0.0"
   },
   "scripts": {
-    "init": "git submodule update --init && rm -rf cache artifacts contracts && mkdir contracts && cp -vr oracle-based-amm/solidity/contracts contracts/amm && cp -vr oracle-based-amm/rbtcwrapperproxy/ contracts/rbtc",
+    "init-contracts": "git submodule update --init && rm -rf cache artifacts contracts && mkdir contracts && cp -vr oracle-based-amm/solidity/contracts contracts/amm && cp -vr oracle-based-amm/rbtcwrapperproxy/ contracts/rbtc",
     "test": "node -r esm node_modules/.bin/hardhat test",
     "publish": "echo no && false"
   },
