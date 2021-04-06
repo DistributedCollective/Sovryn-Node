@@ -1,4 +1,4 @@
-const { constants, time, BN } = require("@openzeppelin/test-helpers");
+const { constants, time, BN, ether } = require("@openzeppelin/test-helpers");
 
 const { registry } = require("../../oracle-based-amm/solidity/test/helpers/Constants");
 
@@ -116,7 +116,8 @@ export async function initSovrynContracts() {
     accountNonOwner = accounts[1];
     accountReceiver = accounts[3];
 
-    // the first part could be moved to before, but doesn't really matter
+    // the first part would not need to be initialized for each test run, but it doesn't really matter
+    // we can later cache it if tests take too long
     contractRegistry = await ContractRegistry.new();
 
     const sovrynSwapFormula = await SovrynSwapFormula.new();
@@ -142,7 +143,7 @@ export async function initSovrynContracts() {
     await oracleWhitelist.addAddress(chainlinkPriceOraclePrimary.address);
     await oracleWhitelist.addAddress(chainlinkPriceOracleSecondary.address);
 
-    // this part cannot be moved to before
+    // this part must be re-initialized for each test run
     sovrynSwapNetwork = await SovrynSwapNetwork.new(contractRegistry.address);
     await contractRegistry.registerAddress(registry.SOVRYNSWAP_NETWORK, sovrynSwapNetwork.address);
 
@@ -155,11 +156,12 @@ export async function initSovrynContracts() {
     await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY, converterRegistry.address);
     await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY_DATA, converterRegistryData.address);
 
-    docToken = await ERC20Token.new("Dollar on Chain", "DOC", 18, 1000000000);
-    usdtToken = await ERC20Token.new("rUSDT", "rUSDT", 18, 1000000000);
-    bproToken = await ERC20Token.new("BitPRO", "BITP", 18, 1000000000);
+    const tokenSupply = ether('1000000000')
+    docToken = await ERC20Token.new("Dollar on Chain", "DOC", 18, tokenSupply);
+    usdtToken = await ERC20Token.new("rUSDT", "rUSDT", 18, tokenSupply);
+    bproToken = await ERC20Token.new("BitPRO", "BITP", 18, tokenSupply);
     wrbtcToken = await WRBTC.new();
-    await wrbtcToken.deposit({ value: 1000000000000000 });
+    await wrbtcToken.deposit({ value: ether('100') });
 
     rbtcWrapperProxy = await RBTCWrapperProxy.new(wrbtcToken.address, sovrynSwapNetwork.address);
 

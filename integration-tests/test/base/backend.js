@@ -1,6 +1,7 @@
 import { constants } from "@openzeppelin/test-helpers";
 import conf from '../../../config/config';
 import C from '../../../controller/contract';
+import A from '../../../secrets/accounts';
 
 const { ZERO_ADDRESS } = constants;
 
@@ -17,6 +18,7 @@ export function initSovrynNodeForTesting({
     bproToken,
     usdtToken,
     rbtcWrapperProxy,
+    accounts,
 }) {
     conf.swapsImpl = sovrynSwapNetwork.address.toLowerCase();
     conf.docToken = docToken.address.toLowerCase();
@@ -26,13 +28,11 @@ export function initSovrynNodeForTesting({
     conf.wRbtcWrapper = rbtcWrapperProxy.address.toLowerCase();
     //conf.priceFeed  // TODO: handle this. contract is PriceFeeds, initialize with wbtc and DoC
     //conf.sovrynProtocolAdr  // TODO: handle this, if needed. contract is sovrynProtocol (Protocol.sol)
-    // TODO: arbitrager etc addresses
 
-    // THESE are not yet handled
-    conf.loanTokenSUSD = ZERO_ADDRESS;
-    conf.loanTokenUSDT = ZERO_ADDRESS;
-    conf.loanTokenBPRO = ZERO_ADDRESS;
-    conf.loanTokenRBTC = ZERO_ADDRESS;
+    // sane settings for these
+    conf.thresholdArbitrage = 1;
+    conf.amountArbitrage = 0.01;
+    conf.enableDynamicArbitrageAmount = true;
 
     // Set these just to be safe
     conf.nodeProvider = 'http://example.invalid';
@@ -42,6 +42,26 @@ export function initSovrynNodeForTesting({
     // Use a different DB too
     conf.db = 'sovryn_node_integration_tests.db';
 
+    // THESE are not yet handled
+    conf.loanTokenSUSD = ZERO_ADDRESS;
+    conf.loanTokenUSDT = ZERO_ADDRESS;
+    conf.loanTokenBPRO = ZERO_ADDRESS;
+    conf.loanTokenRBTC = ZERO_ADDRESS;
+
+    // also deal with accounts
+    A.liquidator = [
+        {adr: accounts[5]}
+    ];
+    A.rollover = [
+        {adr: accounts[6]}
+    ];
+    A.arbitrage = [
+        {adr: accounts[7]}
+    ];
+
     // We also need to re-init contracts, since it stores stuff in constructor
-    C.init(web3);
+    C.init({
+        web3,
+        addAccounts: false,
+    });
 }

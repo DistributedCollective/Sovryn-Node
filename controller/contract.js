@@ -23,9 +23,13 @@ class Contract {
         this.init();
     }
 
-    init(web3) {
+    init(opts = {}) {
         // having this as its own method allows us to re-initialize in tests
-        this.web3 = web3 || new Web3(conf.nodeProvider);
+        const {
+            addAccounts = true,
+            web3 = new Web3(conf.nodeProvider),
+        } = opts
+        this.web3 = web3;
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.docToken);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
@@ -37,9 +41,11 @@ class Contract {
         this.wRbtcWrapper = new this.web3.eth.Contract(abiRBTCWrapperProxy, conf.wRbtcWrapper);
 
         //Add wallets to web3, so they are ready for sending transactions
-        for(let w in wallets) for (let a of wallets[w]) {
-            let pKey = a.pKey?a.pKey:this.web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
-            this.web3.eth.accounts.wallet.add(pKey);
+        if(addAccounts) {
+            for(let w in wallets) for (let a of wallets[w]) {
+                let pKey = a.pKey?a.pKey:this.web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
+                this.web3.eth.accounts.wallet.add(pKey);
+            }
         }
     }
 
