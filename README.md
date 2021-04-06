@@ -43,6 +43,7 @@ Webpack
 4. Create empty directories "logs" and "db" in the project root
 5. Create directory "secrets" and within a file accounts.js with the credentials of the liquidator/rollover/arbitrage wallets
 ks = encrypted keystore file in v3 standard.
+(alternatively, you can specify pKey instead of ks to just use the private key)
 
 export default {
     "liquidator": [{
@@ -72,7 +73,7 @@ export default ""; for no notifications
 ### Start
 
 ```sh
-npm run start:[mainnet || testnet] [wallet-password]
+npm run start:[main || test] [wallet-password]
 ```
 Check  
 http://your-ip:3000/ to see some liquidation processing info

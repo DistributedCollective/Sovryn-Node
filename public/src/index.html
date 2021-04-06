@@ -6,51 +6,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
     integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.0/angular-csp.min.css" integrity="sha512-nptw3cPhphu13Dy21CXMS1ceuSy2yxpKswAfZ7bAAE2Lvh8rHXhQFOjU+sSnw4B+mEoQmKFLKOj8lmXKVk3gow==" crossorigin="anonymous" />
   <title>Sovryn node</title>
 </head>
 
-<body>
-  <h1>Hi!</h1>
+<style type="text/css" media="screen">
+  td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+</style>
 
+<body ng-controller="appCtrl as ctrl">
   <div class="container">
-    <div class="row">
+    <h1>Sovryn Node</h1>
 
+    <div class="row">
       <div class="col-8">
         <h2>Node monitor</h2>
-        <div role="alert" id="lastBlock">Last block: <span id="lastBlockLn"></span> Sovryn node, <span
-            id="lastBlockPn"></span> Iov node</div>
+        <div role="alert" id="lastBlock" ng-class="{ 
+          'alert alert-success': ctrl.lastBlockOurNode > 0 && ctrl.lastBlockOurNode >= ctrl.lastBlockExternalNode,
+          'alert alert-danger': ctrl.lastBlockOurNode > 0 && ctrl.lastBlockOurNode < ctrl.lastBlockExternalNode 
+        }"
+          >Last block: 
+          <span id="lastBlockLn">{{ ctrl.lastBlockOurNode }}</span> Sovryn node, <span
+            id="lastBlockPn">{{ ctrl.lastBlockExternalNode }}</span> IOV node
+        </div>
       </div>
 
       <div class="col-4">
         <h2>Liquidation watcher</h2>
-        <div id="openPos">Current open positions: <span id="openPosQueue"></span></div>
-        <div id="openLiq">Waiting to get liquidated: <span id="openLiqQueue"></span></div>
+        <div id="openPos">Current open positions: <span id="openPosQueue">{{ ctrl.numberOpenPositions }}</span></div>
+        <div id="openLiq">Waiting to get liquidated: <span id="openLiqQueue">{{ ctrl.numberLiquidationsInQueue }}</span></div>
       </div>
     </div>
 
     <div class="row">
       <div class="col-6">
         <h2>Wallet info</h2>
-        <h4>Liquidaton wallets</h4>
-        <div role="alert" id="accInfoL1">Balance of <span id="accBalanceL1"></span><br /><span id="balanceL1"> </span></div>
-        <div role="alert" id="accInfoL2">Balance of <span id="accBalanceL2"></span><br /><span id="balanceL2"> </span></div>
-        <div role="alert" id="accInfoL3">Balance of <span id="accBalanceL3"></span><br /><span id="balanceL3"> </span></div>
-        <div role="alert" id="accInfoL4">Balance of <span id="accBalanceL4"></span><br /><span id="balanceL4"> </span></div>
+        <h4>Liquidation wallets</h4>
+        <table ng-repeat="wallet in ctrl.liquidationWallets">
+          <tr>
+            <th>Account</th>
+            <td>{{ wallet.address }}</td>
+          </tr>
+          <tr>
+            <th>rBTC Balance</th>
+            <td>{{ wallet.balance }}</td>
+          </tr>
+          <tr ng-if="wallet.tokenBalances.length > 0" ng-repeat="balance in wallet.tokenBalances"
+            ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+              <th>{{ balance.token.toUpperCase() }} Balance</th>
+              <td>{{ balance.balance }}</td>
+          </tr>
+        </table>
         <br />
         <h4>Rollover wallet</h4>
-        <div role="alert" id="accInfoR1">Balance of <span id="accBalanceR1"></span><br /><span id="balanceR1"> </span></div>
+        <table ng-if="ctrl.rolloverWallet">
+          <tr>
+            <th>Account</th>
+            <td>{{ ctrl.rolloverWallet.address }}</td>
+          </tr>
+          <tr>
+            <th>rBTC Balance</th>
+            <td>{{ ctrl.rolloverWallet.balance }}</td>
+          </tr>
+          <tr ng-if="ctrl.rolloverWallet.tokenBalances.length > 0" ng-repeat="balance in ctrl.rolloverWallet.tokenBalances"
+            ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+              <th>{{ balance.token.toUpperCase() }} Balance</th>
+              <td>{{ balance.balance }}</td>
+          </tr>
+        </table>
         <br />
         <h4>Arbitrage wallet</h4>
-        <div role="alert" id="accInfoAr1">Balance of <span id="accBalanceAr1"></span><br /><span id="balanceAr1"> </span></div>
+        <table ng-if="ctrl.arbitrageWallet">
+          <tr>
+            <th>Account</th>
+            <td>{{ ctrl.arbitrageWallet.address }}</td>
+          </tr>
+          <tr>
+            <th>rBTC Balance</th>
+            <td>{{ ctrl.arbitrageWallet.balance }}</td>
+          </tr>
+          <tr ng-if="ctrl.arbitrageWallet.tokenBalances.length > 0" ng-repeat="balance in ctrl.arbitrageWallet.tokenBalances"
+            ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
+              <th>{{ balance.token.toUpperCase() }} Balance</th>
+              <td>{{ balance.balance }}</td>
+          </tr>
+        </table>
       </div>
 
-      <div class="col-6">
+      <div ng-if="ctrl.fastBtcWallet || ctrl.ogWallet" class="col-6">
        <h2>Other wallets</h2>
        <h4>Fast-Btc-Relay</h4>
-       <div role="alert" id="accInfoFbr">Balance of <span id="accBalanceFbr"></span><br /><span id="balanceFbr"> </span></div>
+       <div role="alert" id="accInfoFbr">Balance of <span id="accBalanceFbr">>{{ ctrl.fastBtcWallet.address }}</span><br /><span id="balanceFbr">{{ ctrl.fastBtcWallet.balance }}</span></div>
         <h4>Early access token wallet</h4>
-       <div role="alert" id="accInfoOg">Balance of <span id="accBalanceOg"></span><br /><span id="balanceOg"> </span></div>
-        
+       <div role="alert" id="accInfoOg">Balance of <span id="accBalanceOg">>{{ ctrl.ogWallet.address }}</span><br /><span id="balanceOg">{{ ctrl.ogWallet.balance }}</span></div>
+      </div>
     </div>
   </div>
 
@@ -64,6 +117,7 @@
     integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
     crossorigin="anonymous"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.0/angular.min.js" integrity="sha512-jiG+LwJB0bmXdn4byKzWH6whPpnLy1pnGA/p3VCXFLk4IJ/Ftfcb22katPTapt35Q6kwrlnRheK6UPOIdJhYTA==" crossorigin="anonymous"></script>
   <script src="main.js"></script>
 </body>
 

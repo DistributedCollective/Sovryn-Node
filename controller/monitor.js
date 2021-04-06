@@ -6,7 +6,12 @@ const axios = require('axios');
 import A from '../secrets/accounts';
 import C from './contract';
 import conf from '../config/config';
-import  common from './common';
+import tokensDictionary from '../config/tokensDictionary.json';
+import common from './common';
+import accounts from '../secrets/accounts';
+
+const tokensArray = Object.values(tokensDictionary[conf.network]);
+const tokensAddressArray = Object.keys(tokensDictionary[conf.network]);
 
 class MonitorController {
 
@@ -38,6 +43,17 @@ class MonitorController {
             positionInfo: await this.getOpenPositions(),
             liqInfo: await this.getOpenLiquidations()
         }
+        if (typeof cb === "function") cb(resp);
+        else return resp;
+    }
+
+    async getAddresses(cb) {
+        console.log("get addresses")
+        const resp = {
+            liquidator: await Promise.all(accounts.liquidator.map(async (account) => await this.getAccountInfoForFrontend(account))),
+            rollover: await this.getAccountInfoForFrontend(accounts.rollover[0]),
+            arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0])
+        };
         if (typeof cb === "function") cb(resp);
         else return resp;
     }
@@ -122,6 +138,27 @@ class MonitorController {
             }
         }
         return accBalances;
+    }
+
+    async getAccountInfoForFrontend(account) {
+        let accountWithInfo = { 
+            address: account.adr, 
+            balance: Number(C.web3.utils.fromWei(
+                await C.web3.eth.getBalance(account.adr), "Ether")
+            ).toFixed(5),
+            tokenBalances: await Promise.all(
+                tokensArray.map(async token => ({
+                    token,
+                    balance: Number(
+                        C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                    ).toFixed(5),
+                }))
+            )
+        }
+        accountWithInfo.tokenBalances = accountWithInfo.tokenBalances.map(tokenBalance => ({
+            ...tokenBalance, overThreshold: tokenBalance.balance > conf.balanceThresholds[tokenBalance.token]
+        }))
+        return accountWithInfo;
     }
 
     getOpenPositions() {

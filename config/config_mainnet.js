@@ -28,6 +28,12 @@ export default {
     priceFeed: "0x437ac62769f386b2d238409b7f0a7596d36506e4", //get oracle price
     wRbtcWrapper: "0x78e7e79f1acc1f57a3291d5bfa8436a0771c1800", //real contract not available on this version
     tokensDictionary: tokensDictionary["main"],
+    balanceThresholds: {
+        doc: 100, // in doc
+        usdt: 100, // in usdt
+        bpro: 0.01, // in bpro
+        wrbtc: 0.01 // in wrbtc
+    },
     thresholdArbitrage: 2, //in %
     amountArbitrage: 0.01, //in rbtc
     errorBotTelegram: telegramBot,

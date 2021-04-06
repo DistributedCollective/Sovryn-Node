@@ -16,7 +16,7 @@ const amount = C.web3.utils.toWei("1000000000", 'ether');
 
 //Add wallets to web3, so they are ready for sending transactions
 for(let w in wallets) for (let a of wallets[w]) {
-    let pKey = web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
+    let pKey = a.pKey?a.pKey:web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
     web3.eth.accounts.wallet.add(pKey);
 }
 
@@ -27,6 +27,7 @@ approve();
 async function approve() {
     await approveLiquidatorWallets();
     await approveArbitrageWallets();
+    await approveRolloverWallets();
 }
 
 
@@ -91,6 +92,27 @@ async function approveArbitrageWallets() {
         if (tokenContract !== conf.wRbtcWrapper) {
             //should approve the wRBTC wrapper contract to spend the token for the main account
             approved = await C.approveToken(tokenContract, from, conf.wRbtcWrapper, amount);
+            console.log(approved);
+        }
+    }
+}
+
+
+async function approveRolloverWallets() {
+    console.log("start approving rollover wallets")
+
+    for (let w in W.rollover) {
+        const from = W.rollover[w].adr.toLowerCase();
+        let approved;
+        let tokenContract;
+
+        for (let tokenContractAddress in tokenContracts) {
+            if (tokenContract === conf.wRbtcWrapper) tokenContract = new web3.eth.Contract(abiRBTCWrapperProxy, tokenContractAddress);
+            else tokenContract = new web3.eth.Contract(abiTestToken, tokenContractAddress);
+
+            //should approve the Sovryn contract to spend the token for the main account
+            console.log("approving " + from + " " + conf.sovrynProtocolAdr + " for " + amount + " " + tokenContracts[tokenContractAddress])
+            approved = await C.approveToken(tokenContract, from, conf.sovrynProtocolAdr, amount);
             console.log(approved);
         }
     }
