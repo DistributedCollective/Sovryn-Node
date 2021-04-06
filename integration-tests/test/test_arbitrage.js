@@ -41,10 +41,13 @@ describe("Arbitrage controller", () => {
         const {
             primaryReserveToken,
             secondaryReserveToken,
-            primaryWeight = 500000,
-            secondaryWeight = 500000,
+            primaryReserveWeight = 500000,
+            secondaryReserveWeight = 500000,
             activate = true,
             maxConversionFee = 0,
+            initialPrimaryReserveLiquidity = null,
+            initialSecondaryReserveLiquidity = null,
+            minReturn = new BN(1),
         } = opts;
         if (!primaryReserveToken || !secondaryReserveToken) {
             throw new Error('primaryReserveToken and secondaryReserveToken are required');
@@ -59,14 +62,28 @@ describe("Arbitrage controller", () => {
 
         const converter = await LiquidityPoolV2Converter.new(anchor.address, contractRegistry.address, maxConversionFee);
 
-        await converter.addReserve(primaryReserveToken.address, primaryWeight);
-        await converter.addReserve(secondaryReserveToken.address, secondaryWeight);
+        await converter.addReserve(primaryReserveToken.address, primaryReserveWeight);
+        await converter.addReserve(secondaryReserveToken.address, secondaryReserveWeight);
 
-        if (activate) {
+        if(activate) {
             await anchor.transferOwnership(converter.address);
             await converter.acceptAnchorOwnership();
 
             await converter.activate(primaryReserveToken.address, chainlinkPriceOraclePrimary.address, chainlinkPriceOracleSecondary.address);
+        }
+
+        if(initialPrimaryReserveLiquidity || initialSecondaryReserveLiquidity) {
+            if(!initialPrimaryReserveLiquidity || !initialSecondaryReserveLiquidity) {
+                throw new Error(
+                    'provide both initialPrimaryReserveLiquidity and initialSecondaryReserveLiquidity, ' +
+                    'or neither'
+                );
+            }
+            await primaryReserveToken.approve(converter.address, initialPrimaryReserveLiquidity);
+            await converter.addLiquidity(primaryReserveToken.address, initialPrimaryReserveLiquidity, minReturn);
+
+            await secondaryReserveToken.approve(converter.address, initialSecondaryReserveLiquidity);
+            await converter.addLiquidity(secondaryReserveToken.address, initialSecondaryReserveLiquidity, minReturn);
         }
 
         return converter;
@@ -126,7 +143,7 @@ describe("Arbitrage controller", () => {
         await contractRegistry.registerAddress(registry.CHAINLINK_ORACLE_WHITELIST, oracleWhitelist.address);
 
         chainlinkPriceOraclePrimary = await createChainlinkOracle(10000);
-        chainlinkPriceOracleSecondary = await createChainlinkOracle(20000);
+        chainlinkPriceOracleSecondary = await createChainlinkOracle(10000);
 
         await oracleWhitelist.addAddress(chainlinkPriceOraclePrimary.address);
         await oracleWhitelist.addAddress(chainlinkPriceOracleSecondary.address);
@@ -148,13 +165,15 @@ describe("Arbitrage controller", () => {
         usdtToken = await ERC20Token.new("rUSDT", "rUSDT", 18, 1000000000);
         bproToken = await ERC20Token.new("BitPRO", "BITP", 18, 1000000000);
         wrbtcToken = await WRBTC.new();
-        await wrbtcToken.deposit({ value: 1000000 });
+        await wrbtcToken.deposit({ value: 1000000000000000 });
 
         rbtcWrapperProxy = await RBTCWrapperProxy.new(wrbtcToken.address, sovrynSwapNetwork.address);
 
         const converter = await initConverter({
             primaryReserveToken: wrbtcToken,
-            secondaryReserveToken: usdtToken
+            secondaryReserveToken: usdtToken,
+            initialPrimaryReserveLiquidity: new BN(1000000000),
+            initialSecondaryReserveLiquidity: new BN(1000000000),
         });
         await converterRegistry.addConverter(converter.address);
         // TODO: should we rather deploy like this:
@@ -206,8 +225,8 @@ describe("Arbitrage controller", () => {
             const balance1 = await liquidityPool.methods.reserveStakedBalance(wrbtcToken.address).call();
             const balance2 = await liquidityPool.methods.reserveStakedBalance(usdtToken.address).call();
             console.log('balances', balance1, balance2);
-            //const weights = await liquidityPool.methods.effectiveReserveWeights().call();
-            //console.log('weights', weights);
+            const weights = await liquidityPool.methods.effectiveReserveWeights().call();
+            console.log('weights', weights);
         });
     });
 });
