@@ -2,7 +2,7 @@ const { constants, time, BN, ether } = require("@openzeppelin/test-helpers");
 
 const { registry } = require("../../oracle-based-amm/solidity/test/helpers/Constants");
 
-const { latest } = time;
+const { latest, duration } = time;
 const { ZERO_ADDRESS } = constants;
 
 const SovrynSwapNetwork = artifacts.require("SovrynSwapNetwork");
@@ -14,9 +14,10 @@ const ConverterUpgrader = artifacts.require("ConverterUpgrader");
 const ConverterRegistry = artifacts.require("ConverterRegistry");
 const ConverterRegistryData = artifacts.require("ConverterRegistryData");
 
-const LiquidityPoolV2Converter = artifacts.require("LiquidityPoolV2Converter");
+// NOTE: we use the test version of LiquidityPoolV2Converter since that augments it with useful testing methods
+const LiquidityPoolV2Converter = artifacts.require("TestLiquidityPoolV2Converter");
+
 const LiquidTokenConverterFactory = artifacts.require("LiquidTokenConverterFactory");
-const LiquidityPoolV1ConverterFactory = artifacts.require("LiquidityPoolV1ConverterFactory");
 const LiquidityPoolV2ConverterFactory = artifacts.require("LiquidityPoolV2ConverterFactory");
 const LiquidityPoolV2ConverterAnchorFactory = artifacts.require("LiquidityPoolV2ConverterAnchorFactory");
 const LiquidityPoolV2ConverterCustomFactory = artifacts.require("LiquidityPoolV2ConverterCustomFactory");
@@ -62,6 +63,8 @@ export async function initSovrynContracts() {
 
         const converter = await LiquidityPoolV2Converter.new(anchor.address, contractRegistry.address, maxConversionFee);
 
+        await converter.setTime(now);
+
         await converter.addReserve(primaryReserveToken.address, primaryReserveWeight);
         await converter.addReserve(secondaryReserveToken.address, secondaryReserveWeight);
 
@@ -93,6 +96,13 @@ export async function initSovrynContracts() {
         return converter;
     };
 
+    const updateChainlinkOracle = async (converter, oracle, answer) => {
+        await oracle.setAnswer(answer);
+        await oracle.setTimestamp(await converter.currentTime.call());
+
+        await converter.setReferenceRateUpdateTime(now.sub(duration.seconds(1)));
+    };
+
     let accounts;
     let accountOwner;
     let accountNonOwner;
@@ -111,6 +121,8 @@ export async function initSovrynContracts() {
     let chainlinkPriceOraclePrimary;
     let chainlinkPriceOracleSecondary;
 
+    let now = await latest();
+
     accounts = await web3.eth.getAccounts();
     accountOwner = accounts[0];
     accountNonOwner = accounts[1];
@@ -128,7 +140,6 @@ export async function initSovrynContracts() {
     await contractRegistry.registerAddress(registry.CONVERTER_FACTORY, factory.address);
 
     await factory.registerTypedConverterFactory((await LiquidTokenConverterFactory.new()).address);
-    await factory.registerTypedConverterFactory((await LiquidityPoolV1ConverterFactory.new()).address);
     await factory.registerTypedConverterFactory((await LiquidityPoolV2ConverterFactory.new()).address);
 
     await factory.registerTypedConverterAnchorFactory((await LiquidityPoolV2ConverterAnchorFactory.new()).address);
@@ -184,13 +195,17 @@ export async function initSovrynContracts() {
         chainlinkPriceOracleSecondary,
 
         initConverter,
+        updateChainlinkOracle,
     };
 }
 
 const createChainlinkOracle = async (answer) => {
     const chainlinkOracle = await ChainlinkPriceOracle.new();
     await chainlinkOracle.setAnswer(answer);
-    await chainlinkOracle.setTimestamp(await latest());
+
+    //await chainlinkOracle.setTimestamp(await latest());
+    // Set the last update time to a far enough future in order for the external oracle price to always take effect.
+    await chainlinkOracle.setTimestamp((await latest()).add(duration.years(1)));
 
     return chainlinkOracle;
 };
