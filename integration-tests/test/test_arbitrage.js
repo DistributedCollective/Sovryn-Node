@@ -5,7 +5,7 @@ conf.errorBotTelegram = undefined;
 conf.db = 'sovryn_node_integration_tests.db';
 
 const { expect } = require("chai");
-const { constants, time } = require("@openzeppelin/test-helpers");
+const { constants, time, BN } = require("@openzeppelin/test-helpers");
 
 const { registry } = require("../oracle-based-amm/solidity/test/helpers/Constants");
 
@@ -37,29 +37,36 @@ const RBTCWrapperProxy = artifacts.require("RBTCWrapperProxy");
 const C = require('../../controller/contract').default;
 
 describe("Arbitrage controller", () => {
-    const newConverter = async (reserveToken1, reserveToken2, activate = true, maxConversionFee = 0) => {
+    const initConverter = async (opts) => {
+        const {
+            primaryReserveToken,
+            secondaryReserveToken,
+            primaryWeight = 500000,
+            secondaryWeight = 500000,
+            activate = true,
+            maxConversionFee = 0,
+        } = opts;
+        if (!primaryReserveToken || !secondaryReserveToken) {
+            throw new Error('primaryReserveToken and secondaryReserveToken are required');
+        }
         const anchor = await PoolTokensContainer.new(
-            "Pool",
-            "POOL",
-            18  // decimals. this was 2 in the original tests, but should probably be 18.
+            (await primaryReserveToken.name()) + '-' + (await secondaryReserveToken.name()),
+            (await primaryReserveToken.symbol()) + (await secondaryReserveToken.symbol()),
+            // Not sure what decimals should be. Converter.js test has 2. LiquidityPoolV2Converter.js test has 10.
+            // But 18 seems reasonable, since the underlying tokens have 18...
+            18
         );
-        const reserveAddresses = [reserveToken1.address, reserveToken2.address];
-        const reserveWeights = [500000, 500000];
 
         const converter = await LiquidityPoolV2Converter.new(anchor.address, contractRegistry.address, maxConversionFee);
 
-        for (let i = 0; i < reserveAddresses.length; i++) {
-            await converter.addReserve(reserveAddresses[i], reserveWeights[i]);
-        }
-
-        await reserveToken1.transfer(converter.address, 5000);
-        await reserveToken2.transfer(converter.address, 8000);
+        await converter.addReserve(primaryReserveToken.address, primaryWeight);
+        await converter.addReserve(secondaryReserveToken.address, secondaryWeight);
 
         if (activate) {
             await anchor.transferOwnership(converter.address);
             await converter.acceptAnchorOwnership();
 
-            await converter.activate(reserveToken1.address, chainlinkPriceOraclePrimary.address, chainlinkPriceOracleSecondary.address);
+            await converter.activate(primaryReserveToken.address, chainlinkPriceOraclePrimary.address, chainlinkPriceOracleSecondary.address);
         }
 
         return converter;
@@ -74,9 +81,9 @@ describe("Arbitrage controller", () => {
     };
 
     let accounts;
-    let owner;
-    let nonOwner;
-    let receiver;
+    let accountOwner;
+    let accountNonOwner;
+    let accountReceiver;
 
     let sovrynSwapNetwork;
     let factory;
@@ -92,9 +99,9 @@ describe("Arbitrage controller", () => {
 
     before(async () => {
         accounts = await web3.eth.getAccounts();
-        owner = accounts[0];
-        nonOwner = accounts[1];
-        receiver = accounts[3];
+        accountOwner = accounts[0];
+        accountNonOwner = accounts[1];
+        accountReceiver = accounts[3];
     });
 
     beforeEach(async () => {
@@ -145,7 +152,10 @@ describe("Arbitrage controller", () => {
 
         rbtcWrapperProxy = await RBTCWrapperProxy.new(wrbtcToken.address, sovrynSwapNetwork.address);
 
-        const converter = await newConverter(wrbtcToken, usdtToken);
+        const converter = await initConverter({
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken
+        });
         await converterRegistry.addConverter(converter.address);
         // TODO: should we rather deploy like this:
         //await converterRegistry.newConverter(
@@ -168,6 +178,7 @@ describe("Arbitrage controller", () => {
         conf.wRbtcWrapper = rbtcWrapperProxy.address.toLowerCase();
         //conf.priceFeed  // TODO: handle this. contract is PriceFeeds, initialize with wbtc and DoC
         //conf.sovrynProtocolAdr  // TODO: handle this, if needed. contract is sovrynProtocol (Protocol.sol)
+        // TODO: arbitrager etc addresses
 
         // THESE are not yet handled
         conf.loanTokenSUSD = ZERO_ADDRESS;
