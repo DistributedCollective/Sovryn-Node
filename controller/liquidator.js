@@ -74,7 +74,7 @@ class Liquidator {
     * swaps back to collateral currency after liquidation is completed
     * @param value should be sent in Wei format as String
     * @param sourceCurrency should be that hash of the contract
-    * @param destCurrency is defaulting for now to 'rbtc'. It is also the hash of the contract
+    * @param destCurrency is defaulting for now to 'rbtc'
     */
     async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc') {
         sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : tokensDictionary[conf.network][sourceCurrency];
