@@ -32,77 +32,11 @@ const RBTCWrapperProxy = artifacts.require("RBTCWrapperProxy");
 /**
  * Deploy the contracts required to use Sovryn.
  *
- * Does not deploy converters but instead provides a helper (initConverter) to do the deployment.
+ * Does not deploy converters. Use ConverterHelper to deploy those with ease.
  *
- * @returns {Promise<any>} An object containing deployed contracts, web3 addresses, and helpers
+ * @returns {Promise<any>} An object containing deployed contracts and web3 addresses
  */
 export async function initSovrynContracts() {
-    const initConverter = async (opts) => {
-        const {
-            primaryReserveToken,
-            secondaryReserveToken,
-            primaryReserveWeight = 500000,
-            secondaryReserveWeight = 500000,
-            activate = true,
-            register = true,
-            maxConversionFee = 0,
-            initialPrimaryReserveLiquidity = null,
-            initialSecondaryReserveLiquidity = null,
-            minReturn = new BN(1),
-        } = opts;
-        if (!primaryReserveToken || !secondaryReserveToken) {
-            throw new Error('primaryReserveToken and secondaryReserveToken are required');
-        }
-        const anchor = await PoolTokensContainer.new(
-            (await primaryReserveToken.name()) + '-' + (await secondaryReserveToken.name()),
-            (await primaryReserveToken.symbol()) + (await secondaryReserveToken.symbol()),
-            // Not sure what decimals should be. Converter.js test has 2. LiquidityPoolV2Converter.js test has 10.
-            // But 18 seems reasonable, since the underlying tokens have 18...
-            18
-        );
-
-        const converter = await LiquidityPoolV2Converter.new(anchor.address, contractRegistry.address, maxConversionFee);
-
-        await converter.setTime(now);
-
-        await converter.addReserve(primaryReserveToken.address, primaryReserveWeight);
-        await converter.addReserve(secondaryReserveToken.address, secondaryReserveWeight);
-
-        if(activate) {
-            await anchor.transferOwnership(converter.address);
-            await converter.acceptAnchorOwnership();
-
-            await converter.activate(primaryReserveToken.address, chainlinkPriceOraclePrimary.address, chainlinkPriceOracleSecondary.address);
-        }
-
-        if(register) {
-            await converterRegistry.addConverter(converter.address);
-        }
-
-        if(initialPrimaryReserveLiquidity || initialSecondaryReserveLiquidity) {
-            if(!initialPrimaryReserveLiquidity || !initialSecondaryReserveLiquidity) {
-                throw new Error(
-                    'provide both initialPrimaryReserveLiquidity and initialSecondaryReserveLiquidity, ' +
-                    'or neither'
-                );
-            }
-            await primaryReserveToken.approve(converter.address, initialPrimaryReserveLiquidity);
-            await converter.addLiquidity(primaryReserveToken.address, initialPrimaryReserveLiquidity, minReturn);
-
-            await secondaryReserveToken.approve(converter.address, initialSecondaryReserveLiquidity);
-            await converter.addLiquidity(secondaryReserveToken.address, initialSecondaryReserveLiquidity, minReturn);
-        }
-
-        return converter;
-    };
-
-    const updateChainlinkOracle = async (converter, oracle, answer) => {
-        await oracle.setAnswer(answer);
-        await oracle.setTimestamp(await converter.currentTime.call());
-
-        await converter.setReferenceRateUpdateTime(now.sub(duration.seconds(1)));
-    };
-
     let accounts;
     let accountOwner;
     let accountNonOwner;
@@ -120,8 +54,6 @@ export async function initSovrynContracts() {
     let upgrader;
     let chainlinkPriceOraclePrimary;
     let chainlinkPriceOracleSecondary;
-
-    let now = await latest();
 
     accounts = await web3.eth.getAccounts();
     accountOwner = accounts[0];
@@ -193,11 +125,107 @@ export async function initSovrynContracts() {
         upgrader,
         chainlinkPriceOraclePrimary,
         chainlinkPriceOracleSecondary,
-
-        initConverter,
-        updateChainlinkOracle,
     };
 }
+
+export class ConverterHelper {
+    constructor({
+        contractRegistry,
+        converterRegistry,
+        chainlinkPriceOraclePrimary,
+        chainlinkPriceOracleSecondary,
+    }) {
+        this.contractRegistry = contractRegistry;
+        this.converterRegistry = converterRegistry;
+        this.chainlinkPriceOraclePrimary = chainlinkPriceOraclePrimary;
+        this.chainlinkPriceOracleSecondary = chainlinkPriceOracleSecondary;
+        this.now = null;
+        this.initialized = false;
+    }
+
+    async init() {
+        if(this.initialized) {
+            return;
+        }
+        this.now = await latest();
+        this.initialized = true;
+    }
+
+    async initConverter(opts) {
+        const {
+            primaryReserveToken,
+            secondaryReserveToken,
+            primaryReserveWeight = 500000,
+            secondaryReserveWeight = 500000,
+            activate = true,
+            register = true,
+            maxConversionFee = 0,
+            initialPrimaryReserveLiquidity = null,
+            initialSecondaryReserveLiquidity = null,
+            minReturn = new BN(1),
+        } = opts;
+        if (!primaryReserveToken || !secondaryReserveToken) {
+            throw new Error('primaryReserveToken and secondaryReserveToken are required');
+        }
+
+        await this.init();
+
+        const anchor = await PoolTokensContainer.new(
+            (await primaryReserveToken.name()) + '-' + (await secondaryReserveToken.name()),
+            (await primaryReserveToken.symbol()) + (await secondaryReserveToken.symbol()),
+            // Not sure what decimals should be. Converter.js test has 2. LiquidityPoolV2Converter.js test has 10.
+            // But 18 seems reasonable, since the underlying tokens have 18...
+            18
+        );
+
+        const converter = await LiquidityPoolV2Converter.new(anchor.address, this.contractRegistry.address, maxConversionFee);
+
+        await converter.setTime(this.now);
+
+        await converter.addReserve(primaryReserveToken.address, primaryReserveWeight);
+        await converter.addReserve(secondaryReserveToken.address, secondaryReserveWeight);
+
+        if(activate) {
+            await anchor.transferOwnership(converter.address);
+            await converter.acceptAnchorOwnership();
+
+            await converter.activate(
+                primaryReserveToken.address,
+                this.chainlinkPriceOraclePrimary.address,
+                this.chainlinkPriceOracleSecondary.address
+            );
+        }
+
+        if(register) {
+            await this.converterRegistry.addConverter(converter.address);
+        }
+
+        if(initialPrimaryReserveLiquidity || initialSecondaryReserveLiquidity) {
+            if(!initialPrimaryReserveLiquidity || !initialSecondaryReserveLiquidity) {
+                throw new Error(
+                    'provide both initialPrimaryReserveLiquidity and initialSecondaryReserveLiquidity, ' +
+                    'or neither'
+                );
+            }
+            await primaryReserveToken.approve(converter.address, initialPrimaryReserveLiquidity);
+            await converter.addLiquidity(primaryReserveToken.address, initialPrimaryReserveLiquidity, minReturn);
+
+            await secondaryReserveToken.approve(converter.address, initialSecondaryReserveLiquidity);
+            await converter.addLiquidity(secondaryReserveToken.address, initialSecondaryReserveLiquidity, minReturn);
+        }
+
+        return converter;
+    }
+
+    async updateChainlinkOracle(converter, oracle, answer) {
+        await this.init();
+        await oracle.setAnswer(answer);
+        await oracle.setTimestamp(await converter.currentTime.call());
+
+        await converter.setReferenceRateUpdateTime(this.now.sub(duration.seconds(1)));
+    }
+}
+
 
 const createChainlinkOracle = async (answer) => {
     const chainlinkOracle = await ChainlinkPriceOracle.new();
@@ -208,5 +236,4 @@ const createChainlinkOracle = async (answer) => {
     await chainlinkOracle.setTimestamp((await latest()).add(duration.years(1)));
 
     return chainlinkOracle;
-};
-
+}

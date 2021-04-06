@@ -4,7 +4,7 @@ import { BN } from '@openzeppelin/test-helpers';
 import C from '../../controller/contract';
 
 import {initSovrynNodeForTesting} from "./base/backend";
-import {initSovrynContracts} from "./base/contracts";
+import {initSovrynContracts, ConverterHelper} from "./base/contracts";
 
 
 describe("Contract controller", () => {
@@ -13,7 +13,8 @@ describe("Contract controller", () => {
     beforeEach(async () => {
         sovrynContracts = await initSovrynContracts();
         initSovrynNodeForTesting(sovrynContracts);
-        await sovrynContracts.initConverter({
+        const converters = new ConverterHelper(sovrynContracts);
+        await converters.initConverter({
             primaryReserveToken: sovrynContracts.wrbtcToken,
             secondaryReserveToken: sovrynContracts.usdtToken,
             initialPrimaryReserveLiquidity: new BN(1000000000),

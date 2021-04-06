@@ -5,25 +5,34 @@ import A from '../../secrets/accounts';
 import Arbitrage from '../../controller/arbitrage';
 
 import {initSovrynNodeForTesting} from "./base/backend";
-import {initSovrynContracts} from "./base/contracts";
+import {initSovrynContracts, ConverterHelper} from "./base/contracts";
 
 
 describe("Arbitrage controller", () => {
+    let arbitragerAddress;
+
     let sovrynContracts;
+    let converters;
     let usdtToken;
     let wrbtcToken;
-    let arbitragerAddress;
-    const initialRBTCBalance = new BN('10000000000000000000000');
+    let chainlinkOraclePrimary;
+    let chainlinkOracleSecondary;
+
+
+    const initialRBTCBalance = new BN('10000000000000000000000'); // hardhat default
     const initialWRBTCBalance = ether('1');
     const initialUSDTBalance = ether('1000');
 
     beforeEach(async () => {
         sovrynContracts = await initSovrynContracts();
         initSovrynNodeForTesting(sovrynContracts);
+        converters = new ConverterHelper(sovrynContracts);
 
+        arbitragerAddress = A.arbitrage[0].adr;
         usdtToken = sovrynContracts.usdtToken;
         wrbtcToken = sovrynContracts.wrbtcToken;
-        arbitragerAddress = A.arbitrage[0].adr;
+        chainlinkOraclePrimary = sovrynContracts.chainlinkPriceOraclePrimary;
+        chainlinkOracleSecondary = sovrynContracts.chainlinkPriceOracleSecondary;
 
         await wrbtcToken.transfer(arbitragerAddress, initialWRBTCBalance);
         await usdtToken.transfer(arbitragerAddress, initialUSDTBalance);
@@ -34,12 +43,12 @@ describe("Arbitrage controller", () => {
         expect(await usdtToken.balanceOf(arbitragerAddress)).to.be.bignumber.equal(initialUSDTBalance);
     });
 
-    it("Should not detect arbitrage for equal weights", async () => {
+    it("Should not detect arbitrage for an exactly balanced pool", async () => {
         const {
             usdtToken,
         } = sovrynContracts;
 
-        await sovrynContracts.initConverter({
+        await converters.initConverter({
             primaryReserveToken: sovrynContracts.wrbtcToken,
             secondaryReserveToken: sovrynContracts.usdtToken,
             primaryReserveWeight: 500000,
@@ -52,12 +61,12 @@ describe("Arbitrage controller", () => {
         expect(opportunity).to.equal(null);
     });
 
-    it("Should not execute arbitrage for equal weights", async () => {
+    it("Should not execute arbitrage for an exactly balanced pool", async () => {
         const {
             usdtToken,
         } = sovrynContracts;
 
-        await sovrynContracts.initConverter({
+        await converters.initConverter({
             primaryReserveToken: sovrynContracts.wrbtcToken,
             secondaryReserveToken: sovrynContracts.usdtToken,
             primaryReserveWeight: 500000,
@@ -75,5 +84,30 @@ describe("Arbitrage controller", () => {
         expect(balanceRBTC).to.be.bignumber.equal(initialRBTCBalance);
         expect(balanceWRBTC).to.be.bignumber.equal(initialWRBTCBalance);
         expect(balanceUSDT).to.be.bignumber.equal(initialUSDTBalance);
+    });
+
+    it("Should detect arbitrage for an unbalanced pool", async () => {
+        // TDOO: WIP
+        const {
+            usdtToken,
+        } = sovrynContracts;
+
+        const converter = await converters.initConverter({
+            primaryReserveToken: sovrynContracts.wrbtcToken,
+            secondaryReserveToken: sovrynContracts.usdtToken,
+            primaryReserveWeight: 500000,
+            secondaryReserveWeight: 500000,
+            initialPrimaryReserveLiquidity: ether('10'),
+            initialSecondaryReserveLiquidity: ether('10'),
+        });
+        //await converters.updateChainlinkOracle(converter, chainlinkOraclePrimary, 50000);
+        //await converters.updateChainlinkOracle(converter, chainlinkOracleSecondary, 1);
+
+        const weights = await converter.effectiveReserveWeights();
+        console.log('weights', weights[0].toString(), weights[1].toString())
+
+        //const opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
+        //console.log(opportunity);
+        //expect(opportunity).to.not.equal(null);
     });
 });
