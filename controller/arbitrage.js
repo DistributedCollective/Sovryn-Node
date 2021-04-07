@@ -74,6 +74,7 @@ export function calculateArbitrageOpportunity(
 ) {
     const token1Delta = token1StakedBalance.sub(token1ContractBalance);
     const token2Delta = token2StakedBalance.sub(token2ContractBalance);
+    console.log('tokenDeltas:', token1Delta.toString(), token2Delta.toString());
 
     // NOTE: it's possible that at least one delta is negative and the other one is zero
     if(token1Delta.isZero() && token2Delta.isZero()) {
@@ -84,14 +85,17 @@ export function calculateArbitrageOpportunity(
     let sourceTokenAddress, destTokenAddress, amount;
     if(token1Delta.isNeg()) {
         if(token2Delta.isNeg()) {
-            throw new Error('weird deltas, should not happen:', token1Delta.toString(), token2Delta.toString());
+            // TODO: not sure about this case
+            console.warn('both deltas negative:', token1Delta.toString(), token2Delta.toString());
+            return null;
         }
         sourceTokenAddress = token2Address;
         destTokenAddress = token1Address;
         amount = token2Delta;
     } else {
         if(!token2Delta.isNeg()) {
-            throw new Error('weird deltas, should not happen:', token1Delta.toString(), token2Delta.toString());
+            // TODO: not sure about this case either
+            console.warn('both deltas positive:', token1Delta.toString(), token2Delta.toString());
         }
         sourceTokenAddress = token1Address;
         destTokenAddress = token2Address;
