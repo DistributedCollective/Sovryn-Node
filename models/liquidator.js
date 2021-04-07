@@ -1,3 +1,4 @@
+import formatDate from '../controller/common';
 import BaseModel from './baseModel';
 
 export default class Liquidator extends BaseModel {
@@ -31,7 +32,7 @@ export default class Liquidator extends BaseModel {
     insert(data) {
         return super.insert({
             ...data,
-            dateAdded: new Date()
+            dateAdded: formatDate(Date.now()/1000)
         });
     }
 }

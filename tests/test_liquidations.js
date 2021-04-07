@@ -42,7 +42,7 @@ describe('Liquidation', async () => {
                 C.web3.utils.fromWei(currentMargin) > 0 && 
                 Number(maxLiquidatable) > 0 
             )
-            const token = pos.loanToken === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+            const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
 
             // check balance
             const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
@@ -75,6 +75,38 @@ describe('Liquidation', async () => {
             // const expectedProfit = '1.4666'; // Cannot test this really since it would be necessary to access the historic prices (the prices when the liquidation took place)
             const profit = await Liquidator.calculateLiqProfit(liqEvent);
             assert(profit);
+        });
+
+        it("Calculate liquidate amount", async () => {
+            // This test will only work if having enough balances in the accounts
+            const pos = { maxLiquidatable: '29468111719705' };
+
+            // Liquidating altcoin
+            // Case 1: enough balance to liquidate 100%
+            let liquidateAmount = await Liquidator.calculateLiquidateAmount('29468111719705', pos, 'doc', { adr: A.liquidator[0].adr });
+            assert(liquidateAmount === '29468111719705');
+
+            // Case 2: can only use only some part of the balance
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('19468111719705', pos, 'doc', { adr: A.liquidator[0].adr });
+            assert(liquidateAmount === '19468111719705');
+
+            // Case 3: not enough balance to pay for fees
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('19468111719705', pos, 'doc', { adr: '0xB5Df6D74152F9A4314DD25934d5DeeEE9A7aA3FD'});
+            assert(liquidateAmount === undefined);
+
+            // Liquidating rBtc
+            // Case 1: enough balance to liquidate 100%
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('294681117197050', pos, 'rBtc', { adr: A.liquidator[0].adr });
+            assert(liquidateAmount === '29468111719705');
+
+            // Case 2: can only use only some part of the balance
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('194681117197050', pos, 'rBtc', { adr: A.liquidator[0].adr });
+            assert(liquidateAmount == '15480117197050');
+
+            // Case 3: not enough balance to pay for fees
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('19468111719705', pos, 'rBtc', { adr: '0xB5Df6D74152F9A4314DD25934d5DeeEE9A7aA3FD'});
+            assert(liquidateAmount === undefined);
+
         });
     })
 
@@ -225,7 +257,7 @@ async function marginTrade(contractToken, loanId, leverageAmount, loanTokenSent,
             trader,
             loanDataBytes
         )
-            .send({ from: trader, gas: 2500000, gasPrice: gasPrice * 2 })
+            .send({ from: trader, gas: conf.gasLimit, gasPrice: gasPrice * 2 })
             .then(async (tx) => {
                 //console.log("marginTrade Transaction: ");
                 //console.log(tx);
@@ -252,7 +284,7 @@ async function changePrice(srcToken, destToken, rate) {
 
     return new Promise(resolve => {
         C.contractPriceFeed.methods.setRates(srcToken, destToken, C.web3.utils.toWei(rate.toString(), 'Ether'))
-            .send({ from: A.owner[0].adr, gas: 2500000, gasPrice: gasPrice })
+            .send({ from: A.owner[0].adr, gas: conf.gasLimit, gasPrice: gasPrice })
             .then(async (tx) => {
                 //console.log("change price Transaction: ", tx);
                 resolve(tx.transactionHash);
@@ -267,7 +299,7 @@ async function changePrice(srcToken, destToken, rate) {
 /*
 function liquidate(loanId, wallet, amount) {
     C.contractSovryn.methods.liquidate(loanId, wallet, amount)
-            .send({ from: wallet, gas: 2500000, value: val })
+            .send({ from: wallet, gas: conf.gasLimit, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.txHash);

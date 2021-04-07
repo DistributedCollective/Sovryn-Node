@@ -57,4 +57,13 @@ async function getCurrentActivePositions() {
     }
 }
 
-export default { telegramBot: new TelegramBot(), getCurrentActivePositions }
+function formatDate(str) {
+    const output = new Date(parseInt(str) * 1000).toISOString().slice(0, 19).replace("T", " ");
+    return output;
+};
+
+export default { 
+    telegramBot: new TelegramBot(), 
+    getCurrentActivePositions, 
+    formatDate 
+}
