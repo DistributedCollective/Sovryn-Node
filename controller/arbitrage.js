@@ -19,6 +19,7 @@ import tokensDictionary from '../config/tokensDictionary.json'
 import  common from './common';
 import abiDecoder from 'abi-decoder';
 import abiSwap from "../config/abiSovrynSwapNetwork";
+import tokensDictionary from '../config/tokensDictionary.json'
 import db from "./db";
 
 
@@ -214,13 +215,15 @@ class Arbitrage {
                     contract2.methods["convertByPath"](result, amount, minReturn)
                         .send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
-                            console.log("Arbitrage tx successful");
+                            const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val, 'Ether')} ${tokensDictionary[conf.network][sourceToken].toUpperCase()} for ${tokensDictionary[conf.network][destToken].toUpperCase()}`;
+                            console.log(msg);
+                            await common.telegramBot.sendMessage(`${conf.network}-${msg}`)
                             return resolve(tx);
                         })
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
-                            //await common.telegramBot.sendMessage(err);
+                            await common.telegramBot.sendMessage(err.toString());
                             return resolve();
                         });
                 });

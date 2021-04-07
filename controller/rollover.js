@@ -10,6 +10,7 @@ import conf from '../config/config';
 import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
+import tokensDictionary from '../config/tokensDictionary.json'
 import dbCtrl from './db';
 
 class Rollover {
@@ -45,7 +46,7 @@ class Rollover {
                     const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     if (wallet) {
                         const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
-                        const tx = await this.rollover(this.positions[p].loanId, wallet.adr, nonce);
+                        const tx = await this.rollover(this.positions[p], wallet.adr, nonce);
                         if (tx) await this.addTx(tx);
                     } else {
                         await this.handleNoWalletError();
@@ -60,23 +61,28 @@ class Rollover {
     /**
      * Tries to rollover a position
      */
-    rollover(loanId, wallet, nonce) {
+    rollover(pos, wallet, nonce) {
         const p=this;
         return new Promise(async (resolve) => {
             const loanDataBytes = "0x"; //need to be empty
 
             const gasPrice = await C.getGasPrice();
-            C.contractSovryn.methods.rollover(loanId, loanDataBytes)
-                .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce })
-                .then((tx) => {
-                    console.log("Rollover Transaction successful: "+tx.transactionHash);
+
+            C.contractSovryn.methods.rollover(pos, loanDataBytes)
+                .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce })
+                .then(async (tx) => {
+                    const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${pos.loanId} with ${tokensDictionary[conf.network][pos.collateralToken].toUpperCase()} as collateral token`;
+                    console.log(msg);
+                    await common.telegramBot.sendMessage(`${conf.network}-${msg}`);
+
                     p.handleRolloverSuccess(loanId);
                     resolve(tx.transactionHash);
                 })
-                .catch((err) => {
-                    console.error("Error in rolling over position "+loanId);
+                .catch(async (err) => {
+                    console.error("Error in rolling over position "+pos.loanId);
                     console.error(err);
-                    p.handleRolloverError(loanId);
+                    await common.telegramBot.sendMessage(err.toString());
+                    p.handleRolloverError(pos.loanId);
                     resolve();
                 });
         });
