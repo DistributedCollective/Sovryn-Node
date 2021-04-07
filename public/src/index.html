@@ -23,7 +23,7 @@
     <h1>Sovryn Node</h1>
 
     <div class="row">
-      <div class="col-8">
+      <div class="col-12">
         <h2>Node monitor</h2>
         <div role="alert" id="lastBlock" ng-class="{ 
           'alert alert-success': ctrl.lastBlockOurNode > 0 && ctrl.lastBlockOurNode >= ctrl.lastBlockExternalNode,
@@ -33,12 +33,6 @@
           <span id="lastBlockLn">{{ ctrl.lastBlockOurNode }}</span> Sovryn node, <span
             id="lastBlockPn">{{ ctrl.lastBlockExternalNode }}</span> IOV node
         </div>
-      </div>
-
-      <div class="col-4">
-        <h2>Liquidation watcher</h2>
-        <div id="openPos">Current open positions: <span id="openPosQueue">{{ ctrl.numberOpenPositions }}</span></div>
-        <div id="openLiq">Waiting to get liquidated: <span id="openLiqQueue">{{ ctrl.numberLiquidationsInQueue }}</span></div>
       </div>
     </div>
 
@@ -103,6 +97,54 @@
        <div role="alert" id="accInfoFbr">Balance of <span id="accBalanceFbr">>{{ ctrl.fastBtcWallet.address }}</span><br /><span id="balanceFbr">{{ ctrl.fastBtcWallet.balance }}</span></div>
         <h4>Early access token wallet</h4>
        <div role="alert" id="accInfoOg">Balance of <span id="accBalanceOg">>{{ ctrl.ogWallet.address }}</span><br /><span id="balanceOg">{{ ctrl.ogWallet.balance }}</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <br />
+        <br />
+        <table>
+          <tr>
+            <th>Node type</th>
+            <th>Total actions</th>
+            <th>Total Profit</th>
+            <th>Total actions last 24h</th>
+            <th>Total profit last 24h</th>
+            <th>Details</th>
+          </tr>
+          <tr>
+            <td>Liquidator</td>
+            <td>{{ ctrl.totalLiquidations }}</td>
+            <td>{{ ctrl.totalLiquidatorProfit }}</td>
+            <td>{{ ctrl.last24HLiquidations }}</td>
+            <td>{{ ctrl.last24HLiquidatorProfit }}</td>
+            <td>
+              <div>Current open positions: <span>{{ ctrl.numberOpenPositions }}</span></div>
+              <div>Waiting to get liquidated: <span>{{ ctrl.numberLiquidationsInQueue }}</span></div>
+            </td>
+          </tr>
+          <tr>
+            <td>Arbitrage</td>
+            <td>{{ ctrl.totalArbitrages }}</td>
+            <td>{{ ctrl.totalArbitrageProfit }}</td>
+            <td>{{ ctrl.last24HArbitrages }}</td>
+            <td>{{ ctrl.last24HArbitrageProfit }}</td>
+            <td>
+              <div ng-if="ctrl.arbitrageDeals.length > 0" ng-repeat="deal in ctrl.arbitrageDeals">
+                <span>Swap {{ ctrl.deal.from }} to {{ ctrl.deal.to }}</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Rollover</td>
+            <td>{{ ctrl.totalRollovers }}</td>
+            <td>{{ ctrl.totalRolloverProfit }}</td>
+            <td>{{ ctrl.last24HRollovers }}</td>
+            <td>{{ ctrl.last24HRolloverProfit }}</td>
+            <td></td>
+          </tr>
+        </table>
       </div>
     </div>
   </div>

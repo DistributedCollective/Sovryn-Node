@@ -15,6 +15,7 @@ import C from './contract';
 import U from '../util/helper';
 import A from '../secrets/accounts';
 import conf from '../config/config';
+import tokensDictionary from '../config/tokensDictionary.json'
 import  common from './common';
 import abiDecoder from 'abi-decoder';
 import abiSwap from "../config/abiSovrynSwapNetwork";
@@ -32,7 +33,7 @@ class Arbitrage {
      * 2. If arbitrage opportunity is found: buy the tokens which are too many:
      * Token x if price(Amm) < price(PriceFeed), RBtc otherwise
      */
-    async start() {
+    async start(arbitrageDeals) {
         while (true) {
             console.log("started checking prices");
 
@@ -48,10 +49,12 @@ class Arbitrage {
                 if (arb && (arb === parseFloat(prices[p][0]).toFixed(5))) {
                     let convertedAmount = C.web3.utils.toWei(prices[p][0].toString(), "Ether");
                     res = await this.swap(convertedAmount, p, 'rbtc');
+                    arbitrageDeals.push({from: tokensDictionary[p], to: 'rBTC'});
                 }
                 //the oracle price is lower -> sell btc
                 else if (arb && (arb === parseFloat(prices[p][1]).toFixed(5))) {
                     res = await this.swap(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
+                    arbitrageDeals.push({from: 'rBTC', to: tokensDictionary[p]});
                 }
 
                 if(res) profit = await this.calculateProfit(res, p[1]);
@@ -209,7 +212,7 @@ class Arbitrage {
 
                     const gasPrice = await C.getGasPrice();
                     contract2.methods["convertByPath"](result, amount, minReturn)
-                        .send({ from: beneficiary, gas: 2500000, gasPrice: gasPrice, value: val })
+                        .send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
                             console.log("Arbitrage tx successful");
                             return resolve(tx);
