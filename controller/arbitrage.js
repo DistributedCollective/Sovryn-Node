@@ -145,9 +145,29 @@ class Arbitrage {
 
     async handleDynamicArbitrageForToken(tokenSymbol, tokenAddress) {
         console.log(`checking token ${tokenSymbol}`);
+        const arbitrageOpportunity = await this.findArbitrageOpportunityForToken(tokenAddress);
+        if(!arbitrageOpportunity) {
+            console.log(`no arbitrage opportunity found for ${tokenSymbol}`)
+            return;
+        }
+        console.log(
+            `Found arbitrage opportunity: ${C.web3.utils.fromWei(arbitrageOpportunity.amount)} ` +
+            `${arbitrageOpportunity.sourceTokenAddress} -> ${arbitrageOpportunity.destTokenAddress}`
+        );
+
+        const arbitragePercentage = await this.calculateArbitragePercentage(arbitrageOpportunity);
+        console.log('arbitrage%', arbitragePercentage.toFixed(5));
+        if(arbitragePercentage < conf.thresholdArbitrage) {
+            console.log(`arbitrage too low for threshold ${conf.thresholdArbitrage}`);
+            return;
+        }
+
+        return await this.executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress);
+    }
+
+    async findArbitrageOpportunityForToken(tokenAddress) {
         const rbtcAddress = conf.testTokenRBTC;
         const rbtcContract = C.contractTokenRBTC;
-        const fromAddress = A.arbitrage[0].adr;
         const liquidityPool = await C.getLiquidityPoolByTokens(rbtcAddress, tokenAddress);
         const tokenContract = C.getTokenInstance(tokenAddress);
 
@@ -156,7 +176,7 @@ class Arbitrage {
         const tokenContractBalance = this.BN(await tokenContract.methods.balanceOf(liquidityPool._address).call());
         const tokenStakedBalance = this.BN(await liquidityPool.methods.reserveStakedBalance(tokenAddress).call());
 
-        const arbitrageOpportunity = calculateArbitrageOpportunity(
+        return calculateArbitrageOpportunity(
             rbtcAddress,
             rbtcContractBalance,
             rbtcStakedBalance,
@@ -164,25 +184,12 @@ class Arbitrage {
             tokenContractBalance,
             tokenStakedBalance,
         );
-        if(!arbitrageOpportunity) {
-            console.log(`no arbitrage opportunity found for ${tokenSymbol}`)
-            return;
-        }
-        let sourceSymbol, destSymbol, sourceContract;
-        if(arbitrageOpportunity.sourceTokenAddress === rbtcAddress) {
-            sourceSymbol = 'rbtc';
-            destSymbol = tokenSymbol;
-            sourceContract = rbtcContract;
-        } else {
-            sourceSymbol = tokenSymbol;
-            destSymbol = 'rbtc';
-            sourceContract = tokenContract;
-        }
-        console.log(
-            `Found opportunity: ${C.web3.utils.fromWei(arbitrageOpportunity.amount)} ` +
-            `${sourceSymbol} -> ${destSymbol}`
-        );
+    }
 
+    async calculateArbitragePercentage(arbitrageOpportunity) {
+        if(!arbitrageOpportunity) {
+            return 0;
+        }
         const priceAmmWeiStr = await this.getPriceFromAmm(
             C.contractSwaps,
             arbitrageOpportunity.sourceTokenAddress,
@@ -198,13 +205,26 @@ class Arbitrage {
         const priceAmm = parseFloat(C.web3.utils.fromWei(priceAmmWeiStr, 'Ether'));
         const pricePriceFeed = parseFloat(C.web3.utils.fromWei(pricePriceFeedWeiStr, 'Ether'));
 
-        console.log(`${tokenSymbol} prices:`, priceAmm.toFixed(5), pricePriceFeed.toFixed(5));
+        console.log(`prices:`, priceAmm.toFixed(5), pricePriceFeed.toFixed(5));
         const smallerPrice = Math.min(priceAmm, pricePriceFeed);
-        const arbitragePercentage = Math.abs(priceAmm - pricePriceFeed) / smallerPrice * 100;
-        console.log('arbitrage%', arbitragePercentage.toFixed(5));
-        if(arbitragePercentage < conf.thresholdArbitrage) {
-            console.log(`arbitrage too low for threshold ${conf.thresholdArbitrage}`);
-            return;
+        return Math.abs(priceAmm - pricePriceFeed) / smallerPrice * 100;
+    }
+
+    async executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress) {
+        const rbtcAddress = conf.testTokenRBTC;
+        const rbtcContract = C.contractTokenRBTC;
+        const fromAddress = A.arbitrage[0].adr;
+        const tokenContract = C.getTokenInstance(tokenAddress);
+
+        let sourceSymbol, destSymbol, sourceContract;
+        if(arbitrageOpportunity.sourceTokenAddress === rbtcAddress) {
+            sourceSymbol = 'rbtc';
+            destSymbol = tokenSymbol;
+            sourceContract = rbtcContract;
+        } else {
+            sourceSymbol = tokenSymbol;
+            destSymbol = 'rbtc';
+            sourceContract = tokenContract;
         }
 
         console.log(`EXECUTING ARBITRAGE! SELL ${sourceSymbol}, BUY ${destSymbol}!`)
@@ -220,10 +240,12 @@ class Arbitrage {
             amount = arbitragerBalance;
         }
         const result = await this.swap(amount, sourceSymbol, destSymbol, fromAddress);
-        if(result) {
-            // TODO: pricePriceFeed is wrong here -- it is not always rbtc price
-            await this.calculateProfit(result, pricePriceFeed, amount);
-        }
+        // TODO: this part is still TODO
+        //if(result) {
+        //    // TODO: pricePriceFeed is wrong here -- it is not always rbtc price
+        //    await this.calculateProfit(result, pricePriceFeed, amount);
+        //}
+        return result;
     }
 
     async startFixedAmount() {
