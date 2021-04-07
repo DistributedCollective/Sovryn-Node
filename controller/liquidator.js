@@ -3,9 +3,6 @@
  * If liquidation is successful removes position from liquidation list
  * If it fails, check if the liquidation criteria are still met.
  * If no, delete it from the liquidation list. If yes, send an error notification to a telegram group for manual processing.
- *
- * todo: If the contract returns WRBTC when liquidating long positions -> swap the WRBTC For RBTC to avoid bankrupcy of the wallet
- * alternative: liquidate only with wrbtc
  */
 
 import C from './contract';
@@ -55,19 +52,9 @@ class Liquidator {
                     await this.handleNoWalletError(p);
                     continue;
                 } 
-                let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
-                const gasPrice = await C.getGasPrice();
-                const rbtcBalance = await C.web3.eth.getBalance(wallet.adr);
-                const feeCost = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)).toNumber();
-                if(pos.maxLiquidatable<wBalance && feeCost<rbtcBalance) console.log("enough balance on wallet");
-                else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
-                else {
-                    if (token === "rBtc")
-                        liquidateAmount = C.web3.utils.toBN(wBalance).sub(feeCost).toNumber();
-                    if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
-                    if (feeCost>rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
-                    console.log("not enough balance on wallet. only use "+liquidateAmount);
-                }
+
+                const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet)
+                if (!liquidateAmount) return;
 
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
@@ -79,11 +66,28 @@ class Liquidator {
         }
     }
 
+    async calculateLiquidateAmount(wBalance, pos, token, wallet) {
+        let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
+        const gasPrice = await C.getGasPrice();
+        const rbtcBalance = await C.web3.eth.getBalance(wallet.adr);
+        const txFees = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)).toNumber();
+        if(pos.maxLiquidatable<wBalance && txFees<rbtcBalance) console.log("enough balance on wallet");
+        else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
+        else {
+            if (token === "rBtc")
+                liquidateAmount = C.web3.utils.toBN(wBalance).sub(C.web3.utils.toBN(txFees)).toNumber();
+            if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
+            if (txFees>rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
+            console.log("not enough balance on wallet. only use "+liquidateAmount);
+        }
+        return liquidateAmount;
+    }
+
     /**
     * swaps back to collateral currency after liquidation is completed
     * @param value should be sent in Wei format as String
     * @param sourceCurrency should be that hash of the contract
-    * @param destCurrency is defaulting for now to 'rbtc'. It is also the hash of the contract
+    * @param destCurrency is defaulting for now to 'rbtc'
     */
     async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc') {
         sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : tokensDictionary[conf.network][sourceCurrency];

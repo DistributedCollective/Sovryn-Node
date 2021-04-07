@@ -76,6 +76,38 @@ describe('Liquidation', async () => {
             const profit = await Liquidator.calculateLiqProfit(liqEvent);
             assert(profit);
         });
+
+        it("Calculate liquidate amount", async () => {
+            // This test will only work if having enough balances in the accounts
+            const pos = { maxLiquidatable: '29468111719705' };
+
+            // Liquidating altcoin
+            // Case 1: enough balance to liquidate 100%
+            let liquidateAmount = await Liquidator.calculateLiquidateAmount('29468111719705', pos, 'doc', { adr: A.liquidator[0].adr });
+            assert(liquidateAmount === '29468111719705');
+
+            // Case 2: can only use only some part of the balance
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('19468111719705', pos, 'doc', { adr: A.liquidator[0].adr });
+            assert(liquidateAmount === '19468111719705');
+
+            // Case 3: not enough balance to pay for fees
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('19468111719705', pos, 'doc', { adr: '0xB5Df6D74152F9A4314DD25934d5DeeEE9A7aA3FD'});
+            assert(liquidateAmount === undefined);
+
+            // Liquidating rBtc
+            // Case 1: enough balance to liquidate 100%
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('294681117197050', pos, 'rBtc', { adr: A.liquidator[0].adr });
+            assert(liquidateAmount === '29468111719705');
+
+            // Case 2: can only use only some part of the balance
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('194681117197050', pos, 'rBtc', { adr: A.liquidator[0].adr });
+            assert(liquidateAmount == '15480117197050');
+
+            // Case 3: not enough balance to pay for fees
+            liquidateAmount = await Liquidator.calculateLiquidateAmount('19468111719705', pos, 'rBtc', { adr: '0xB5Df6D74152F9A4314DD25934d5DeeEE9A7aA3FD'});
+            assert(liquidateAmount === undefined);
+
+        });
     })
 
     // Deprecated contracts

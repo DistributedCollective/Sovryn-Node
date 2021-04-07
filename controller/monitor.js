@@ -6,14 +6,20 @@ const axios = require('axios');
 import A from '../secrets/accounts';
 import C from './contract';
 import conf from '../config/config';
+import tokensDictionary from '../config/tokensDictionary.json';
 import common from './common';
+import dbCtrl from './db';
 import accounts from '../secrets/accounts';
+
+const tokensArray = Object.values(tokensDictionary[conf.network]);
+const tokensAddressArray = Object.keys(tokensDictionary[conf.network]);
 
 class MonitorController {
 
-    start(positions, liquidations, posScanner) {
+    start(positions, liquidations, arbitrageDeals, posScanner) {
         this.positions = positions;
         this.liquidations = liquidations;
+        this.arbitrageDeals = arbitrageDeals;
         this.posScanner = posScanner;
 
         if(conf.errorBotTelegram!="") {
@@ -37,7 +43,8 @@ class MonitorController {
             accountInfoRoll: await this.getAccountInfo(A.rollover),
             accountInfoArb: await this.getAccountInfo(A.arbitrage),
             positionInfo: await this.getOpenPositions(),
-            liqInfo: await this.getOpenLiquidations()
+            liqInfo: await this.getOpenLiquidations(),
+            arbitrageDeals: await this.getArbitrageDeals()
         }
         if (typeof cb === "function") cb(resp);
         else return resp;
@@ -46,26 +53,27 @@ class MonitorController {
     async getAddresses(cb) {
         console.log("get addresses")
         const resp = {
-            liquidator: await Promise.all(accounts.liquidator.map(async (account) => ({ 
-                    address: account.adr, 
-                    balance: Number(
-                        C.web3.utils.fromWei(await C.web3.eth.getBalance(account.adr), "Ether")
-                    ).toFixed(5)
-                }))
-            ),
-            rollover: { 
-                address: accounts.rollover[0].adr, 
-                balance: Number(C.web3.utils.fromWei(
-                    await C.web3.eth.getBalance(accounts.rollover[0].adr), "Ether")
-                ).toFixed(5)
-            },
-            arbitrage: { 
-                address: accounts.arbitrage[0].adr, 
-                balance: Number(
-                    C.web3.utils.fromWei(await C.web3.eth.getBalance(accounts.arbitrage[0].adr), "Ether")
-                ).toFixed(5)
-            }
+            liquidator: await Promise.all(accounts.liquidator.map(async (account) => await this.getAccountInfoForFrontend(account))),
+            rollover: await this.getAccountInfoForFrontend(accounts.rollover[0]),
+            arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0])
         };
+        if (typeof cb === "function") cb(resp);
+        else return resp;
+    }
+
+    async getTotals(cb, last24h) {
+        console.log(last24h ? "get last 24h totals" : "get totals")
+        const liquidator = await dbCtrl.getTotals('liquidator', last24h);
+        const arbitrage = await dbCtrl.getTotals('arbitrage', last24h);
+        const rollover = await dbCtrl.getTotals('rollover', last24h);
+        const resp = {
+            totalLiquidations: liquidator.totalActionsNumber,
+            totalArbitrages: arbitrage.totalActionsNumber,
+            totalRollovers: rollover.totalActionsNumber,
+            totalLiquidatorProfit: Number(liquidator.profit).toFixed(6),
+            totalArbitrageProfit: Number(arbitrage.profit).toFixed(6),
+            totalRolloverProfit: Number(rollover.profit).toFixed(6)
+        }
         if (typeof cb === "function") cb(resp);
         else return resp;
     }
@@ -152,6 +160,27 @@ class MonitorController {
         return accBalances;
     }
 
+    async getAccountInfoForFrontend(account) {
+        let accountWithInfo = { 
+            address: account.adr, 
+            balance: Number(C.web3.utils.fromWei(
+                await C.web3.eth.getBalance(account.adr), "Ether")
+            ).toFixed(5),
+            tokenBalances: await Promise.all(
+                tokensArray.map(async token => ({
+                    token,
+                    balance: Number(
+                        C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                    ).toFixed(5),
+                }))
+            )
+        }
+        accountWithInfo.tokenBalances = accountWithInfo.tokenBalances.map(tokenBalance => ({
+            ...tokenBalance, overThreshold: tokenBalance.balance > conf.balanceThresholds[tokenBalance.token]
+        }))
+        return accountWithInfo;
+    }
+
     getOpenPositions() {
         return Object.keys(this.positions).length;
     }
@@ -167,6 +196,10 @@ class MonitorController {
     //todo: add from-to, to be called from client
     async getOpenLiquidationsDetails(cb) {
         if (typeof cb === "function") cb(this.liquidations);
+    }
+
+    async getArbitrageDeals(cb) {
+        if (typeof cb === "function") cb(this.arbitrageDeals);
     }
 }
 
