@@ -1,3 +1,4 @@
+import formatDate from '../controller/common';
 import BaseModel from './baseModel';
 
 export default class Arbitrage extends BaseModel {
@@ -32,7 +33,7 @@ export default class Arbitrage extends BaseModel {
     insert(data) {
         return super.insert({
             ...data,
-            dateAdded: new Date()
+            dateAdded: formatDate(Date.now()/1000)
         });
     }
 

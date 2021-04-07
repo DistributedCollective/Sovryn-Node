@@ -19,6 +19,7 @@ import conf from '../config/config';
 import  common from './common';
 import abiDecoder from 'abi-decoder';
 import abiSwap from "../config/abiSovrynSwapNetwork";
+import tokensDictionary from '../config/tokensDictionary.json'
 import db from "./db";
 
 const BN = Web3.utils.BN;
@@ -72,24 +73,37 @@ export function calculateArbitrageOpportunity(
     token2StakedBalance
 ) {
     const token1Delta = token1StakedBalance.sub(token1ContractBalance);
-    if(token1Delta.isZero()) {
+    const token2Delta = token2StakedBalance.sub(token2ContractBalance);
+    console.log('tokenDeltas:', token1Delta.toString(), token2Delta.toString());
+
+    // NOTE: it's possible that at least one delta is negative and the other one is zero
+    if(token1Delta.isZero() && token2Delta.isZero()) {
         // perfect equilibrium - no arbitrage
         return null;
     }
 
     let sourceTokenAddress, destTokenAddress, amount;
     if(token1Delta.isNeg()) {
-        const token2Delta = token2StakedBalance.sub(token2ContractBalance);
-        if(token2Delta.isZero() || token2Delta.isNeg()) {
-            throw new Error('weird deltas, should not happen');
+        if(token2Delta.isNeg()) {
+            // TODO: not sure about this case
+            console.warn('both deltas negative:', token1Delta.toString(), token2Delta.toString());
+            return null;
         }
         sourceTokenAddress = token2Address;
         destTokenAddress = token1Address;
         amount = token2Delta;
     } else {
+        if(!token2Delta.isNeg()) {
+            // TODO: not sure about this case either
+            console.warn('both deltas positive:', token1Delta.toString(), token2Delta.toString());
+        }
         sourceTokenAddress = token1Address;
         destTokenAddress = token2Address;
         amount = token1Delta;
+    }
+    if(amount.isZero()) {
+        // no opportunity here
+        return null;
     }
     return new ArbitrageOpportunity(
         sourceTokenAddress,
@@ -114,6 +128,7 @@ class Arbitrage {
      * 2. If arbitrage opportunity is found: buy the tokens which are too many:
      * Token x if price(Amm) < price(PriceFeed), RBtc otherwise
      */
+
     async start() {
         if(conf.enableDynamicArbitrageAmount) {
             await this.startDynamicAmount();
@@ -264,10 +279,12 @@ class Arbitrage {
                 if (arb && (arb === parseFloat(prices[p][0]).toFixed(5))) {
                     let convertedAmount = C.web3.utils.toWei(prices[p][0].toString(), "Ether");
                     res = await this.swap(convertedAmount, p, 'rbtc');
+                    arbitrageDeals.push({from: tokensDictionary[p], to: 'rBTC'});
                 }
                 //the oracle price is lower -> sell btc
                 else if (arb && (arb === parseFloat(prices[p][1]).toFixed(5))) {
                     res = await this.swap(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
+                    arbitrageDeals.push({from: 'rBTC', to: tokensDictionary[p]});
                 }
 
                 if(res) profit = await this.calculateProfit(res, p[1]);
@@ -425,16 +442,19 @@ class Arbitrage {
 
                     const gasPrice = await C.getGasPrice();
                     contract2.methods["convertByPath"](result, amount, minReturn)
-                        .send({ from: beneficiary, gas: 2500000, gasPrice: gasPrice, value: val })
+                        .send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
-                            console.log("Arbitrage tx successful");
-                            await common.telegramBot.sendMessage(`arbitrage tx successful (${amount} ${sourceCurrency} -> ${destCurrency}). txhash: ${tx.transactionHash}`);
+                            const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val, 'Ether')} ${tokensDictionary[conf.network][sourceToken].toUpperCase()} for ${tokensDictionary[conf.network][destToken].toUpperCase()}`;
+                            console.log(msg);
+                            await common.telegramBot.sendMessage(`${conf.network}-${msg}`)
+
                             return resolve(tx);
                         })
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
                             await common.telegramBot.sendMessage(`error on arbitrage tx (${amount} ${sourceCurrency} -> ${destCurrency}): ` + JSON.stringify(err, null, 2));
+
                             return resolve();
                         });
                 });
