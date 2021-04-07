@@ -86,6 +86,10 @@ To enable Log-rotationdo "pm2 install pm2-logrotate" and afterwards "pm2 set pm2
 ### Developer
 To develop the frontend with Hot Reload run `npm run dev`
 
+### Hardhat tests
+Sovryn-Node includes tests created with Hardhat. To run them, first `npm install` this package,
+then follow the instructions in `integration-tests/README.md`.
+
 License
 ----
 
