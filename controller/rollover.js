@@ -41,7 +41,7 @@ class Rollover {
                 else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
                
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
-                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collatralToken: "+this.positions[p].collateralToken);
+                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collateralToken: "+conf.tokensDictionary[this.positions[p].collateralToken.toLowerCase()]);
                     const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     if (wallet) {
                         const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');

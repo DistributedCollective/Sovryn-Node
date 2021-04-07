@@ -11,7 +11,6 @@ import A from '../secrets/accounts';
 import Wallet from './wallet';
 import Arbitrage from '../controller/arbitrage';
 import conf from '../config/config';
-import tokensDictionary from '../config/tokensDictionary.json'
 import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
@@ -90,8 +89,8 @@ class Liquidator {
     * @param destCurrency is defaulting for now to 'rbtc'
     */
     async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc') {
-        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : tokensDictionary[conf.network][sourceCurrency];
-        destCurrency = destCurrency === 'rbtc' ? destCurrency : tokensDictionary[conf.network][destCurrency];
+        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : conf.tokensDictionary[sourceCurrency.toLowerCase()];
+        destCurrency = destCurrency === 'rbtc' ? destCurrency : conf.tokensDictionary[destCurrency.toLowerCase()];
         console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency}`);
         try {
             const prices = await Arbitrage.getRBtcPrices();
@@ -167,6 +166,23 @@ class Liquidator {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
         await common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
     }
+
+    async calculateLiqProfit(liqEvent) {
+        console.log("Calculate profit for liquidation", liqEvent.loanId);
+        // To calculate the profit from a liquidation we need to get the difference between the amount we deposit in the contract, repayAmount,
+        // and the amount we get back, collateralWithdrawAmount. But to do this we need to convert both to the same currency
+        // Convert spent amount to collateral token 
+        const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
+        if (convertedPaidAmount) {
+            const liqProfit = C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount));
+            console.log("You made "+liqProfit+" "+conf.tokensDictionary[liqEvent.collateralToken.toLowerCase()]+" with this liquidation");
+            return liqProfit;
+        }
+        else {
+            console.log("Couldn't calculate the profit for the given liquidation");
+        }
+    }
+
 
     async addLiqLog(txHash) {
         console.log("Add liquidation "+txHash+" to db");
