@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { BN } from '@openzeppelin/test-helpers';
 
-import C from '../../controller/contract';
+import Contract from '../../controller/contract';
 
 import {initSovrynNodeForTesting} from "./base/backend";
 import {initSovrynContracts, ConverterHelper} from "./base/contracts";
@@ -28,7 +28,7 @@ describe("Contract controller", () => {
             usdtToken,
         } = sovrynContracts;
 
-        const liquidityPool = await C.getLiquidityPoolByTokens(wrbtcToken.address, usdtToken.address);
+        const liquidityPool = await Contract.getLiquidityPoolByTokens(wrbtcToken.address, usdtToken.address);
         const contractPrimaryToken = await liquidityPool.methods.primaryReserveToken().call();
         expect(contractPrimaryToken.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
         const balance1 = await liquidityPool.methods.reserveStakedBalance(wrbtcToken.address).call();
