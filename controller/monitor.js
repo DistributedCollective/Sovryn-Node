@@ -8,6 +8,7 @@ import C from './contract';
 import conf from '../config/config';
 import tokensDictionary from '../config/tokensDictionary.json';
 import common from './common';
+import dbCtrl from './db';
 import accounts from '../secrets/accounts';
 
 const tokensArray = Object.values(tokensDictionary[conf.network]);
@@ -15,9 +16,10 @@ const tokensAddressArray = Object.keys(tokensDictionary[conf.network]);
 
 class MonitorController {
 
-    start(positions, liquidations, posScanner) {
+    start(positions, liquidations, arbitrageDeals, posScanner) {
         this.positions = positions;
         this.liquidations = liquidations;
+        this.arbitrageDeals = arbitrageDeals;
         this.posScanner = posScanner;
 
         if(conf.errorBotTelegram!="") {
@@ -41,7 +43,8 @@ class MonitorController {
             accountInfoRoll: await this.getAccountInfo(A.rollover),
             accountInfoArb: await this.getAccountInfo(A.arbitrage),
             positionInfo: await this.getOpenPositions(),
-            liqInfo: await this.getOpenLiquidations()
+            liqInfo: await this.getOpenLiquidations(),
+            arbitrageDeals: await this.getArbitrageDeals()
         }
         if (typeof cb === "function") cb(resp);
         else return resp;
@@ -54,6 +57,23 @@ class MonitorController {
             rollover: await this.getAccountInfoForFrontend(accounts.rollover[0]),
             arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0])
         };
+        if (typeof cb === "function") cb(resp);
+        else return resp;
+    }
+
+    async getTotals(cb, last24h) {
+        console.log(last24h ? "get last 24h totals" : "get totals")
+        const liquidator = await dbCtrl.getTotals('liquidator', last24h);
+        const arbitrage = await dbCtrl.getTotals('arbitrage', last24h);
+        const rollover = await dbCtrl.getTotals('rollover', last24h);
+        const resp = {
+            totalLiquidations: liquidator.totalActionsNumber,
+            totalArbitrages: arbitrage.totalActionsNumber,
+            totalRollovers: rollover.totalActionsNumber,
+            totalLiquidatorProfit: Number(liquidator.profit).toFixed(6),
+            totalArbitrageProfit: Number(arbitrage.profit).toFixed(6),
+            totalRolloverProfit: Number(rollover.profit).toFixed(6)
+        }
         if (typeof cb === "function") cb(resp);
         else return resp;
     }
@@ -176,6 +196,10 @@ class MonitorController {
     //todo: add from-to, to be called from client
     async getOpenLiquidationsDetails(cb) {
         if (typeof cb === "function") cb(this.liquidations);
+    }
+
+    async getArbitrageDeals(cb) {
+        if (typeof cb === "function") cb(this.arbitrageDeals);
     }
 }
 
