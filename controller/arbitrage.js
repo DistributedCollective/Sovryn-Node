@@ -73,24 +73,33 @@ export function calculateArbitrageOpportunity(
     token2StakedBalance
 ) {
     const token1Delta = token1StakedBalance.sub(token1ContractBalance);
-    if(token1Delta.isZero()) {
+    const token2Delta = token2StakedBalance.sub(token2ContractBalance);
+
+    // NOTE: it's possible that at least one delta is negative and the other one is zero
+    if(token1Delta.isZero() && token2Delta.isZero()) {
         // perfect equilibrium - no arbitrage
         return null;
     }
 
     let sourceTokenAddress, destTokenAddress, amount;
     if(token1Delta.isNeg()) {
-        const token2Delta = token2StakedBalance.sub(token2ContractBalance);
-        if(token2Delta.isZero() || token2Delta.isNeg()) {
-            throw new Error('weird deltas, should not happen');
+        if(token2Delta.isNeg()) {
+            throw new Error('weird deltas, should not happen:', token1Delta.toString(), token2Delta.toString());
         }
         sourceTokenAddress = token2Address;
         destTokenAddress = token1Address;
         amount = token2Delta;
     } else {
+        if(!token2Delta.isNeg()) {
+            throw new Error('weird deltas, should not happen:', token1Delta.toString(), token2Delta.toString());
+        }
         sourceTokenAddress = token1Address;
         destTokenAddress = token2Address;
         amount = token1Delta;
+    }
+    if(amount.isZero()) {
+        // no opportunity here
+        return null;
     }
     return new ArbitrageOpportunity(
         sourceTokenAddress,
