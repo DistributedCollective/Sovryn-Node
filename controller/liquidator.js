@@ -3,9 +3,6 @@
  * If liquidation is successful removes position from liquidation list
  * If it fails, check if the liquidation criteria are still met.
  * If no, delete it from the liquidation list. If yes, send an error notification to a telegram group for manual processing.
- *
- * todo: If the contract returns WRBTC when liquidating long positions -> swap the WRBTC For RBTC to avoid bankrupcy of the wallet
- * alternative: liquidate only with wrbtc
  */
 
 import C from './contract';
