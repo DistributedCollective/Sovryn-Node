@@ -37,6 +37,7 @@ export default  {
     },
     thresholdArbitrage: 2, //in %
     amountArbitrage: 0.05, //in rbtc
+    enableDynamicArbitrageAmount: true,
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -492690059,
     healthMonitorPort: 3, //results in 3003

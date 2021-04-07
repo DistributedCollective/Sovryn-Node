@@ -8,6 +8,9 @@ import abiTestToken from '../config/abiTestToken';
 import abiSwaps from '../config/abiSovrynSwapNetwork';
 import abiPriceFeed from '../config/abiPriceFeed';
 import abiRBTCWrapperProxy from '../config/abiRBTCWrapperProxy';
+import abiIContractRegistry from '../config/abiIContractRegistry';
+import abiConverterRegistry from '../config/abiConverterRegistry';
+import abiLiquidityPoolV2Converter from '../config/abiLiquidityPoolV2Converter';
 import conf from '../config/config';
 import wallets from '../secrets/accounts';
 
@@ -157,6 +160,44 @@ class Contract {
         });
     }
 
+    /**
+     * Returns the liquidity pool converter for a token pair
+     * @returns {Promise<Contract>}
+     */
+    async getLiquidityPoolByTokens(token1Address, token2Address) {
+        // NOTE: this can be optimized by including the AMM addresses to the config,
+        // but then it needs to be updated if the things change.
+        token1Address = token1Address.toLowerCase();
+        token2Address = token2Address.toLowerCase();
+        const registry = await this.getConverterRegistry();
+        const token1Anchors = await registry.methods.getConvertibleTokenAnchors(token1Address).call();
+        const token2Anchors = await registry.methods.getConvertibleTokenAnchors(token2Address).call();
+        let anchor = null;
+        for(const token1Anchor of token1Anchors) {
+            if(token2Anchors.indexOf(token1Anchor) !== -1) {
+                if(anchor) {
+                    throw new Error(`multiple anchors found for ${token1Address} and ${token2Address}`);
+                }
+                anchor = token1Anchor;
+            }
+        }
+        if(!anchor) {
+            throw new Error(`no anchors found for ${token1Address} and ${token2Address}`);
+        }
+        const converterAddresses = await registry.methods.getConvertersByAnchors([anchor]).call();
+        if(converterAddresses.length === 0) {
+            throw new Error(`no converters found for ${token1Address} and ${token2Address}`);
+        }
+        if(converterAddresses.length > 1) {
+            throw new Error(`multiple converters found for ${token1Address} and ${token2Address}: ${converterAddresses}`);
+        }
+        const converterAddress = converterAddresses[0];
+        const isLiquidityPool = await registry.methods.isLiquidityPool(converterAddress);
+        if(!isLiquidityPool) {
+            throw new Error(`converter ${converterAddress} for ${token1Address} and ${token2Address} is not a liquidity pool`);
+        }
+        return new this.web3.eth.Contract(abiLiquidityPoolV2Converter, converterAddress);
+    }
 
     /**
      * helper function
@@ -172,6 +213,18 @@ class Contract {
     async getGasPrice() {
         const gasPrice = await this.web3.eth.getGasPrice();
         return Math.round(gasPrice * (100 + conf.gasPriceBuffer) / 100);
+    }
+
+    async getContractRegistry() {
+        const contractRegistryAddress = await this.contractSwaps.methods.registry().call();
+        return new this.web3.eth.Contract(abiIContractRegistry, contractRegistryAddress);
+    }
+
+    async getConverterRegistry() {
+        const contractRegistry = await this.getContractRegistry();
+        const converterRegistryNameBytes = this.web3.utils.asciiToHex('SovrynSwapConverterRegistry');
+        const converterRegistryAddress = await contractRegistry.methods.addressOf(converterRegistryNameBytes).call();
+        return new this.web3.eth.Contract(abiConverterRegistry, converterRegistryAddress);
     }
 }
 

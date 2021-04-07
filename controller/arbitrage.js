@@ -14,6 +14,7 @@
 import C from './contract';
 import U from '../util/helper';
 import A from '../secrets/accounts';
+import Web3 from 'web3';
 import conf from '../config/config';
 import tokensDictionary from '../config/tokensDictionary.json'
 import  common from './common';
@@ -22,10 +23,91 @@ import abiSwap from "../config/abiSovrynSwapNetwork";
 import tokensDictionary from '../config/tokensDictionary.json'
 import db from "./db";
 
+const BN = Web3.utils.BN;
 
+export class ArbitrageOpportunity {
+    /**
+     * Construct an arbitrage opportunity DTO.
+     *
+     * @param {string} sourceTokenAddress The token to sell
+     * @param {string} destTokenAddress The token to get in exchange
+     * @param {BN} amount Amount of sourceTokenAddress to sell
+     */
+    constructor(sourceTokenAddress, destTokenAddress, amount) {
+        this.sourceTokenAddress = sourceTokenAddress;
+        this.destTokenAddress = destTokenAddress;
+        this.amount = amount;
+    }
+}
+
+/**
+ * Calculate the arbitrage opportunity for a token pair, given both actual contract balance and staked balance
+ * in the liquidity pool for both.
+ *
+ * The calculation is based on the principles outlined in this article:
+ * https://blog.bancor.network/calculating-dynamic-reserve-weights-in-bancorv2-538b901bcac4
+ *
+ * In summary, whenever the staked balance of a token exceeds the balance actually owned by the liquidity pool,
+ * there exists an arbitrage opportunity to sell the token, and the optimal amount to sell is:
+ *
+ *     stakedBalance - contractBalance
+ *
+ * In case this is negative, we calculate the amount using the balances of the other token and sell it instead.
+ * No complicated math should be required.
+ *
+ * Note that this calculation doesn't mean the opportunity is worth our time when all fees are considered.
+ *
+ * @param {string} token1Address Address of first token
+ * @param {BN} token1ContractBalance Amount of first token actually owned by the liquidity pool
+ * @param {BN} token1StakedBalance Amount of first token staked in the liquidity pool
+ * @param {string} token2Address Address of second token
+ * @param {BN} token2ContractBalance Amount of second token actually owned by the liquidity pool
+ * @param {BN} token2StakedBalance Amount of second token staked in the liquidity pool
+ * @returns {(ArbitrageOpportunity|null)} DTO representing the opportunity, or null if none found
+ */
+export function calculateArbitrageOpportunity(
+    token1Address,
+    token1ContractBalance,
+    token1StakedBalance,
+    token2Address,
+    token2ContractBalance,
+    token2StakedBalance
+) {
+    const token1Delta = token1StakedBalance.sub(token1ContractBalance);
+    if(token1Delta.isZero()) {
+        // perfect equilibrium - no arbitrage
+        return null;
+    }
+
+    let sourceTokenAddress, destTokenAddress, amount;
+    if(token1Delta.isNeg()) {
+        const token2Delta = token2StakedBalance.sub(token2ContractBalance);
+        if(token2Delta.isZero() || token2Delta.isNeg()) {
+            throw new Error('weird deltas, should not happen');
+        }
+        sourceTokenAddress = token2Address;
+        destTokenAddress = token1Address;
+        amount = token2Delta;
+    } else {
+        sourceTokenAddress = token1Address;
+        destTokenAddress = token2Address;
+        amount = token1Delta;
+    }
+    return new ArbitrageOpportunity(
+        sourceTokenAddress,
+        destTokenAddress,
+        amount,
+    )
+}
+
+
+/**
+ * Main arbitrage controller
+ */
 class Arbitrage {
     constructor() {
         abiDecoder.addABI(abiSwap);
+        this.BN = C.web3.utils.toBN;
     }
 
     /**
@@ -34,7 +116,120 @@ class Arbitrage {
      * 2. If arbitrage opportunity is found: buy the tokens which are too many:
      * Token x if price(Amm) < price(PriceFeed), RBtc otherwise
      */
-    async start(arbitrageDeals) {
+
+    async start() {
+        if(conf.enableDynamicArbitrageAmount) {
+            await this.startDynamicAmount();
+        } else {
+            await this.startFixedAmount();
+        }
+    }
+
+    async startDynamicAmount() {
+        const tokens = [
+            ['usdt', conf.USDTToken],
+            ['doc', conf.docToken],
+        ];
+        while(true) {
+            console.log("started checking prices (dynamic)");
+
+            for(const [tokenSymbol, tokenAddress] of tokens) {
+                try {
+                    await this.handleDynamicArbitrageForToken(tokenSymbol, tokenAddress);
+                } catch(e) {
+                    console.error(`Error handling arbitrage for token ${tokenSymbol}`, e);
+                }
+            }
+
+            console.log("Completed checking prices");
+            await U.wasteTime(conf.arbitrageScanInterval);
+        }
+    }
+
+    async handleDynamicArbitrageForToken(tokenSymbol, tokenAddress) {
+        console.log(`checking token ${tokenSymbol}`);
+        const rbtcAddress = conf.testTokenRBTC;
+        const rbtcContract = C.contractTokenRBTC;
+        const fromAddress = A.arbitrage[0].adr;
+        const liquidityPool = await C.getLiquidityPoolByTokens(rbtcAddress, tokenAddress);
+        const tokenContract = C.getTokenInstance(tokenAddress);
+
+        const rbtcContractBalance = this.BN(await rbtcContract.methods.balanceOf(liquidityPool._address).call());
+        const rbtcStakedBalance = this.BN(await liquidityPool.methods.reserveStakedBalance(rbtcAddress).call());
+        const tokenContractBalance = this.BN(await tokenContract.methods.balanceOf(liquidityPool._address).call());
+        const tokenStakedBalance = this.BN(await liquidityPool.methods.reserveStakedBalance(tokenAddress).call());
+
+        const arbitrageOpportunity = calculateArbitrageOpportunity(
+            rbtcAddress,
+            rbtcContractBalance,
+            rbtcStakedBalance,
+            tokenAddress,
+            tokenContractBalance,
+            tokenStakedBalance,
+        );
+        if(!arbitrageOpportunity) {
+            console.log(`no arbitrage opportunity found for ${tokenSymbol}`)
+            return;
+        }
+        let sourceSymbol, destSymbol, sourceContract;
+        if(arbitrageOpportunity.sourceTokenAddress === rbtcAddress) {
+            sourceSymbol = 'rbtc';
+            destSymbol = tokenSymbol;
+            sourceContract = rbtcContract;
+        } else {
+            sourceSymbol = tokenSymbol;
+            destSymbol = 'rbtc';
+            sourceContract = tokenContract;
+        }
+        console.log(
+            `Found opportunity: ${C.web3.utils.fromWei(arbitrageOpportunity.amount)} ` +
+            `${sourceSymbol} -> ${destSymbol}`
+        );
+
+        const priceAmmWeiStr = await this.getPriceFromAmm(
+            C.contractSwaps,
+            arbitrageOpportunity.sourceTokenAddress,
+            arbitrageOpportunity.destTokenAddress,
+            arbitrageOpportunity.amount
+        );
+        const pricePriceFeedWeiStr = await this.getPriceFromPriceFeed(
+            C.contractPriceFeed,
+            arbitrageOpportunity.sourceTokenAddress,
+            arbitrageOpportunity.destTokenAddress,
+            arbitrageOpportunity.amount
+        );
+        const priceAmm = parseFloat(C.web3.utils.fromWei(priceAmmWeiStr, 'Ether'));
+        const pricePriceFeed = parseFloat(C.web3.utils.fromWei(pricePriceFeedWeiStr, 'Ether'));
+
+        console.log(`${tokenSymbol} prices:`, priceAmm.toFixed(5), pricePriceFeed.toFixed(5));
+        const smallerPrice = Math.min(priceAmm, pricePriceFeed);
+        const arbitragePercentage = Math.abs(priceAmm - pricePriceFeed) / smallerPrice * 100;
+        console.log('arbitrage%', arbitragePercentage.toFixed(5));
+        if(arbitragePercentage < conf.thresholdArbitrage) {
+            console.log(`arbitrage too low for threshold ${conf.thresholdArbitrage}`);
+            return;
+        }
+
+        console.log(`EXECUTING ARBITRAGE! SELL ${sourceSymbol}, BUY ${destSymbol}!`)
+        let amount = arbitrageOpportunity.amount;
+        const arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
+        if(arbitragerBalance.isZero()) {
+            console.log('no balance held in wallet -- cannot do anything')
+            return;
+        } else if(arbitragerBalance.lt(amount)) {
+            console.log(
+                `Limiting amount to held balance ${C.web3.utils.fromWei(arbitragerBalance)} ${sourceSymbol}`
+            );
+            amount = arbitragerBalance;
+        }
+        const result = await this.swap(amount, sourceSymbol, destSymbol, fromAddress);
+        if(result) {
+            // TODO: pricePriceFeed is wrong here -- it is not always rbtc price
+            await this.calculateProfit(result, pricePriceFeed, amount);
+        }
+    }
+
+    async startFixedAmount() {
         while (true) {
             console.log("started checking prices");
 
@@ -43,7 +238,7 @@ class Arbitrage {
             console.log(prices)
 
             for(let p in prices) {
-                //set arb to the lower price in USD (prices are actually return values given for 0.005 rbtc)
+                //set arb to the lower price in USD (prices are actually return values given for `amount` rbtc)
                 if(prices[p][0]>0 && prices[p][1]>0) arb = this.calcArbitrage(prices[p][0], prices[p][1], p, conf.thresholdArbitrage);
 
                 //the AMM price is lower -> buy BTC
@@ -114,6 +309,7 @@ class Arbitrage {
         return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], /*"bpro": [rBtcBproAmm, rBtcBproPf]*/};
     }
 
+
     /**
     * Amount is based in sourceToken
     * Returns price in wei
@@ -173,7 +369,6 @@ class Arbitrage {
         });
     }
 
-
     /**
      * Sending Doc or RBtc to the Amm
      * Amount in wei
@@ -218,12 +413,14 @@ class Arbitrage {
                             const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val, 'Ether')} ${tokensDictionary[conf.network][sourceToken].toUpperCase()} for ${tokensDictionary[conf.network][destToken].toUpperCase()}`;
                             console.log(msg);
                             await common.telegramBot.sendMessage(`${conf.network}-${msg}`)
+
                             return resolve(tx);
                         })
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
-                            await common.telegramBot.sendMessage(err.toString());
+                            await common.telegramBot.sendMessage(`error on arbitrage tx (${amount} ${sourceCurrency} -> ${destCurrency}): ` + JSON.stringify(err, null, 2));
+
                             return resolve();
                         });
                 });
@@ -237,8 +434,11 @@ class Arbitrage {
 
     }
 
-    async calculateProfit(tx, btcPriceFeed){
+    async calculateProfit(tx, btcPriceFeed, amount){
         try {
+            if(!amount) {
+                amount = conf.amountArbitrage;
+            }
             console.log("Calculate profit from arbitrage");
             const receipt = await C.web3.eth.getTransactionReceipt(tx.transactionHash);
             console.log(receipt);
@@ -249,7 +449,7 @@ class Arbitrage {
                 console.log(JSON.stringify(logs, null, 2));
 
                 if (conversionEvent && conversionEvent.events) {
-                    const priceFeed = Number(btcPriceFeed)/conf.amountArbitrage;
+                    const priceFeed = Number(btcPriceFeed)/amount;
                     console.log(priceFeed)
                     let {fromToken, toToken, fromAmount, toAmount, trader} = U.parseEventParams(conversionEvent.events);
                     let toAmountWithPFeed, trade;
