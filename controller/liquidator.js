@@ -88,7 +88,7 @@ class Liquidator {
     * @param sourceCurrency should be that hash of the contract
     * @param destCurrency is defaulting for now to 'rbtc'
     */
-    async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc') {
+    async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc', wallet) {
         sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : conf.tokensDictionary[sourceCurrency.toLowerCase()];
         destCurrency = destCurrency === 'rbtc' ? destCurrency : conf.tokensDictionary[destCurrency.toLowerCase()];
         console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency}`);
@@ -96,7 +96,7 @@ class Liquidator {
             const prices = await Arbitrage.getRBtcPrices();
             const tokenPriceInRBtc = prices[sourceCurrency];
             if (!tokenPriceInRBtc) throw "No prices found for the " + sourceCurrency + " token";
-            const res = await Arbitrage.swap(value, sourceCurrency, destCurrency, A.liquidator[0].adr);
+            const res = await Arbitrage.swap(value, sourceCurrency, destCurrency, wallet);
             if (res) console.log("Swap successful!");
         } catch(err) {
             console.log("Swap failed", err);
@@ -129,7 +129,7 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
                 p.addLiqLog(tx.transactionHash);
-                if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase());
+                if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase(), wallet);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
