@@ -1,4 +1,5 @@
 import telegramBot from '../secrets/telegram.js';
+import tokensDictionary from './tokensDictionary.json';
 
 export default {
     serverPort: 3000,
@@ -26,16 +27,18 @@ export default {
     swapsImpl: "0x98ace08d2b759a265ae326f010496bcd63c15afc", //get price from amm/old execute swaps
     priceFeed: "0x437ac62769f386b2d238409b7f0a7596d36506e4", //get oracle price
     wRbtcWrapper: "0x78e7e79f1acc1f57a3291d5bfa8436a0771c1800", //real contract not available on this version
+    tokensDictionary: tokensDictionary["main"],
     balanceThresholds: {
         doc: 100, // in doc
         usdt: 100, // in usdt
         bpro: 0.01, // in bpro
         wrbtc: 0.01 // in wrbtc
     },
-    thresholdArbitrage: 1, //in %
+    thresholdArbitrage: 2, //in %
     amountArbitrage: 0.01, //in rbtc
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
     healthMonitorPort: 10, //results in 3010
-    gasPriceBuffer: 10 //in %
+    gasPriceBuffer: 10, //in %
+    gasLimit: 2500000
 }

@@ -69,8 +69,8 @@ describe('Contract', async () => {
 
                     for (let p in pos) {
                         const amn = C.web3.utils.fromWei(pos[p].collateral.toString(), "Ether");
-                        if(pos[p].loanToken == conf.docToken && amn < 2) continue;
-                        else if(pos[p].loanToken == conf.testTokenRBTC && amn < 0.0001) continue; 
+                        if(pos[p].loanToken.toLowerCase() == conf.docToken && amn < 2) continue;
+                        else if(pos[p].loanToken.toLowerCase() == conf.testTokenRBTC && amn < 0.0001) continue; 
                     
                         if(pos[p].endTimestamp < Date.now()/1000){
                             console.log("Found expired open position. "+pos[p].loanId+", amount: "+amn);
@@ -161,7 +161,7 @@ function borrow(collateralTokenSent, withdrawAmount, collateralTokenAddress, adr
             adrReceiver.toLowerCase(), 
             loanDataBytes
             )
-            .send({ from: adrBorrower, gas: 2500000, value: collateralTokenSent })
+            .send({ from: adrBorrower, gas: conf.gasLimit, value: collateralTokenSent })
             .then((tx) => {
                 console.log("borrow Transaction: ");
                 console.log(tx);

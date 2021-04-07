@@ -44,17 +44,6 @@ class DbCtrl {
         }
     }
 
-    async addRollover({loanId, txHash, adr}) {
-        try {
-            return await this.rollRepo.insert({
-                loanId,
-                txHash,
-                rolloverAdr: adr
-            });
-        } catch (e) {
-            console.log(e);
-        }
-    }
 
     async addLiquidate({liquidatorAdr, liquidatedAdr, amount, pos, loanId, profit, txHash}) {
         try {
@@ -84,6 +73,41 @@ class DbCtrl {
         }
     }
 
+    async addRollover({loanId, txHash, adr}) {
+        try {
+            return await this.rollRepo.insert({
+                loanId,
+                txHash,
+                rolloverAdr: adr
+            });
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    async getTotals(repo, last24H) {
+        try {
+            let table;
+            let profit = 0;
+            switch(repo) {
+                case 'liquidator': table = this.liqRepo; break;
+                case 'arbitrage': table = this.arbRepo; break;
+                case 'rollover': table = this.rollRepo; break;
+                default: console.log("Not a known table. Returning liquidations table as default"); table = this.liqRepo;
+            }
+            const sqlQuery = last24H ? // select either all actions or only the last 24h ones
+                `SELECT * FROM ${repo} WHERE dateAdded BETWEEN DATETIME('now', '-1 day') AND DATETIME('now')` :
+                `SELECT * FROM ${repo}`;
+            const allRows = await table.all(sqlQuery, (err, rows) => { return rows });
+            allRows.forEach((row) => {
+                profit = profit + Number(row.profit);
+                return row;
+            })
+            return { totalActionsNumber: allRows.length, profit };
+        } catch (e) {
+            console.log(e);
+        }
+    }
 }
 
 export default new DbCtrl();
