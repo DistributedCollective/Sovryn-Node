@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { BN, ether } from '@openzeppelin/test-helpers';
+import { BN, ether, constants } from '@openzeppelin/test-helpers';
+const { MAX_UINT256 } = constants;
 
 import A from '../../secrets/accounts';
 import Arbitrage from '../../controller/arbitrage';
@@ -19,7 +20,7 @@ describe("Arbitrage controller", () => {
     let chainlinkOracleSecondary;
 
 
-    const initialRBTCBalance = new BN('10000000000000000000000'); // hardhat default
+    let initialRBTCBalance;
     const initialWRBTCBalance = ether('1');
     const initialUSDTBalance = ether('1000');
 
@@ -37,10 +38,14 @@ describe("Arbitrage controller", () => {
         await wrbtcToken.transfer(arbitragerAddress, initialWRBTCBalance);
         await usdtToken.transfer(arbitragerAddress, initialUSDTBalance);
 
+        await wrbtcToken.approve(sovrynContracts.rbtcWrapperProxy.address, MAX_UINT256, {from: arbitragerAddress});
+        await usdtToken.approve(sovrynContracts.sovrynSwapNetwork.address, MAX_UINT256, {from: arbitragerAddress});
+
         // sanity check
-        expect(await web3.eth.getBalance(arbitragerAddress)).to.be.bignumber.equal(initialRBTCBalance);
         expect(await wrbtcToken.balanceOf(arbitragerAddress)).to.be.bignumber.equal(initialWRBTCBalance);
         expect(await usdtToken.balanceOf(arbitragerAddress)).to.be.bignumber.equal(initialUSDTBalance);
+        // this is affected by gas costs, so store it this way
+        initialRBTCBalance = await web3.eth.getBalance(arbitragerAddress);
     });
 
     it("Should not detect arbitrage for an exactly balanced pool", async () => {
@@ -84,30 +89,5 @@ describe("Arbitrage controller", () => {
         expect(balanceRBTC).to.be.bignumber.equal(initialRBTCBalance);
         expect(balanceWRBTC).to.be.bignumber.equal(initialWRBTCBalance);
         expect(balanceUSDT).to.be.bignumber.equal(initialUSDTBalance);
-    });
-
-    it("Should detect arbitrage for an unbalanced pool", async () => {
-        // TDOO: WIP
-        const {
-            usdtToken,
-        } = sovrynContracts;
-
-        const converter = await converters.initConverter({
-            primaryReserveToken: sovrynContracts.wrbtcToken,
-            secondaryReserveToken: sovrynContracts.usdtToken,
-            primaryReserveWeight: 500000,
-            secondaryReserveWeight: 500000,
-            initialPrimaryReserveLiquidity: ether('10'),
-            initialSecondaryReserveLiquidity: ether('10'),
-        });
-        //await converters.updateChainlinkOracle(converter, chainlinkOraclePrimary, 50000);
-        //await converters.updateChainlinkOracle(converter, chainlinkOracleSecondary, 1);
-
-        const weights = await converter.effectiveReserveWeights();
-        console.log('weights', weights[0].toString(), weights[1].toString())
-
-        //const opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
-        //console.log(opportunity);
-        //expect(opportunity).to.not.equal(null);
     });
 });

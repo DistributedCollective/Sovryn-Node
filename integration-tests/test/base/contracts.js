@@ -3,7 +3,7 @@ const { constants, time, BN, ether } = require("@openzeppelin/test-helpers");
 const { registry } = require("../../oracle-based-amm/solidity/test/helpers/Constants");
 
 const { latest, duration } = time;
-const { ZERO_ADDRESS } = constants;
+const { ZERO_ADDRESS, MAX_UINT256 } = constants;
 
 const SovrynSwapNetwork = artifacts.require("SovrynSwapNetwork");
 const SovrynSwapFormula = artifacts.require("SovrynSwapFormula");
@@ -13,11 +13,13 @@ const ConverterFactory = artifacts.require("ConverterFactory");
 const ConverterUpgrader = artifacts.require("ConverterUpgrader");
 const ConverterRegistry = artifacts.require("ConverterRegistry");
 const ConverterRegistryData = artifacts.require("ConverterRegistryData");
+const ConversionPathFinder = artifacts.require("ConversionPathFinder");
 
 // NOTE: we use the test version of LiquidityPoolV2Converter since that augments it with useful testing methods
 const LiquidityPoolV2Converter = artifacts.require("TestLiquidityPoolV2Converter");
 
 const LiquidTokenConverterFactory = artifacts.require("LiquidTokenConverterFactory");
+const LiquidityPoolV1ConverterFactory = artifacts.require("LiquidityPoolV1ConverterFactory");
 const LiquidityPoolV2ConverterFactory = artifacts.require("LiquidityPoolV2ConverterFactory");
 const LiquidityPoolV2ConverterAnchorFactory = artifacts.require("LiquidityPoolV2ConverterAnchorFactory");
 const LiquidityPoolV2ConverterCustomFactory = artifacts.require("LiquidityPoolV2ConverterCustomFactory");
@@ -34,7 +36,7 @@ const RBTCWrapperProxy = artifacts.require("RBTCWrapperProxy");
  *
  * Does not deploy converters. Use ConverterHelper to deploy those with ease.
  *
- * @returns {Promise<any>} An object containing deployed contracts and web3 addresses
+ * @returns {Promise<any>} An object containing deployed contracts web3 addresses
  */
 export async function initSovrynContracts() {
     let accounts;
@@ -63,6 +65,7 @@ export async function initSovrynContracts() {
     // the first part would not need to be initialized for each test run, but it doesn't really matter
     // we can later cache it if tests take too long
     contractRegistry = await ContractRegistry.new();
+    await contractRegistry.registerAddress(registry.CONTRACT_REGISTRY, contractRegistry.address);
 
     const sovrynSwapFormula = await SovrynSwapFormula.new();
     await sovrynSwapFormula.init();
@@ -72,6 +75,7 @@ export async function initSovrynContracts() {
     await contractRegistry.registerAddress(registry.CONVERTER_FACTORY, factory.address);
 
     await factory.registerTypedConverterFactory((await LiquidTokenConverterFactory.new()).address);
+    await factory.registerTypedConverterFactory((await LiquidityPoolV1ConverterFactory.new()).address);
     await factory.registerTypedConverterFactory((await LiquidityPoolV2ConverterFactory.new()).address);
 
     await factory.registerTypedConverterAnchorFactory((await LiquidityPoolV2ConverterAnchorFactory.new()).address);
@@ -99,14 +103,34 @@ export async function initSovrynContracts() {
     await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY, converterRegistry.address);
     await contractRegistry.registerAddress(registry.CONVERTER_REGISTRY_DATA, converterRegistryData.address);
 
+    const pathFinder = await ConversionPathFinder.new(contractRegistry.address);
+    await contractRegistry.registerAddress(registry.CONVERSION_PATH_FINDER, pathFinder.address);
+
     const tokenSupply = ether('1000000000')
+
+    // TODO: not sure if BNT token is needed
+    //const bntToken = await ERC20Token.new("BNT", "BNT", 18, tokenSupply);
+    //await contractRegistry.registerAddress(registry.BNT_TOKEN, bntToken.address);
+    //await pathFinder.setAnchorToken(bntToken.address);
+
     docToken = await ERC20Token.new("Dollar on Chain", "DOC", 18, tokenSupply);
     usdtToken = await ERC20Token.new("rUSDT", "rUSDT", 18, tokenSupply);
     bproToken = await ERC20Token.new("BitPRO", "BITP", 18, tokenSupply);
     wrbtcToken = await WRBTC.new();
     await wrbtcToken.deposit({ value: ether('100') });
 
+    await contractRegistry.registerAddress(web3.utils.asciiToHex("RBTCToken"), wrbtcToken.address);
+    await pathFinder.setAnchorToken(wrbtcToken.address);
+
     rbtcWrapperProxy = await RBTCWrapperProxy.new(wrbtcToken.address, sovrynSwapNetwork.address);
+
+    for(let token of [docToken, usdtToken, bproToken, wrbtcToken]) {
+        await token.approve(sovrynSwapNetwork.address, MAX_UINT256, { from: accountOwner });
+        await token.approve(sovrynSwapNetwork.address, MAX_UINT256, { from: accountNonOwner });
+        await token.approve(sovrynSwapNetwork.address, MAX_UINT256, { from: accountReceiver });
+    }
+    // approval for accounts[0] not needed
+    //await wrbtcToken.approve(rbtcWrapperProxy.address, MAX_UINT256);
 
     return {
         accounts,
@@ -130,11 +154,13 @@ export async function initSovrynContracts() {
 
 export class ConverterHelper {
     constructor({
+        sovrynSwapNetwork,
         contractRegistry,
         converterRegistry,
         chainlinkPriceOraclePrimary,
         chainlinkPriceOracleSecondary,
     }) {
+        this.sovrynSwapNetwork = sovrynSwapNetwork;
         this.contractRegistry = contractRegistry;
         this.converterRegistry = converterRegistry;
         this.chainlinkPriceOraclePrimary = chainlinkPriceOraclePrimary;
@@ -171,10 +197,8 @@ export class ConverterHelper {
         await this.init();
 
         const anchor = await PoolTokensContainer.new(
-            (await primaryReserveToken.name()) + '-' + (await secondaryReserveToken.name()),
+            'Pool-' + (await primaryReserveToken.name()) + '-' + (await secondaryReserveToken.name()),
             (await primaryReserveToken.symbol()) + (await secondaryReserveToken.symbol()),
-            // Not sure what decimals should be. Converter.js test has 2. LiquidityPoolV2Converter.js test has 10.
-            // But 18 seems reasonable, since the underlying tokens have 18...
             18
         );
 
@@ -224,8 +248,35 @@ export class ConverterHelper {
 
         await converter.setReferenceRateUpdateTime(this.now.sub(duration.seconds(1)));
     }
-}
 
+    async convert(sourceToken, destToken, amount, additionalOptions = {}) {
+        // tokens can be given as contracts or addresses
+        sourceToken = typeof sourceToken === 'string' ? sourceToken : sourceToken.address;
+        destToken = typeof destToken === 'string' ? destToken : destToken.address;
+
+        const {
+            minReturn = new BN(1),
+            beneficiary = ZERO_ADDRESS,
+            affiliateAccount = ZERO_ADDRESS,
+            affiliateFee = 0,
+            from = undefined,
+        } = additionalOptions;
+
+        const path = await this.sovrynSwapNetwork.conversionPath.call(sourceToken, destToken);
+        const args = [
+            path,
+            amount,
+            minReturn,
+            beneficiary,
+            affiliateAccount,
+            affiliateFee,
+        ];
+        if(from) {
+            args.push({ from });
+        }
+        return await this.sovrynSwapNetwork.convertByPath(...args);
+    }
+}
 
 const createChainlinkOracle = async (answer) => {
     const chainlinkOracle = await ChainlinkPriceOracle.new();
