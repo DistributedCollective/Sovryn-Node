@@ -55,10 +55,8 @@ class Liquidator {
                     await this.handleNoWalletError(p);
                     continue;
                 } 
-                const liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
-                if(pos.maxLiquidatable<wBalance) console.log("enough balance on wallet");
-                else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
-                else console.log("not enough balance on wallet. only use "+wBalance);
+                const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet)
+                if (!liquidateAmount) return;
 
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
@@ -68,6 +66,23 @@ class Liquidator {
             console.log("Completed liquidation round");
             await U.wasteTime(conf.liquidatorScanInterval);
         }
+    }
+
+    async calculateLiquidateAmount(wBalance, pos, token, wallet) {
+        let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
+        const gasPrice = await C.getGasPrice();
+        const rbtcBalance = await C.web3.eth.getBalance(wallet.adr);
+        const txFees = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)).toNumber();
+        if(pos.maxLiquidatable<wBalance && txFees<rbtcBalance) console.log("enough balance on wallet");
+        else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
+        else {
+            if (token === "rBtc")
+                liquidateAmount = C.web3.utils.toBN(wBalance).sub(C.web3.utils.toBN(txFees)).toNumber();
+            if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
+            if (txFees>rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
+            console.log("not enough balance on wallet. only use "+liquidateAmount);
+        }
+        return liquidateAmount;
     }
 
     /**
@@ -111,7 +126,7 @@ class Liquidator {
         const p = this;
         const gasPrice = await C.getGasPrice();
         C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
-            .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce: nonce, value: val })
+            .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.transactionHash);
@@ -205,7 +220,7 @@ class Liquidator {
                     const approved = await C.approveToken(C.getTokenInstance(collateralToken), liquidator, conf.swapsImpl, collateralWithdrawAmount);
                     const swapTx = await C.contractSwaps.methods['convertByPath'](path, collateralWithdrawAmount, 1, liquidator, affiliateAcc, 0).send({
                         from: liquidator,
-                        gas: 2500000,
+                        gas: conf.gasLimit,
                         gasPrice: gasPrice
                     });
 

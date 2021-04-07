@@ -38,5 +38,6 @@ export default  {
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -492690059,
     healthMonitorPort: 3, //results in 3003
-    gasPriceBuffer: 10 //in %
+    gasPriceBuffer: 10, //in %
+    gasLimit: 2500000
 }

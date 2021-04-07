@@ -209,7 +209,7 @@ class Arbitrage {
 
                     const gasPrice = await C.getGasPrice();
                     contract2.methods["convertByPath"](result, amount, minReturn)
-                        .send({ from: beneficiary, gas: 2500000, gasPrice: gasPrice, value: val })
+                        .send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
                             console.log("Arbitrage tx successful");
                             return resolve(tx);
