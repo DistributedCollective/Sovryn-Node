@@ -16,7 +16,6 @@ import U from '../util/helper';
 import A from '../secrets/accounts';
 import Web3 from 'web3';
 import conf from '../config/config';
-import tokensDictionary from '../config/tokensDictionary.json'
 import  common from './common';
 import abiDecoder from 'abi-decoder';
 import abiSwap from "../config/abiSovrynSwapNetwork";
