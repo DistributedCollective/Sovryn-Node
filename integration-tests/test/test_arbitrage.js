@@ -16,8 +16,6 @@ describe("Arbitrage controller", () => {
     let converters;
     let usdtToken;
     let wrbtcToken;
-    let chainlinkOraclePrimary;
-    let chainlinkOracleSecondary;
 
     let initialRBTCBalance;
     const initialWRBTCBalance = ether('1');
@@ -31,8 +29,6 @@ describe("Arbitrage controller", () => {
         arbitragerAddress = A.arbitrage[0].adr;
         usdtToken = sovrynContracts.usdtToken;
         wrbtcToken = sovrynContracts.wrbtcToken;
-        chainlinkOraclePrimary = sovrynContracts.chainlinkPriceOraclePrimary;
-        chainlinkOracleSecondary = sovrynContracts.chainlinkPriceOracleSecondary;
 
         await wrbtcToken.transfer(arbitragerAddress, initialWRBTCBalance);
         await usdtToken.transfer(arbitragerAddress, initialUSDTBalance);
