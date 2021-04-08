@@ -61,7 +61,7 @@ describe("Arbitrage controller", () => {
             initialSecondaryReserveLiquidity: new BN(1000000000),
         });
 
-        const opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
+        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
         expect(opportunity).to.equal(null);
     });
 
@@ -107,11 +107,13 @@ describe("Arbitrage controller", () => {
 
         await converters.convert(wrbtcToken, usdtToken, new BN('1000000'));
 
-        let opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
+        let opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
 
         expect(opportunity).to.not.equal(null);
         expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
         expect(opportunity.destTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+        expect(opportunity.sourceTokenSymbol).to.equal('usdt');
+        expect(opportunity.destTokenSymbol).to.equal('rbtc');
         const expectedOpportunityAmount = new BN('999999'); // again, calculated by contract internal magic
         expect(opportunity.amount).to.be.bignumber.equal(expectedOpportunityAmount);
     });
@@ -133,12 +135,12 @@ describe("Arbitrage controller", () => {
 
         await converters.convert(wrbtcToken, usdtToken, ether('1'));
 
-        let opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
+        let opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
         expect(opportunity).to.not.equal(null)
         await converters.convert(usdtToken, wrbtcToken, opportunity.amount);
 
         // no more opportunities found
-        opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
+        opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
         expect(opportunity).to.equal(null)
     });
 });
