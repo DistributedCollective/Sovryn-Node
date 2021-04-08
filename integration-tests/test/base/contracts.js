@@ -54,8 +54,7 @@ export async function initSovrynContracts() {
     let usdtToken;
     let rbtcWrapperProxy;
     let upgrader;
-    let chainlinkPriceOraclePrimary;
-    let chainlinkPriceOracleSecondary;
+    let oracleWhitelist;
 
     accounts = await web3.eth.getAccounts();
     accountOwner = accounts[0];
@@ -81,14 +80,8 @@ export async function initSovrynContracts() {
     await factory.registerTypedConverterAnchorFactory((await LiquidityPoolV2ConverterAnchorFactory.new()).address);
     await factory.registerTypedConverterCustomFactory((await LiquidityPoolV2ConverterCustomFactory.new()).address);
 
-    const oracleWhitelist = await Whitelist.new();
+    oracleWhitelist = await Whitelist.new();
     await contractRegistry.registerAddress(registry.CHAINLINK_ORACLE_WHITELIST, oracleWhitelist.address);
-
-    chainlinkPriceOraclePrimary = await createChainlinkOracle(10000);
-    chainlinkPriceOracleSecondary = await createChainlinkOracle(10000);
-
-    await oracleWhitelist.addAddress(chainlinkPriceOraclePrimary.address);
-    await oracleWhitelist.addAddress(chainlinkPriceOracleSecondary.address);
 
     // this part must be re-initialized for each test run
     sovrynSwapNetwork = await SovrynSwapNetwork.new(contractRegistry.address);
@@ -119,12 +112,16 @@ export async function initSovrynContracts() {
     wrbtcToken = await WRBTC.new();
     await wrbtcToken.deposit({ value: ether('100') });
 
+    // not sure if required
     await contractRegistry.registerAddress(web3.utils.asciiToHex("RBTCToken"), wrbtcToken.address);
+
+    // this is absolutely required, otherwise conversionPath results in an infinite loop
     await pathFinder.setAnchorToken(wrbtcToken.address);
 
     rbtcWrapperProxy = await RBTCWrapperProxy.new(wrbtcToken.address, sovrynSwapNetwork.address);
 
     for(let token of [docToken, usdtToken, bproToken, wrbtcToken]) {
+        // approve everything for these accounts, for ease
         await token.approve(sovrynSwapNetwork.address, MAX_UINT256, { from: accountOwner });
         await token.approve(sovrynSwapNetwork.address, MAX_UINT256, { from: accountNonOwner });
         await token.approve(sovrynSwapNetwork.address, MAX_UINT256, { from: accountReceiver });
@@ -147,8 +144,7 @@ export async function initSovrynContracts() {
         usdtToken,
         rbtcWrapperProxy,
         upgrader,
-        chainlinkPriceOraclePrimary,
-        chainlinkPriceOracleSecondary,
+        oracleWhitelist,
     };
 }
 
@@ -157,16 +153,16 @@ export class ConverterHelper {
         sovrynSwapNetwork,
         contractRegistry,
         converterRegistry,
-        chainlinkPriceOraclePrimary,
-        chainlinkPriceOracleSecondary,
+        oracleWhitelist,
     }) {
         this.sovrynSwapNetwork = sovrynSwapNetwork;
         this.contractRegistry = contractRegistry;
         this.converterRegistry = converterRegistry;
-        this.chainlinkPriceOraclePrimary = chainlinkPriceOraclePrimary;
-        this.chainlinkPriceOracleSecondary = chainlinkPriceOracleSecondary;
+        this.oracleWhitelist = oracleWhitelist;
         this.now = null;
         this.initialized = false;
+
+        this.chainLinkPriceOraclesByConverter = {};
     }
 
     async init() {
@@ -188,12 +184,13 @@ export class ConverterHelper {
             maxConversionFee = 0,
             initialPrimaryReserveLiquidity = null,
             initialSecondaryReserveLiquidity = null,
+            primaryReserveOracleAnswer = 10000,
+            secondaryReserveOracleAnswer = 10000,
             minReturn = new BN(1),
         } = opts;
         if (!primaryReserveToken || !secondaryReserveToken) {
             throw new Error('primaryReserveToken and secondaryReserveToken are required');
         }
-
         await this.init();
 
         const anchor = await PoolTokensContainer.new(
@@ -209,14 +206,20 @@ export class ConverterHelper {
         await converter.addReserve(primaryReserveToken.address, primaryReserveWeight);
         await converter.addReserve(secondaryReserveToken.address, secondaryReserveWeight);
 
+        const primaryChainlinkPriceOracle = await createChainlinkOracle(primaryReserveOracleAnswer);
+        const secondaryChainlinkPriceOracle = await createChainlinkOracle(secondaryReserveOracleAnswer);
+        await this.oracleWhitelist.addAddress(primaryChainlinkPriceOracle.address);
+        await this.oracleWhitelist.addAddress(secondaryChainlinkPriceOracle.address);
+        this.chainLinkPriceOraclesByConverter[converter.address] = [primaryChainlinkPriceOracle, secondaryChainlinkPriceOracle];
+
         if(activate) {
             await anchor.transferOwnership(converter.address);
             await converter.acceptAnchorOwnership();
 
             await converter.activate(
                 primaryReserveToken.address,
-                this.chainlinkPriceOraclePrimary.address,
-                this.chainlinkPriceOracleSecondary.address
+                primaryChainlinkPriceOracle.address,
+                secondaryChainlinkPriceOracle.address
             );
         }
 

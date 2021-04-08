@@ -115,9 +115,8 @@ describe("Arbitrage controller", () => {
         const expectedOpportunityAmount = new BN('999999'); // again, calculated by contract internal magic
         expect(opportunity.amount).to.be.bignumber.equal(expectedOpportunityAmount);
 
-        // TODO: exercise for the future
-        //await converters.convert(usdtToken, wrbtcToken, opportunity.amount);
-        //opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
-        //expect(opportunity).to.equal(null);
+        await converters.convert(usdtToken, wrbtcToken, opportunity.amount);
+        opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
+        expect(opportunity).to.equal(null);
     });
 });
