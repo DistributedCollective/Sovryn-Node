@@ -194,7 +194,7 @@ class Arbitrage {
 
         const arbitrageTx = await this.executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress);
         if(arbitrageTx) {
-            await this.handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, priceAmm, pricePriceFeed, arbitrageDeals);
+            await this.handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, pricePriceFeed, arbitrageDeals);
         } else {
             console.warn('Arbitrage not executed.')
         }
@@ -243,6 +243,8 @@ class Arbitrage {
     }
 
     async calculateArbitragePercentage(priceAm, pricePriceFeed) {
+        // TODO: since we always calculate the price of the token we are selling, we should
+        // maybe always require that the amm price is higher than the price feed price
         const smallerPrice = Math.min(priceAmm, pricePriceFeed);
         return Math.abs(priceAmm - pricePriceFeed) / smallerPrice * 100;
     }
@@ -273,13 +275,21 @@ class Arbitrage {
         return await this.swap(amount, sourceSymbol, destSymbol, fromAddress);
     }
 
-    async handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, priceAmm, pricePriceFeed, arbitrageDeals) {
+    async handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, pricePriceFeed, arbitrageDeals) {
         if(arbitrageDeals) {
             arbitrageDeals.push({from: arbitrageOpportunity.sourceTokenSymbol, to: arbitrageOpportunity.destTokenSymbol});
         }
 
-        // TODO:
-        //await this.calculateProfit(arbitrageTx, pricePriceFeed, arbitrageOpportunity.amount);
+        let rbtcPrice, rbtcAmount;
+        if(arbitrageOpportunity.sourceTokenAddress.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
+            rbtcPrice = pricePriceFeed;
+            rbtcAmount = parseFloat(C.web3.utils.fromWei(arbitrageOpportunity.amount));
+        } else {
+            // TODO: this is probably a bit wrong here. See if it could be made more robust
+            rbtcPrice = 1/pricePriceFeed;
+            rbtcAmount = rbtcPrice * parseFloat(C.web3.utils.fromWei(arbitrageOpportunity.amount));
+        }
+        await this.calculateProfit(arbitrageTx, rbtcPrice, rbtcAmount);
     }
 
     async startFixedAmount(arbitrageDeals) {
