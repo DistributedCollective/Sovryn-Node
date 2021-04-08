@@ -127,15 +127,15 @@ class Arbitrage {
      * Token x if price(Amm) < price(PriceFeed), RBtc otherwise
      */
 
-    async start() {
+    async start(arbitrageDeals) {
         if(conf.enableDynamicArbitrageAmount) {
-            await this.startDynamicAmount();
+            await this.startDynamicAmount(arbitrageDeals);
         } else {
-            await this.startFixedAmount();
+            await this.startFixedAmount(arbitrageDeals);
         }
     }
 
-    async startDynamicAmount() {
+    async startDynamicAmount(arbitrageDeals = null) {
         const tokens = [
             ['usdt', conf.USDTToken],
             ['doc', conf.docToken],
@@ -145,7 +145,7 @@ class Arbitrage {
 
             for(const [tokenSymbol, tokenAddress] of tokens) {
                 try {
-                    await this.handleDynamicArbitrageForToken(tokenSymbol, tokenAddress);
+                    await this.handleDynamicArbitrageForToken(tokenSymbol, tokenAddress, arbitrageDeals);
                 } catch(e) {
                     console.error(`Error handling arbitrage for token ${tokenSymbol}`, e);
                 }
@@ -156,7 +156,7 @@ class Arbitrage {
         }
     }
 
-    async handleDynamicArbitrageForToken(tokenSymbol, tokenAddress) {
+    async handleDynamicArbitrageForToken(tokenSymbol, tokenAddress, arbitrageDeals) {
         console.log(`checking token ${tokenSymbol}`);
         const arbitrageOpportunity = await this.findArbitrageOpportunityForToken(tokenAddress);
         if(!arbitrageOpportunity) {
@@ -175,7 +175,7 @@ class Arbitrage {
             return;
         }
 
-        return await this.executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress);
+        return await this.executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress, arbitrageDeals);
     }
 
     async findArbitrageOpportunityForToken(tokenAddress) {
@@ -223,7 +223,7 @@ class Arbitrage {
         return Math.abs(priceAmm - pricePriceFeed) / smallerPrice * 100;
     }
 
-    async executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress) {
+    async executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress, arbitrageDeals = null) {
         const rbtcAddress = conf.testTokenRBTC;
         const rbtcContract = C.contractTokenRBTC;
         const fromAddress = A.arbitrage[0].adr;
@@ -253,6 +253,10 @@ class Arbitrage {
             amount = arbitragerBalance;
         }
         const result = await this.swap(amount, sourceSymbol, destSymbol, fromAddress);
+        if(arbitrageDeals) {
+            arbitrageDeals.push({from: sourceSymbol, to: destSymbol});
+        }
+
         // TODO: this part is still TODO
         //if(result) {
         //    // TODO: pricePriceFeed is wrong here -- it is not always the rbtc price
@@ -261,7 +265,7 @@ class Arbitrage {
         return result;
     }
 
-    async startFixedAmount() {
+    async startFixedAmount(arbitrageDeals) {
         while (true) {
             console.log("started checking prices");
 
