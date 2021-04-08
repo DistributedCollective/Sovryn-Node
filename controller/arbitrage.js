@@ -84,7 +84,7 @@ export function calculateArbitrageOpportunity(
     // - It's possible for stakedBalance - contractBalance to be negative for one token and 0 for the other
     // - It's possible for stakedBalance - contractBalance to be negative for both tokens
     // - It's possible for stakedBalance - contractBalance to be positive for both tokens
-    if((token1Delta.isNeg() && token1Delta.isZero()) && (token2Delta.isNeg() || token2Delta.isZero())) {
+    if((token1Delta.isNeg() || token1Delta.isZero()) && (token2Delta.isNeg() || token2Delta.isZero())) {
         return null;
     }
 
