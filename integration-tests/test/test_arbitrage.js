@@ -47,7 +47,7 @@ describe("Arbitrage controller", () => {
         initialRBTCBalance = await web3.eth.getBalance(arbitragerAddress);
     });
 
-    it("#should not detect arbitrage for a pool with no balance deltas", async () => {
+    it("should not detect arbitrage for a pool with no balance deltas", async () => {
         const {
             usdtToken,
         } = sovrynContracts;
@@ -65,7 +65,7 @@ describe("Arbitrage controller", () => {
         expect(opportunity).to.equal(null);
     });
 
-    it("#should not execute arbitrage for a pool with no balance deltas", async () => {
+    it("should not execute arbitrage for a pool with no balance deltas", async () => {
         const {
             usdtToken,
         } = sovrynContracts;
@@ -90,7 +90,7 @@ describe("Arbitrage controller", () => {
         expect(balanceUSDT).to.be.bignumber.equal(initialUSDTBalance);
     });
 
-    it("#should detect arbitrage for a pool with balance deltas", async () => {
+    it("should detect arbitrage for a pool with balance deltas", async () => {
         const {
             wrbtcToken,
             usdtToken,
@@ -114,9 +114,31 @@ describe("Arbitrage controller", () => {
         expect(opportunity.destTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
         const expectedOpportunityAmount = new BN('999999'); // again, calculated by contract internal magic
         expect(opportunity.amount).to.be.bignumber.equal(expectedOpportunityAmount);
+    });
 
+    it('trading based on found arbitrage opportunity should resolve the opportunity', async () => {
+        const {
+            wrbtcToken,
+            usdtToken,
+        } = sovrynContracts;
+
+        await converters.initConverter({
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            primaryReserveWeight: 500000,
+            secondaryReserveWeight: 500000,
+            initialPrimaryReserveLiquidity: ether('10'),
+            initialSecondaryReserveLiquidity: ether('10'),
+        });
+
+        await converters.convert(wrbtcToken, usdtToken, ether('1'));
+
+        let opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
+        expect(opportunity).to.not.equal(null)
         await converters.convert(usdtToken, wrbtcToken, opportunity.amount);
+
+        // no more opportunities found
         opportunity = await Arbitrage.findArbitrageOpportunityForToken(usdtToken.address);
-        expect(opportunity).to.equal(null);
+        expect(opportunity).to.equal(null)
     });
 });
