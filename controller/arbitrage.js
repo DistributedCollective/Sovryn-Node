@@ -68,6 +68,7 @@ export class ArbitrageOpportunity {
  * @param {BN} token2ContractBalance Amount of second token actually owned by the liquidity pool
  * @param {BN} token2StakedBalance Amount of second token staked in the liquidity pool
  * @param {string} token2Symbol Symbol of second token token
+ * @param {object} opts Extra options
  * @returns {(ArbitrageOpportunity|null)} DTO representing the opportunity, or null if none found
  */
 export function calculateArbitrageOpportunity(
@@ -79,9 +80,24 @@ export function calculateArbitrageOpportunity(
     token2ContractBalance,
     token2StakedBalance,
     token2Symbol,
+    opts = {},
 ) {
     const token1Delta = token1StakedBalance.sub(token1ContractBalance);
     const token2Delta = token2StakedBalance.sub(token2ContractBalance);
+    if(opts || opts.log) {
+        console.log(
+            `${token1Symbol} amm balances:`,
+            C.web3.utils.fromWei(token1StakedBalance),
+            C.web3.utils.fromWei(token1ContractBalance),
+            C.web3.utils.fromWei(token1Delta)
+        );
+        console.log(
+            `${token2Symbol} amm balances:`,
+            C.web3.utils.fromWei(token2StakedBalance),
+            C.web3.utils.fromWei(token2ContractBalance),
+            C.web3.utils.fromWei(token2Delta)
+        );
+    }
 
     if(token1Delta.isZero() && token2Delta.isZero()) {
         // perfect equilibrium - no arbitrage
@@ -221,6 +237,9 @@ class Arbitrage {
             tokenContractBalance,
             tokenStakedBalance,
             tokenSymbol,
+            {
+                log: true,
+            }
         );
     }
 
