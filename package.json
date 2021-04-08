@@ -19,11 +19,13 @@
     "abi-decoder": "^2.3.0",
     "axios": "^0.20.0",
     "copy-webpack-plugin": "6.2.1",
+    "css-loader": "^5.2.0",
     "esm": "^3.2.25",
     "lodash": "^4.17.20",
     "pm2-server-monitor": "^1.0.0",
     "socket.io": "^2.3.0",
     "sqlite3": "^5.0.0",
+    "style-loader": "^2.0.0",
     "telegraf": "^3.38.0",
     "web3": "1.3.3",
     "webpack-dev-server": "^3.11.2"
