@@ -242,7 +242,7 @@ class Arbitrage {
         return [priceAmm, pricePriceFeed];
     }
 
-    async calculateArbitragePercentage(priceAm, pricePriceFeed) {
+    async calculateArbitragePercentage(priceAmm, pricePriceFeed) {
         // TODO: since we always calculate the price of the token we are selling, we should
         // maybe always require that the amm price is higher than the price feed price
         const smallerPrice = Math.min(priceAmm, pricePriceFeed);
