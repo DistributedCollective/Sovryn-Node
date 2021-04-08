@@ -71,11 +71,11 @@ class Rollover {
             C.contractSovryn.methods.rollover(pos.loanId, loanDataBytes)
                 .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce:nonce })
                 .then(async (tx) => {
-                    const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${pos.loanId} with ${tokensDictionary[conf.network][pos.collateralToken].toUpperCase()} as collateral token`;
+                    const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${pos.loanId} with ${tokensDictionary[conf.network][pos.collateralToken]} as collateral token`;
                     console.log(msg);
                     await common.telegramBot.sendMessage(`${conf.network}-${msg}`);
 
-                    p.handleRolloverSuccess(loanId);
+                    p.handleRolloverSuccess(pos.loanId);
                     resolve(tx.transactionHash);
                 })
                 .catch(async (err) => {
