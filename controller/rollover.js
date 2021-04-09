@@ -73,7 +73,7 @@ class Rollover {
                 .then(async (tx) => {
                     const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${pos.loanId} with ${tokensDictionary[conf.network][pos.collateralToken]} as collateral token`;
                     console.log(msg);
-                    await common.telegramBot.sendMessage(`${conf.network}-${msg}`);
+                    common.telegramBot.sendMessage(`${conf.network}-${msg}`);
 
                     p.handleRolloverSuccess(pos.loanId);
                     resolve(tx.transactionHash);
@@ -81,7 +81,7 @@ class Rollover {
                 .catch(async (err) => {
                     console.error("Error in rolling over position "+pos.loanId);
                     console.error(err);
-                    await common.telegramBot.sendMessage(err.toString());
+                    common.telegramBot.sendMessage(err.toString());
                     p.handleRolloverError(pos.loanId);
                     resolve();
                 });
@@ -130,7 +130,7 @@ class Rollover {
 
     async handleNoWalletError() {
         console.error("No wallet available for rollover");
-        await common.telegramBot.sendMessage("No wallet available for rollover");
+        common.telegramBot.sendMessage("No wallet available for rollover");
     }
 }
 
