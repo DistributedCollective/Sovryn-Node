@@ -1,0 +1,11 @@
+body {
+    margin: 3rem;
+    background-color: rgb(32, 32, 32);
+    color: #fff;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
