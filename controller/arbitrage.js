@@ -562,8 +562,8 @@ class Arbitrage {
                         adr: trader,
                         fromToken, toToken,
                         fromAmount, toAmount,
-                        profit,
-                        trade
+                        profit, trade,
+                        txHash: tx.hash
                     })
                 }
             }
