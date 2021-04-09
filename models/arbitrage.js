@@ -7,12 +7,12 @@ export default class Arbitrage extends BaseModel {
             id INTEGER PRIMARY KEY,
             adr text,
             dateAdded datetime,
-            amountFrom text,
-            amountTo text,
-            tokenFrom text,
-            tokenTo text,
+            fromAmount decimal,
+            toAmount decimal,
+            fromToken text,
+            toToken text,
             trade text,
-            profit text,
+            profit decimal,
             txHash
             )`);
     }

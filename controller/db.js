@@ -61,11 +61,11 @@ class DbCtrl {
         }
     }
 
-    async addArbitrage({adr, tokenFrom, tokenTo, amountFrom, amountTo, profit, trade, txHash}) {
+    async addArbitrage({adr, fromToken, toToken, fromAmount, toAmount, profit, trade, txHash}) {
         try {
             return await this.arbRepo.insert({
-                adr, tokenFrom, tokenTo,
-                amountFrom, amountTo, profit, trade,
+                adr, fromToken, toToken,
+                fromAmount, toAmount, profit, trade,
                 txHash
             })
         } catch (e) {
