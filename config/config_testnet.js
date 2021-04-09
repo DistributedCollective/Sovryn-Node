@@ -5,6 +5,7 @@ export default  {
     serverPort: 3000,
     nodeProvider: 'https://testnet.sovryn.app/rpc',
     publicNodeProvider: 'https://public-node.testnet.rsk.co',
+    blockExplorer: 'https://explorer.testnet.rsk.co/',
     network: "test",
     db: "sovryn_node_testnet.db",
     nrOfProcessingPositions: 100,

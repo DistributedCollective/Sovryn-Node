@@ -33,6 +33,7 @@ class MainController {
         io.on('connection', (socket) => {
             socket.on('getSignals', async (cb) => Monitor.getSignals(cb));
             socket.on('getAddresses', async (cb) => Monitor.getAddresses(cb));
+            socket.on('getNetworkData', async (cb) => Monitor.getNetworkData(cb));
             socket.on('getTotals', async (cb) => Monitor.getTotals(cb));
             socket.on('getLast24HTotals', async (cb) => Monitor.getTotals(cb, true));
             socket.on('getOpenPositionsDetails', async (cb) => Monitor.getOpenPositionsDetails(cb));

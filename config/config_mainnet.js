@@ -5,6 +5,7 @@ export default {
     serverPort: 3000,
     nodeProvider: 'https://mainnet.sovryn.app/rpc',
     publicNodeProvider: 'https://public-node.rsk.co',
+    blockExplorer: 'https://explorer.rsk.co/',
     network: "main",
     db: "sovryn_node_mainnet.db",
     nrOfProcessingPositions: 100,

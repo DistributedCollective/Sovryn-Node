@@ -43,7 +43,7 @@
             </th>
           </tr>
           <tr ng-repeat="account in ctrl.accounts">
-            <td>{{ account.address }}</td>
+            <td><a ng-href="{{ctrl.blockExplorer}}address/{{account.address}}" target="_blank">{{ account.address }}</a></td>
             <td>{{ account.type }}</td>
             <td>{{ account.balance }}</td>
             <td ng-if="account.tokenBalances.length > 0" ng-repeat="balance in account.tokenBalances"
