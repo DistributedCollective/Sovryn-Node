@@ -142,6 +142,14 @@ class MonitorController {
         }
     }
 
+    getNetworkData(cb) {
+        const resp = {
+            blockExplorer: conf.blockExplorer
+        }
+        if (typeof cb === "function") cb(resp);
+        else return resp;
+    }
+
     async getAccountInfo(accounts) {
         let accBalances = {};
 

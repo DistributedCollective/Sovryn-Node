@@ -16,7 +16,7 @@ class AppCtrl {
       
         this.tokens = [];
         this.accounts = []
-
+        this.blockExplorer = '';
 
         this.totalLiquidations = 0;
         this.totalArbitrages = 0;
@@ -46,6 +46,7 @@ class AppCtrl {
     start() {
         this.getSignals();
         this.getAddresses();
+        this.getNetworkData();
         this.getTotals(); // fire only once
         this.getLast24HTotals();
 
@@ -88,6 +89,18 @@ class AppCtrl {
 
             p.$scope.$applyAsync();
         });
+    }
+
+    getNetworkData() {
+        let p=this;
+
+        socket.emit("getNetworkData", (res) => {
+            console.log("network data:", res);
+
+            p.blockExplorer = res.blockExplorer;
+
+            p.$scope.$applyAsync();
+        })
     }
 
     getTotals() {

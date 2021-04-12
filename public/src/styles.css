@@ -4,6 +4,10 @@ body {
     color: #fff;
 }
 
+a {
+  color: #00c3ff;
+}
+
 td, th {
   border: 1px solid #dddddd;
   text-align: left;
