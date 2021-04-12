@@ -494,14 +494,14 @@ class Arbitrage {
                         .then(async (tx) => {
                             const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val.toString(), 'Ether')} ${tokensDictionary[conf.network][sourceToken].toUpperCase()} for ${tokensDictionary[conf.network][destToken].toUpperCase()}`;
                             console.log(msg);
-                            await common.telegramBot.sendMessage(`${conf.network}-${msg}`)
+                            common.telegramBot.sendMessage(`${conf.network}-${msg}`)
 
                             return resolve(tx);
                         })
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
-                            await common.telegramBot.sendMessage(`error on arbitrage tx (${amount} ${sourceCurrency} -> ${destCurrency}): ` + JSON.stringify(err, null, 2));
+                            common.telegramBot.sendMessage(`error on arbitrage tx (${amount} ${sourceCurrency} -> ${destCurrency}): ` + JSON.stringify(err, null, 2));
 
                             return resolve();
                         });

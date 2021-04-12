@@ -142,7 +142,7 @@ class Liquidator {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
         const msg = `${conf.network} net-liquidation of loan ${loanId} of ${amount} ${tokensDictionary[conf.network][token].toUpperCase()} successful. \n ${txHash}`;
-        await common.telegramBot.sendMessage(msg);
+        common.telegramBot.sendMessage(msg);
     }
 
     /**
@@ -158,13 +158,13 @@ class Liquidator {
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            await common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed.");
+            common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed.");
         }
     }
 
     async handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        await common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
+        common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
     }
 
     async calculateLiqProfit(liqEvent) {
