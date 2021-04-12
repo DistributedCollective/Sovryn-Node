@@ -10,7 +10,7 @@ export default {
     db: "sovryn_node_mainnet.db",
     nrOfProcessingPositions: 100,
     scannerInterval: 60, //sec
-    rolloverScanInterval: 180, //sec
+    rolloverScanInterval: 30, //sec
     liquidatorScanInterval: 30, //sec
     arbitrageScanInterval: 60,
     enableLiquidator: true,
@@ -35,8 +35,9 @@ export default {
         bpro: 0.01, // in bpro
         wrbtc: 0.01 // in wrbtc
     },
-    thresholdArbitrage: 2, //in %
+    thresholdArbitrage: 0.3, //in %
     amountArbitrage: 0.01, //in rbtc
+    enableDynamicArbitrageAmount: true,
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
     healthMonitorPort: 10, //results in 3010
