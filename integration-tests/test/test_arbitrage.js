@@ -16,6 +16,7 @@ describe("Arbitrage controller", () => {
     let converters;
     let usdtToken;
     let wrbtcToken;
+    let priceFeeds;
 
     let initialRBTCBalance;
     const initialWRBTCBalance = ether('1');
@@ -29,12 +30,13 @@ describe("Arbitrage controller", () => {
         arbitragerAddress = A.arbitrage[0].adr;
         usdtToken = sovrynContracts.usdtToken;
         wrbtcToken = sovrynContracts.wrbtcToken;
+        priceFeeds = sovrynContracts.priceFeeds;
 
         await wrbtcToken.transfer(arbitragerAddress, initialWRBTCBalance);
         await usdtToken.transfer(arbitragerAddress, initialUSDTBalance);
 
         await wrbtcToken.approve(sovrynContracts.rbtcWrapperProxy.address, MAX_UINT256, {from: arbitragerAddress});
-        await usdtToken.approve(sovrynContracts.sovrynSwapNetwork.address, MAX_UINT256, {from: arbitragerAddress});
+        await usdtToken.approve(sovrynContracts.rbtcWrapperProxy.address, MAX_UINT256, {from: arbitragerAddress});
 
         // sanity check
         expect(await wrbtcToken.balanceOf(arbitragerAddress)).to.be.bignumber.equal(initialWRBTCBalance);
@@ -44,13 +46,9 @@ describe("Arbitrage controller", () => {
     });
 
     it("should not detect arbitrage for a pool with no balance deltas", async () => {
-        const {
-            usdtToken,
-        } = sovrynContracts;
-
         await converters.initConverter({
-            primaryReserveToken: sovrynContracts.wrbtcToken,
-            secondaryReserveToken: sovrynContracts.usdtToken,
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
             primaryReserveWeight: 500000,
             secondaryReserveWeight: 500000,
             initialPrimaryReserveLiquidity: new BN(1000000000),
@@ -62,13 +60,9 @@ describe("Arbitrage controller", () => {
     });
 
     it("should not execute arbitrage for a pool with no balance deltas", async () => {
-        const {
-            usdtToken,
-        } = sovrynContracts;
-
         await converters.initConverter({
-            primaryReserveToken: sovrynContracts.wrbtcToken,
-            secondaryReserveToken: sovrynContracts.usdtToken,
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
             primaryReserveWeight: 500000,
             secondaryReserveWeight: 500000,
             initialPrimaryReserveLiquidity: new BN(1000000000),
@@ -87,11 +81,6 @@ describe("Arbitrage controller", () => {
     });
 
     it("should detect arbitrage for a pool with balance deltas", async () => {
-        const {
-            wrbtcToken,
-            usdtToken,
-        } = sovrynContracts;
-
         await converters.initConverter({
             primaryReserveToken: wrbtcToken,
             secondaryReserveToken: usdtToken,
@@ -115,11 +104,6 @@ describe("Arbitrage controller", () => {
     });
 
     it('trading based on found arbitrage opportunity should resolve the opportunity', async () => {
-        const {
-            wrbtcToken,
-            usdtToken,
-        } = sovrynContracts;
-
         await converters.initConverter({
             primaryReserveToken: wrbtcToken,
             secondaryReserveToken: usdtToken,
@@ -138,5 +122,22 @@ describe("Arbitrage controller", () => {
         // no more opportunities found
         opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
         expect(opportunity).to.equal(null)
+    });
+
+    it('should execute the opportunity when it sees one', async () => {
+        await converters.initConverter({
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            primaryReserveWeight: 500000,
+            secondaryReserveWeight: 500000,
+            initialPrimaryReserveLiquidity: ether('10'),
+            initialSecondaryReserveLiquidity: ether('10'),
+        });
+        await priceFeeds.setRates(wrbtcToken.address, usdtToken.address, 10);
+
+        await converters.convert(wrbtcToken, usdtToken, ether('1'));
+
+        const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
+        expect(result).to.not.equal(null)
     });
 });
