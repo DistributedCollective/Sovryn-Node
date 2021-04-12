@@ -30,6 +30,9 @@ const Whitelist = artifacts.require("Whitelist");
 const WRBTC = artifacts.require("WRBTC");
 const RBTCWrapperProxy = artifacts.require("RBTCWrapperProxy");
 
+// NOTE: we use the test PriceFeeds contract since it allows us to set the rate easily
+const PriceFeeds = artifacts.require("PriceFeedsLocal");
+
 
 /**
  * Deploy the contracts required to use Sovryn.
@@ -129,6 +132,12 @@ export async function initSovrynContracts() {
     // approval for accounts[0] not needed
     //await wrbtcToken.approve(rbtcWrapperProxy.address, MAX_UINT256);
 
+    /// XXX: protocol token is needed for priceFeeds, and must be a contract, but what is it used for??? And what should it be?
+    const protocolToken = await ERC20Token.new("Protocol Token", "PROTOCOL", 18, tokenSupply);
+    const priceFeeds = await PriceFeeds.new(wrbtcToken.address, protocolToken.address);
+
+    // TODO: we might need to deploy the whole sovrynProtocol
+
     return {
         accounts,
         accountOwner,
@@ -145,6 +154,7 @@ export async function initSovrynContracts() {
         rbtcWrapperProxy,
         upgrader,
         oracleWhitelist,
+        priceFeeds,
     };
 }
 

@@ -18,6 +18,7 @@ export function initSovrynNodeForTesting({
     bproToken,
     usdtToken,
     rbtcWrapperProxy,
+    priceFeeds,
     accounts,
 }) {
     conf.swapsImpl = sovrynSwapNetwork.address.toLowerCase();
@@ -25,8 +26,9 @@ export function initSovrynNodeForTesting({
     conf.USDTToken = usdtToken.address.toLowerCase();
     conf.BProToken = bproToken.address.toLowerCase();
     conf.testTokenRBTC = wrbtcToken.address.toLowerCase();
+
     conf.wRbtcWrapper = rbtcWrapperProxy.address.toLowerCase();
-    //conf.priceFeed  // TODO: handle this. contract is PriceFeeds, initialize with wbtc and DoC
+    conf.priceFeed  = priceFeeds.address.toLowerCase();
     //conf.sovrynProtocolAdr  // TODO: handle this, if needed. contract is sovrynProtocol (Protocol.sol)
 
     // sane settings for these

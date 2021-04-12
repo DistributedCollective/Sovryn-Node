@@ -24,10 +24,13 @@ module.exports = {
       {
         version: "0.5.16",
       },
+      {
+        version: "0.5.17",
+      },
     ]
   },
   paths: {
-    // Contracts are copied from oracle-based-amm to this directory
+    // Contracts are copied from oracle-based-amm and sovryn-smart-contracts to this directory
     sources: './contracts',
   },
   networks: {
