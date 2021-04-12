@@ -244,20 +244,26 @@ class Arbitrage {
     }
 
     async getAmmAndPriceFeedPrices(arbitrageOpportunity) {
-        const priceAmmWeiStr = await this.getPriceFromAmm(
+        const priceAmmWei = await this.getPriceFromAmm(
             C.contractSwaps,
             arbitrageOpportunity.sourceTokenAddress,
             arbitrageOpportunity.destTokenAddress,
             arbitrageOpportunity.amount
         );
-        const pricePriceFeedWeiStr = await this.getPriceFromPriceFeed(
+        const pricePriceFeedWei = await this.getPriceFromPriceFeed(
             C.contractPriceFeed,
             arbitrageOpportunity.sourceTokenAddress,
             arbitrageOpportunity.destTokenAddress,
             arbitrageOpportunity.amount
         );
-        const priceAmm = parseFloat(C.web3.utils.fromWei(priceAmmWeiStr, 'Ether'));
-        const pricePriceFeed = parseFloat(C.web3.utils.fromWei(pricePriceFeedWeiStr, 'Ether'));
+        if(priceAmmWei.isZero() || priceAmmWei.isNeg()) {
+            throw new Error("Invalid AMM price: " + priceAmmWei.toString());
+        }
+        if(pricePriceFeedWei.isZero() || pricePriceFeedWei.isNeg()) {
+            throw new Error("Invalid price feed price: " + pricePriceFeedWei.toString());
+        }
+        const priceAmm = parseFloat(C.web3.utils.fromWei(priceAmmWei, 'Ether'));
+        const pricePriceFeed = parseFloat(C.web3.utils.fromWei(pricePriceFeedWei, 'Ether'));
         return [priceAmm, pricePriceFeed];
     }
 
@@ -394,7 +400,7 @@ class Arbitrage {
 
     /**
     * Amount is based in sourceToken
-    * Returns price in wei
+    * Returns price in wei (BN)
     */
     getPriceFromPriceFeed(contract, sourceToken, destToken, amount) {
         return new Promise(async (resolve) => {
@@ -403,15 +409,15 @@ class Arbitrage {
                     if (error) {
                         console.error("error loading price from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                         console.error(error);
-                        return resolve(0);
+                        return resolve(this.BN('0'));
                     }
-                    resolve(result);
+                    resolve(this.BN(result));
                 });
             }
             catch (e) {
                 console.error("error loading price from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                 console.error(e);
-                resolve(0)
+                resolve(this.BN('0'))
             }
         });
     }
@@ -421,7 +427,7 @@ class Arbitrage {
      * Price need to be retrieven in 2 steps
      * 1. Call function conversionPath on to get the conversion path
      * 2. Call rateByPath assigning the conversion path and amount to get the actual price
-     * Returns price in wei
+     * Returns price in wei (BN)
      */
     getPriceFromAmm(contract, sourceToken, destToken, amount) {
         return new Promise(async (resolve) => {
@@ -430,23 +436,23 @@ class Arbitrage {
                     if (error) {
                         console.error("error loading conversion path 1 from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                         console.error(error);
-                        return resolve(0);
+                        return resolve(this.BN('0'));
                     }
 
                     contract.methods["rateByPath"](result, amount).call((err, res) => {
                         if (err) {
                             console.error("error loading rate path from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                             console.error(err);
-                            return resolve(0);
+                            return resolve(this.BN('0'));
                         }
-                        resolve(res);
+                        resolve(this.BN(res));
                     });
                 });
             }
             catch (e) {
                 console.error("error loading price from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                 console.error(e);
-                resolve(0)
+                resolve(this.BN('0'))
             }
         });
     }
