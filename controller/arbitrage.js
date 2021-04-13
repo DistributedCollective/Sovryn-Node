@@ -501,7 +501,7 @@ class Arbitrage {
                         .then(async (tx) => {
                             const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val.toString(), 'Ether')} ${tokensDictionary[conf.network][sourceToken].toUpperCase()} for ${tokensDictionary[conf.network][destToken].toUpperCase()}`;
                             console.log(msg);
-                            common.telegramBot.sendMessage(`${conf.network}-${msg}`)
+                            common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML())
 
                             return resolve(tx);
                         })
