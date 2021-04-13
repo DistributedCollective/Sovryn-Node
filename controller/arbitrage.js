@@ -15,6 +15,7 @@ import C from './contract';
 import U from '../util/helper';
 import A from '../secrets/accounts';
 import Web3 from 'web3';
+import Extra from 'telegraf/extra';
 import conf from '../config/config';
 import  common from './common';
 import abiDecoder from 'abi-decoder';
@@ -507,7 +508,7 @@ class Arbitrage {
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
-                            common.telegramBot.sendMessage(`error on arbitrage tx (${amount} ${sourceCurrency} -> ${destCurrency}): ` + JSON.stringify(err, null, 2));
+                            common.telegramBot.sendMessage(`⚠️<b>ERROR</b>⚠️\nError on arbitrage tx (${amount} ${sourceCurrency} -> ${destCurrency})`, Extra.HTML());
 
                             return resolve();
                         });

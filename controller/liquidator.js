@@ -14,6 +14,7 @@ import conf from '../config/config';
 import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
+import Extra from 'telegraf/extra';
 import dbCtrl from './db';
 
 class Liquidator {
@@ -134,6 +135,7 @@ class Liquidator {
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
+                common.telegramBot.sendMessage(`⚠️<b>ERROR</b>⚠️\nError on liquidation tx (loanId ${pos.loanId})`, Extra.HTML());
                 await p.handleLiqError(wallet, loanId);
             });
     }

@@ -11,6 +11,7 @@ import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
 import tokensDictionary from '../config/tokensDictionary.json'
+import Extra from 'telegraf/extra';
 import dbCtrl from './db';
 
 class Rollover {
@@ -81,7 +82,7 @@ class Rollover {
                 .catch(async (err) => {
                     console.error("Error in rolling over position "+pos.loanId);
                     console.error(err);
-                    common.telegramBot.sendMessage(err.toString());
+                    common.telegramBot.sendMessage(`⚠️<b>ERROR</b>⚠️\nError on rollover tx (loanId ${pos.loanId})`, Extra.HTML());
                     p.handleRolloverError(pos.loanId);
                     resolve();
                 });
