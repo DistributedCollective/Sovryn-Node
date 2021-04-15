@@ -36,7 +36,7 @@ export default {
         wrbtc: 0.01 // in wrbtc
     },
     thresholdArbitrage: 1, //in %
-    thresholdLiquidity: 1, //in %
+    thresholdLiquidator: 1, //in %
     thresholdRollover: 0.01, //in %
     amountArbitrage: 0.01, //in rbtc
     enableDynamicArbitrageAmount: true,
