@@ -1,4 +1,3 @@
 cache/
 artifacts/
-# Contracts are copied from oracle-based-amm and hence don't belong in git
-contracts/
+contracts/copied/

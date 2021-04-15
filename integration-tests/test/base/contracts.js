@@ -15,8 +15,8 @@ const ConverterRegistry = artifacts.require("ConverterRegistry");
 const ConverterRegistryData = artifacts.require("ConverterRegistryData");
 const ConversionPathFinder = artifacts.require("ConversionPathFinder");
 
-// NOTE: we use the test version of LiquidityPoolV2Converter since that augments it with useful testing methods
-const LiquidityPoolV2Converter = artifacts.require("TestLiquidityPoolV2Converter");
+// NOTE: we use our custom test version of LiquidityPoolV2Converter since that augments it with useful testing methods
+const LiquidityPoolV2Converter = artifacts.require("ImprovedTestLiquidityPoolV2Converter");
 
 const LiquidTokenConverterFactory = artifacts.require("LiquidTokenConverterFactory");
 const LiquidityPoolV1ConverterFactory = artifacts.require("LiquidityPoolV1ConverterFactory");
