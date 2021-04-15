@@ -26,7 +26,7 @@ describe("Arbitrage controller", () => {
 
     beforeEach(async () => {
         sovrynContracts = await initSovrynContracts();
-        initSovrynNodeForTesting(sovrynContracts);
+        await initSovrynNodeForTesting(sovrynContracts);
         converters = new ConverterHelper(sovrynContracts);
 
         arbitragerAddress = A.arbitrage[0].adr;

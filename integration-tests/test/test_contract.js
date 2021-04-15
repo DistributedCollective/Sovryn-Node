@@ -12,7 +12,7 @@ describe("Contract controller", () => {
 
     beforeEach(async () => {
         sovrynContracts = await initSovrynContracts();
-        initSovrynNodeForTesting(sovrynContracts);
+        await initSovrynNodeForTesting(sovrynContracts);
         const converters = new ConverterHelper(sovrynContracts);
         await converters.initConverter({
             primaryReserveToken: sovrynContracts.wrbtcToken,

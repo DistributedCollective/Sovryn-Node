@@ -2,6 +2,8 @@ import { constants } from "@openzeppelin/test-helpers";
 import conf from '../../../config/config';
 import C from '../../../controller/contract';
 import A from '../../../secrets/accounts';
+import db from '../../../controller/db';
+import tokensDictionary from '../../../config/tokensDictionary.json';
 
 const { ZERO_ADDRESS } = constants;
 
@@ -11,7 +13,7 @@ const { ZERO_ADDRESS } = constants;
  * The config and controllers are initialized on startup. Since we want to alter the contract addresses
  * used based on the contracts deployed during testing, we need to resort to monkey-patching.
  */
-export function initSovrynNodeForTesting({
+export async function initSovrynNodeForTesting({
     sovrynSwapNetwork,
     wrbtcToken,
     docToken,
@@ -21,6 +23,8 @@ export function initSovrynNodeForTesting({
     priceFeeds,
     accounts,
 }) {
+    conf.network = 'test';
+
     conf.swapsImpl = sovrynSwapNetwork.address.toLowerCase();
     conf.docToken = docToken.address.toLowerCase();
     conf.USDTToken = usdtToken.address.toLowerCase();
@@ -50,6 +54,16 @@ export function initSovrynNodeForTesting({
     conf.loanTokenBPRO = ZERO_ADDRESS;
     conf.loanTokenRBTC = ZERO_ADDRESS;
 
+    // Handle this thing too.
+    tokensDictionary['main'] = {};
+    const tmpDictionary = tokensDictionary[conf.network];
+    tmpDictionary[wrbtcToken.address.toLowerCase()] = "wrbtc";
+    tmpDictionary[bproToken.address.toLowerCase()] = "bpro";
+    tmpDictionary[usdtToken.address.toLowerCase()] = "usdt";
+    tmpDictionary[docToken.address.toLowerCase()] = "doc";
+    tokensDictionary[conf.network] = tmpDictionary;
+    conf.tokensDictionary = tmpDictionary;
+
     // also deal with accounts
     A.liquidator = [
         {adr: accounts[5]}
@@ -66,4 +80,7 @@ export function initSovrynNodeForTesting({
         web3,
         addAccounts: false,
     });
+
+    // And ditto for the DB
+    await db.initDb(conf.db);
 }
