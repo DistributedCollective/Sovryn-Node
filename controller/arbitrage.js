@@ -21,6 +21,7 @@ import abiDecoder from 'abi-decoder';
 import abiSwap from "../config/abiSovrynSwapNetwork";
 import tokensDictionary from '../config/tokensDictionary.json'
 import db from "./db";
+import accounts from '../secrets/accounts';
 
 const BN = Web3.utils.BN;
 
@@ -187,6 +188,12 @@ class Arbitrage {
     }
 
     async handleDynamicArbitrageForToken(tokenSymbol, tokenAddress, arbitrageDeals) {
+        // check if we are running out of funds to send refill alert on Telegram
+        const wBalance = await C.getWalletTokenBalance(accounts.arbitrage.adr, conf.testTokenRBTC);
+        if (wBalance <= conf.amountArbitrage) { // TODO: set dynamic threshold for different tokens?
+            console.log("Arbitrage running out of funds");
+            common.telegramBot("<b><u>A</u></b>\t\t\t\t ⚠️<b>Running out of funds</b>");
+        }
         console.log(`checking token ${tokenSymbol}`);
         const arbitrageOpportunity = await this.findArbitrageOpportunityForToken(tokenSymbol, tokenAddress);
         if(!arbitrageOpportunity) {

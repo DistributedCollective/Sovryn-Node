@@ -45,6 +45,11 @@ class Rollover {
                     console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collateralToken: "+conf.tokensDictionary[this.positions[p].collateralToken.toLowerCase()]);
                     const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     if (wallet) {
+                        // check if we are running out of funds to send refill alert on Telegram
+                        if (wBalance <= conf.amountRollover) {
+                            console.log("Rollover running out of funds");
+                            common.telegramBot("<b><u>R</u></b>\t\t\t\t ⚠️<b>Running out of funds</b>");
+                        }
                         const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
                         const tx = await this.rollover(this.positions[p], wallet.adr, nonce);
                         if (tx) await this.addTx(tx);

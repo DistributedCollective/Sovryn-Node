@@ -50,7 +50,12 @@ class Liquidator {
                 if (!wallet) {
                     await this.handleNoWalletError(p);
                     continue;
-                } 
+                }
+                // check if we are running out of funds to send refill alert on Telegram
+                if (wBalance <= conf.amountLiquidator) { // TODO: set dynamic threshold for different tokens?
+                    console.log("Liquidator running out of funds");
+                    common.telegramBot("<b><u>L</u></b>\t\t\t\t ⚠️<b>Running out of funds</b>");
+                }
 
                 const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet)
                 if (!liquidateAmount) return;
