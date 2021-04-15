@@ -38,6 +38,8 @@ export default  {
     },
     thresholdArbitrage: 2, //in %
     amountArbitrage: 0.05, //in rbtc
+    amountLiquidator: 0.05, //in rbtc
+    amountRollover: 0.05, //in rbtc
     enableDynamicArbitrageAmount: true,
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -492690059,
