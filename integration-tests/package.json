@@ -11,7 +11,8 @@
   "scripts": {
     "test": "node -r esm node_modules/.bin/hardhat test",
     "publish": "echo no && false",
-    "init-contracts": "git submodule update --init && bash ./initialize_contracts.sh"
+    "init-contracts": "git submodule update --init && bash ./initialize_contracts.sh",
+    "show-smart-contract-state": "node -r esm tools/showSmartContractState.js"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-truffle5": "^2.0.0",
