@@ -27,7 +27,7 @@ export default {
     sovrynProtocolAdr: "0x5a0d867e0d70fcc6ade25c3f1b89d618b5b4eaa7",
     swapsImpl: "0x98ace08d2b759a265ae326f010496bcd63c15afc", //get price from amm/old execute swaps
     priceFeed: "0x437ac62769f386b2d238409b7f0a7596d36506e4", //get oracle price
-    wRbtcWrapper: "0x78e7e79f1acc1f57a3291d5bfa8436a0771c1800", //real contract not available on this version
+    wRbtcWrapper: "0xa3b6e18b9a4ecae44c7355458ae7db8874018c22",
     tokensDictionary: tokensDictionary["main"],
     balanceThresholds: {
         doc: 100, // in doc
