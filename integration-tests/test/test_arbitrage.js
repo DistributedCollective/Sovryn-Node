@@ -19,8 +19,10 @@ describe("Arbitrage controller", () => {
     let priceFeeds;
 
     let initialRBTCBalance;
-    const initialWRBTCBalance = ether('1');
-    const initialUSDTBalance = ether('1000');
+    const initialWRBTCBalance = ether('100');
+    const initialUSDTBalance = ether('100000');
+
+    const BN = web3.utils.toBN;
 
     beforeEach(async () => {
         sovrynContracts = await initSovrynContracts();

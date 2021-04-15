@@ -102,7 +102,7 @@ export async function initSovrynContracts() {
     const pathFinder = await ConversionPathFinder.new(contractRegistry.address);
     await contractRegistry.registerAddress(registry.CONVERSION_PATH_FINDER, pathFinder.address);
 
-    const tokenSupply = ether('1000000000')
+    const tokenSupply = ether('1000000000'); // should be enough for most use cases :P
 
     // TODO: not sure if BNT token is needed
     //const bntToken = await ERC20Token.new("BNT", "BNT", 18, tokenSupply);
@@ -113,7 +113,7 @@ export async function initSovrynContracts() {
     usdtToken = await ERC20Token.new("rUSDT", "rUSDT", 18, tokenSupply);
     bproToken = await ERC20Token.new("BitPRO", "BITP", 18, tokenSupply);
     wrbtcToken = await WRBTC.new();
-    await wrbtcToken.deposit({ value: ether('100') });
+    await wrbtcToken.deposit({ value: tokenSupply });
 
     // not sure if required
     await contractRegistry.registerAddress(web3.utils.asciiToHex("RBTCToken"), wrbtcToken.address);

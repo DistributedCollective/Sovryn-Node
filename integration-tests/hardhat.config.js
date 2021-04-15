@@ -36,6 +36,11 @@ module.exports = {
   networks: {
     hardhat: {
       allowUnlimitedContractSize: true,
+      accounts: {
+        // give a hundred billion RBTC instead of the default 10k RBTC to each address
+        // at least we don't run out of RBTC very easily
+        accountsBalance: '100 000 000 000 000 000 000 000 000 000'.replace(/ /g, ''),
+      },
     },
   },
   mocha: truffleConfig.mocha
