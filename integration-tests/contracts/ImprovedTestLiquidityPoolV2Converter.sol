@@ -16,7 +16,7 @@ import "./copied/amm/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.
   *
   * The nature of the contract means that anyone can can retrieve all tokens at will.
 */
-contract ImprovedLiquidityPoolV2Converter is LiquidityPoolV2Converter {
+contract ImprovedTestLiquidityPoolV2Converter is LiquidityPoolV2Converter {
     uint256 public currentTime;
 
     constructor(
