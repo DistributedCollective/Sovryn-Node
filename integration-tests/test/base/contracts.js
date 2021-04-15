@@ -29,9 +29,7 @@ const Whitelist = artifacts.require("Whitelist");
 
 const WRBTC = artifacts.require("WRBTC");
 const RBTCWrapperProxy = artifacts.require("RBTCWrapperProxy");
-
-// NOTE: we use the test PriceFeeds contract since it allows us to set the rate easily
-const PriceFeeds = artifacts.require("PriceFeedsLocal");
+const PriceFeeds = artifacts.require("PriceFeeds");
 
 
 /**
@@ -114,6 +112,8 @@ export async function initSovrynContracts() {
     bproToken = await ERC20Token.new("BitPRO", "BITP", 18, tokenSupply);
     wrbtcToken = await WRBTC.new();
     await wrbtcToken.deposit({ value: tokenSupply });
+    const tokens = [docToken, usdtToken, bproToken, wrbtcToken];
+
 
     // not sure if required
     await contractRegistry.registerAddress(web3.utils.asciiToHex("RBTCToken"), wrbtcToken.address);
@@ -132,11 +132,26 @@ export async function initSovrynContracts() {
     // approval for accounts[0] not needed
     //await wrbtcToken.approve(rbtcWrapperProxy.address, MAX_UINT256);
 
-    /// XXX: protocol token is needed for priceFeeds, and must be a contract, but what is it used for??? And what should it be?
-    const protocolToken = await ERC20Token.new("Protocol Token", "PROTOCOL", 18, tokenSupply);
-    const priceFeeds = await PriceFeeds.new(wrbtcToken.address, protocolToken.address);
+    const priceOraclesByTokenAddress = {}
+    const priceOracles = []
+    for(let token of tokens) {
+        const priceOracle = await createChainlinkOracle(ether('1'));
+        await oracleWhitelist.addAddress(priceOracle.address);
+        priceOraclesByTokenAddress[token.address] = priceOracle;
+        priceOracles.push(priceOracle);
+    }
 
-    // TODO: we might need to deploy the whole sovrynProtocol
+    /// XXX: The priceFeeds contract is weird
+    // - protocol token is needed and must be a contract, but is apparently not *really* used in practice
+    // - base token is DoC (in production)
+    const protocolToken = await ERC20Token.new("Protocol Token", "PROTOCOL", 18, tokenSupply);
+    const priceFeeds = await PriceFeeds.new(wrbtcToken.address, protocolToken.address, docToken.address);
+    await priceFeeds.setPriceFeed(
+        tokens.map(t => t.address),
+        priceOracles.map(p => p.address)
+    );
+
+    // TODO: we need to deploy the whole sovrynProtocol to test liquidation and rollover
 
     return {
         accounts,
@@ -155,6 +170,8 @@ export async function initSovrynContracts() {
         upgrader,
         oracleWhitelist,
         priceFeeds,
+
+        priceOraclesByTokenAddress,
     };
 }
 
@@ -164,15 +181,15 @@ export class ConverterHelper {
         contractRegistry,
         converterRegistry,
         oracleWhitelist,
+        priceOraclesByTokenAddress,
     }) {
         this.sovrynSwapNetwork = sovrynSwapNetwork;
         this.contractRegistry = contractRegistry;
         this.converterRegistry = converterRegistry;
         this.oracleWhitelist = oracleWhitelist;
+        this.priceOraclesByTokenAddress = priceOraclesByTokenAddress;
         this.now = null;
         this.initialized = false;
-
-        this.chainLinkPriceOraclesByConverter = {};
     }
 
     async init() {
@@ -187,15 +204,13 @@ export class ConverterHelper {
         const {
             primaryReserveToken,
             secondaryReserveToken,
-            primaryReserveWeight = 500000,
-            secondaryReserveWeight = 500000,
+            initialPrimaryReserveWeight = 500000,
+            initialSecondaryReserveWeight = 500000,
             activate = true,
             register = true,
             maxConversionFee = 0,
             initialPrimaryReserveLiquidity = null,
             initialSecondaryReserveLiquidity = null,
-            primaryReserveOracleAnswer = 10000,
-            secondaryReserveOracleAnswer = 10000,
             minReturn = new BN(1),
         } = opts;
         if (!primaryReserveToken || !secondaryReserveToken) {
@@ -211,16 +226,19 @@ export class ConverterHelper {
 
         const converter = await LiquidityPoolV2Converter.new(anchor.address, this.contractRegistry.address, maxConversionFee);
 
-        await converter.setTime(this.now);
+        const now = await latest(); // TODO: could also use this.now
+        await converter.setTime(now);
+        // make sure oracle prices are taken into account
+        await converter.setReferenceRateUpdateTime(now.sub(duration.seconds(1)));
 
-        await converter.addReserve(primaryReserveToken.address, primaryReserveWeight);
-        await converter.addReserve(secondaryReserveToken.address, secondaryReserveWeight);
+        await converter.addReserve(primaryReserveToken.address, initialPrimaryReserveWeight);
+        await converter.addReserve(secondaryReserveToken.address, initialSecondaryReserveWeight);
 
-        const primaryChainlinkPriceOracle = await createChainlinkOracle(primaryReserveOracleAnswer);
-        const secondaryChainlinkPriceOracle = await createChainlinkOracle(secondaryReserveOracleAnswer);
-        await this.oracleWhitelist.addAddress(primaryChainlinkPriceOracle.address);
-        await this.oracleWhitelist.addAddress(secondaryChainlinkPriceOracle.address);
-        this.chainLinkPriceOraclesByConverter[converter.address] = [primaryChainlinkPriceOracle, secondaryChainlinkPriceOracle];
+        const primaryChainlinkPriceOracle = this.priceOraclesByTokenAddress[primaryReserveToken.address];
+        const secondaryChainlinkPriceOracle = this.priceOraclesByTokenAddress[secondaryReserveToken.address];
+        if (!primaryChainlinkPriceOracle || !secondaryChainlinkPriceOracle) {
+            throw new Error('price oracle not found for primary or secondary reserve token');
+        }
 
         if(activate) {
             await anchor.transferOwnership(converter.address);
@@ -252,6 +270,14 @@ export class ConverterHelper {
         }
 
         return converter;
+    }
+
+    async setOraclePrice(tokenAddress, price) {
+        const oracle = this.priceOraclesByTokenAddress[tokenAddress];
+        if(!oracle) {
+            throw new Error(`oracle not found for token ${tokenAddress}`);
+        }
+        await oracle.setAnswer(price);
     }
 
     async updateChainlinkOracle(converter, oracle, answer) {
@@ -295,7 +321,6 @@ const createChainlinkOracle = async (answer) => {
     const chainlinkOracle = await ChainlinkPriceOracle.new();
     await chainlinkOracle.setAnswer(answer);
 
-    //await chainlinkOracle.setTimestamp(await latest());
     // Set the last update time to a far enough future in order for the external oracle price to always take effect.
     await chainlinkOracle.setTimestamp((await latest()).add(duration.years(1)));
 

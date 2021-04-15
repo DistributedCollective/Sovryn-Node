@@ -51,8 +51,6 @@ describe("Arbitrage controller", () => {
         await converters.initConverter({
             primaryReserveToken: wrbtcToken,
             secondaryReserveToken: usdtToken,
-            primaryReserveWeight: 500000,
-            secondaryReserveWeight: 500000,
             initialPrimaryReserveLiquidity: new BN(1000000000),
             initialSecondaryReserveLiquidity: new BN(1000000000),
         });
@@ -65,8 +63,6 @@ describe("Arbitrage controller", () => {
         await converters.initConverter({
             primaryReserveToken: wrbtcToken,
             secondaryReserveToken: usdtToken,
-            primaryReserveWeight: 500000,
-            secondaryReserveWeight: 500000,
             initialPrimaryReserveLiquidity: new BN(1000000000),
             initialSecondaryReserveLiquidity: new BN(1000000000),
         });
@@ -86,8 +82,6 @@ describe("Arbitrage controller", () => {
         await converters.initConverter({
             primaryReserveToken: wrbtcToken,
             secondaryReserveToken: usdtToken,
-            primaryReserveWeight: 500000,
-            secondaryReserveWeight: 500000,
             initialPrimaryReserveLiquidity: ether('10'),
             initialSecondaryReserveLiquidity: ether('10'),
         });
@@ -109,8 +103,6 @@ describe("Arbitrage controller", () => {
         await converters.initConverter({
             primaryReserveToken: wrbtcToken,
             secondaryReserveToken: usdtToken,
-            primaryReserveWeight: 500000,
-            secondaryReserveWeight: 500000,
             initialPrimaryReserveLiquidity: ether('10'),
             initialSecondaryReserveLiquidity: ether('10'),
         });
@@ -135,11 +127,11 @@ describe("Arbitrage controller", () => {
             initialPrimaryReserveLiquidity: ether('10'),
             initialSecondaryReserveLiquidity: ether('10'),
         });
-        await priceFeeds.setRates(wrbtcToken.address, usdtToken.address, 10);
+        await converters.setOraclePrice(wrbtcToken.address, ether('10'));
 
         await converters.convert(wrbtcToken, usdtToken, ether('1'));
 
         const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
-        expect(result).to.not.equal(null)
+        expect(result).to.exists();
     });
 });

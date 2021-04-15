@@ -2,7 +2,7 @@
  * Tests for the sovryn contracts hardhat setup. If these tests fail, everything else will fail.
  */
 import { expect } from 'chai';
-import { BN } from '@openzeppelin/test-helpers';
+import { BN, ether } from '@openzeppelin/test-helpers';
 
 import {initSovrynContracts, ConverterHelper} from "./base/contracts";
 
@@ -40,8 +40,8 @@ describe("Sovryn contracts setup", () => {
             await converters.initConverter({
                 primaryReserveToken: wrbtcToken,
                 secondaryReserveToken: usdtToken,
-                primaryReserveWeight: 50000,
-                secondaryReserveWeight: 50000,
+                initialPrimaryReserveWeight: 50000,
+                initialSecondaryReserveWeight: 50000,
                 initialPrimaryReserveLiquidity: new BN('100000'),
                 initialSecondaryReserveLiquidity: new BN('100000'),
             });
@@ -64,8 +64,8 @@ describe("Sovryn contracts setup", () => {
             await converters.initConverter({
                 primaryReserveToken: wrbtcToken,
                 secondaryReserveToken: usdtToken,
-                primaryReserveWeight: 50000,
-                secondaryReserveWeight: 50000,
+                initialPrimaryReserveWeight: 50000,
+                initialSecondaryReserveWeight: 50000,
                 initialPrimaryReserveLiquidity: new BN('100000'),
                 initialSecondaryReserveLiquidity: new BN('100000'),
             });
@@ -82,6 +82,16 @@ describe("Sovryn contracts setup", () => {
             const expectedAmountReceived = new BN('1998');  // calculated by the AMM formula
             expect(await wrbtcToken.balanceOf(account)).to.be.bignumber.equal(expectedAmountReceived);
             expect(await usdtToken.balanceOf(account)).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('#priceFeed should reflect oracle price', async () => {
+            let rate = await sovrynContracts.priceFeeds.queryRate(wrbtcToken.address, usdtToken.address);
+            expect(rate[0].div(rate[1])).to.be.bignumber.equal(new BN(1));
+            await converters.setOraclePrice(wrbtcToken.address, ether('61234'))
+            rate = await sovrynContracts.priceFeeds.queryRate(wrbtcToken.address, usdtToken.address);
+            expect(rate[0].div(rate[1])).to.be.bignumber.equal(new BN('61234'));
+            expect(rate[0]).to.be.bignumber.equal(ether('61234'));
+            expect(rate[1]).to.be.bignumber.equal(ether('1')); // default
         });
     });
 });
