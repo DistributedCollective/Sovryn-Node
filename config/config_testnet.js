@@ -36,7 +36,9 @@ export default  {
         bpro: 0.01, // in bpro
         wrbtc: 0.01 // in wrbtc
     },
-    thresholdArbitrage: 2, //in %
+    thresholdArbitrage: 1, //in %
+    thresholdLiquidity: 1, //in %
+    thresholdRollover: 0.01, //in %
     amountArbitrage: 0.05, //in rbtc
     enableDynamicArbitrageAmount: true,
     errorBotTelegram: telegramBot,
