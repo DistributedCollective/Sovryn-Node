@@ -21,8 +21,9 @@ describe("Arbitrage controller", () => {
     let priceFeeds;
 
     let initialRBTCBalance;
-    const initialWRBTCBalance = ether('10000');
-    const initialUSDTBalance = ether('10000000');
+    // TODO: we don't actually need a WRBTC balance -- at least not after the bug in the arbitrage code is fixed
+    const initialWRBTCBalance = ether('10000000');
+    const initialUSDTBalance =  ether('10000000');
 
     beforeEach(async () => {
         sovrynContracts = await initSovrynContracts();
@@ -136,7 +137,8 @@ describe("Arbitrage controller", () => {
         expect(result).to.exists();
     });
 
-    it('handles an actual USDT -> RBTC arbitrage opportunity found in production', async () => {
+    it('handles a USDT -> RBTC arbitrage opportunity', async () => {
+        // this situation was actually found on mainnet
         const converterOpts = {
             primaryReserveToken: wrbtcToken,
             secondaryReserveToken: usdtToken,
@@ -148,7 +150,7 @@ describe("Arbitrage controller", () => {
             finalSecondaryReserveWeight: 187840,
             primaryPriceOracleAnswer: new BN('63500099999999998544808'),
             secondaryPriceOracleAnswer:   new BN('1000000000000000000'),
-        }
+        };
         const converter = await converters.initConverter(converterOpts);
 
         const wrbtcDelta = converterOpts.initialPrimaryReserveLiquidity.sub(converterOpts.finalPrimaryReserveBalance);
@@ -185,5 +187,57 @@ describe("Arbitrage controller", () => {
         // WRBTC delta should be *close to* 0, but not quite
         expect(newWrbtcDelta).to.be.bignumber.above(ether('-0.02'));
         expect(newWrbtcDelta).to.be.bignumber.below(ether('0.02'));
+    });
+
+    it('handles a RBTC -> USDT arbitrage opportunity', async () => {
+        // this is just the USDT->RBTC opportunity found on mainnet, but with the token balances, weights and
+        // oracle prices reversed
+        const converterOpts = {
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            initialPrimaryReserveLiquidity: new BN('2344204953216918397465575'),
+            initialSecondaryReserveLiquidity:   new BN('159658299529181487177'),
+            finalPrimaryReserveBalance:      new BN('769563135046785056451752'),
+            finalSecondaryReserveBalance:       new BN('184968372923849153200'),
+            finalPrimaryReserveWeight:   187840,
+            finalSecondaryReserveWeight: 812160,
+            primaryPriceOracleAnswer:       new BN('1000000000000000000'),
+            secondaryPriceOracleAnswer: new BN('63500099999999998544808'),
+        };
+        const converter = await converters.initConverter(converterOpts);
+
+        const wrbtcDelta = converterOpts.initialPrimaryReserveLiquidity.sub(converterOpts.finalPrimaryReserveBalance);
+        const usdtDelta = converterOpts.initialSecondaryReserveLiquidity.sub(converterOpts.finalSecondaryReserveBalance);
+
+        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
+        expect(opportunity).to.not.equal(null)
+        expect(opportunity.amount).to.be.bignumber.equal(wrbtcDelta);
+        expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+        expect(opportunity.destTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
+
+        const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
+        expect(result).to.exists();
+
+        const usdtBalance = await usdtToken.balanceOf(arbitragerAddress);
+        const usdtEarned = usdtBalance.sub(initialUSDTBalance);
+
+        const rbtcBalance = new BN(await web3.eth.getBalance(arbitragerAddress));
+        const rbtcEarned = rbtcBalance.sub(initialRBTCBalance);
+
+        expect(rbtcEarned).to.be.bignumber.above(wrbtcDelta.neg().sub(ether('0.02')));
+        expect(rbtcEarned).to.be.bignumber.below(wrbtcDelta.neg().add(ether('0.02')));
+        expect(usdtEarned).to.be.bignumber.above(usdtDelta.neg().sub(ether('0.02')));
+        expect(usdtEarned).to.be.bignumber.below(usdtDelta.neg().add(ether('0.02')));
+
+        // test that the pool is balanced
+        const newWrbtcDelta = (await converter.reserveStakedBalance(wrbtcToken.address)).sub(await converter.reserveBalance(wrbtcToken.address));
+        const newUsdtDelta = (await converter.reserveStakedBalance(usdtToken.address)).sub(await converter.reserveBalance(usdtToken.address));
+
+        // WRBTC delta should be 0 by definition (since we transferred delta amount of USDT into the contract).
+        expect(newWrbtcDelta).to.be.bignumber.equal(new BN(0));
+
+        // USDT delta should be *close to* 0, but not quite
+        expect(newUsdtDelta).to.be.bignumber.above(ether('-0.02'));
+        expect(newUsdtDelta).to.be.bignumber.below(ether('0.02'));
     });
 });
