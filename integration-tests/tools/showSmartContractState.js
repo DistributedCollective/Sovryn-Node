@@ -45,7 +45,6 @@ export class SmartContractStateUtility {
     async queryAllForTokenPair(tokenA, tokenB) {
         tokenA = normalizeToken(tokenA);
         tokenB = normalizeToken(tokenB);
-        const amm = this.amm;
         const web3 = this.web3;
         const priceFeeds = this.priceFeeds;
 
@@ -94,20 +93,11 @@ export class SmartContractStateUtility {
 
         const effectiveReserveWeights = await liquidityPool.methods.effectiveReserveWeights().call()
         console.log('effectiveReserveWeights', effectiveReserveWeights);
-        // TODO: these calculations are not correct
-        //console.log(` -> ${effectiveReserveWeights[0]} ${primaryReserveTokenSymbol} = ${effectiveReserveWeights[1]} ${secondaryReserveTokenSymbol}`);
-        //console.log(` -> 1 ${primaryReserveTokenSymbol} = ${effectiveReserveWeights[1] / effectiveReserveWeights[0]} ${secondaryReserveTokenSymbol}`);
-        //console.log(` -> 1 ${secondaryReserveTokenSymbol} = ${effectiveReserveWeights[0] / effectiveReserveWeights[1]} ${primaryReserveTokenSymbol}`);
 
         const primaryReserveWeight = await liquidityPool.methods.reserveWeight(primaryReserveTokenAddress).call();
         const secondaryReserveWeight = await liquidityPool.methods.reserveWeight(secondaryReserveTokenAddress).call();
-        const reserveWeights = [primaryReserveWeight, secondaryReserveWeight];
         console.log(`reserveWeight(${primaryReserveTokenSymbol}) = ${primaryReserveWeight}`)
         console.log(`reserveWeight(${secondaryReserveTokenSymbol}) = ${secondaryReserveWeight}`)
-        // TODO: these calculations are not correct
-        //console.log(` -> ${reserveWeights[0]} ${primaryReserveTokenSymbol} = ${reserveWeights[1]} ${secondaryReserveTokenSymbol}`);
-        //console.log(` -> 1 ${primaryReserveTokenSymbol} = ${reserveWeights[1] / reserveWeights[0]} ${secondaryReserveTokenSymbol}`);
-        //console.log(` -> 1 ${secondaryReserveTokenSymbol} = ${reserveWeights[0] / reserveWeights[1]} ${primaryReserveTokenSymbol}`);
 
         const primaryStakedBalance = await liquidityPool.methods.reserveStakedBalance(primaryReserveTokenAddress).call();
         const secondaryStakedBalance = await liquidityPool.methods.reserveStakedBalance(secondaryReserveTokenAddress).call();
@@ -126,6 +116,20 @@ export class SmartContractStateUtility {
 
         console.log(`Primary (${primaryReserveTokenSymbol}) delta (staked - actual):`, new BN(primaryStakedBalance).sub(new BN(primaryReserveBalance)).toString());
         console.log(`Secondary (${secondaryReserveTokenSymbol}) delta (staked - actual):`, new BN(secondaryStakedBalance).sub(new BN(secondaryReserveBalance)).toString());
+
+        const converterInitializationScript = this.getConverterInitializationScript({
+            primaryReserveToken: primaryReserveToken,
+            secondaryReserveToken: secondaryReserveToken,
+            initialPrimaryReserveLiquidity: primaryStakedBalance,
+            initialSecondaryReserveLiquidity: secondaryStakedBalance,
+            finalPrimaryReserveBalance: primaryReserveBalance,
+            finalSecondaryReserveBalance: secondaryReserveBalance,
+            finalPrimaryReserveWeight: primaryReserveWeight,
+            finalSecondaryReserveWeight: secondaryReserveWeight,
+            primaryPriceOracleAnswer: oracleRate[0],
+            secondaryPriceOracleAnswer: oracleRate[1],
+        });
+        console.log(`Initialize the converter in tests with:\n${converterInitializationScript}\n`);
     }
 
     async querySovLiquidityPoolData(sovConverterAddress) {
@@ -151,6 +155,49 @@ export class SmartContractStateUtility {
             [{"constant":true,"inputs":[{"name":"_tokenA","type":"address"},{"name":"_tokenB","type":"address"}],"name":"latestRate","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_tokenA","type":"address"},{"name":"_tokenB","type":"address"}],"name":"latestRateAndUpdateTime","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"tokenAOracle","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"lastUpdateTime","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"tokenBOracle","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"}],
             priceOracleAddress
         );
+    }
+
+    getConverterInitializationScript({
+        primaryReserveToken,
+        secondaryReserveToken,
+        initialPrimaryReserveLiquidity,
+        initialSecondaryReserveLiquidity,
+        finalPrimaryReserveBalance,
+        finalSecondaryReserveBalance,
+        finalPrimaryReserveWeight,
+        finalSecondaryReserveWeight,
+        primaryPriceOracleAnswer,
+        secondaryPriceOracleAnswer,
+    }) {
+        const tokenContractNames = {}
+        tokenContractNames[C.contractTokenSUSD._address.toLowerCase()] = 'docToken';
+        tokenContractNames[C.contractTokenRBTC._address.toLowerCase()] = 'wrbtcToken';
+        tokenContractNames[C.contractTokenUSDT._address.toLowerCase()] = 'usdtToken';
+        tokenContractNames[C.contractTokenBPRO._address.toLowerCase()] = 'bproToken';
+
+        const primaryTokenContractName = tokenContractNames[primaryReserveToken._address.toLowerCase()];
+        const secondaryTokenContractName = tokenContractNames[secondaryReserveToken._address.toLowerCase()];
+
+        function bnRepr(bn) {
+            bn = new BN(bn);
+            return `new BN('${bn.toString()}')`;
+        }
+
+        const lines = [
+            `await converters.initConverter({`,
+            `    primaryReserveToken: sovrynContracts.${primaryTokenContractName},`,
+            `    secondaryReserveToken: sovrynContracts.${secondaryTokenContractName},`,
+            `    initialPrimaryReserveLiquidity: ${bnRepr(initialPrimaryReserveLiquidity)},`,
+            `    initialSecondaryReserveLiquidity: ${bnRepr(initialSecondaryReserveLiquidity)},`,
+            `    finalPrimaryReserveBalance: ${bnRepr(finalPrimaryReserveBalance)},`,
+            `    finalSecondaryReserveBalance: ${bnRepr(finalSecondaryReserveBalance)},`,
+            `    finalPrimaryReserveWeight: ${bnRepr(finalPrimaryReserveWeight)},`,
+            `    finalSecondaryReserveWeight: ${bnRepr(finalSecondaryReserveWeight)},`,
+            `    primaryPriceOracleAnswer: ${bnRepr(primaryPriceOracleAnswer)},`,
+            `    secondaryPriceOracleAnswer: ${bnRepr(secondaryPriceOracleAnswer)},`,
+            `});`,
+        ];
+        return lines.join('\n');
     }
 }
 
