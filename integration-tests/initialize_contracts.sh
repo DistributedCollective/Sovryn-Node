@@ -6,6 +6,7 @@ cd "$(dirname "$0")"  # cd to the dir this script is in
 
 # Clean hardhat directories
 rm -rf cache artifacts contracts/copied
+rm -rf contracts/amm contracts/rbtc contracts/sovryn  # these might be left over from directory structure revamp
 mkdir contracts/copied
 
 # AMM
