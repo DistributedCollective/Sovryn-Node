@@ -77,6 +77,10 @@ export class SmartContractStateUtility {
         console.log("Liquidity pool:", liquidityPool._address);
         console.log("Primary reserve token:", primaryReserveTokenSymbol, primaryReserveTokenAddress);
         console.log("Secondary reserve token:", secondaryReserveTokenSymbol, secondaryReserveTokenAddress);
+        console.log("Dynamic fee factor:", await liquidityPool.methods.dynamicFeeFactor().call());
+        console.log("Conversion fee:", await liquidityPool.methods.conversionFee().call());
+        const referenceRate = await liquidityPool.methods.referenceRate().call();
+        console.log(`Reference rate: ${referenceRate[0]} / ${referenceRate[1]} = ${referenceRate[0] / referenceRate[1]}`);
 
         const priceOracleAddress = await liquidityPool.methods.priceOracle().call();
         const priceOracle = this.getPriceOracle(priceOracleAddress);
