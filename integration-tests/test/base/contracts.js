@@ -196,6 +196,7 @@ export class ConverterHelper {
         if(this.initialized) {
             return;
         }
+        // we need to store the current time to set sane reference rates for price oracles
         this.now = await latest();
         this.initialized = true;
     }
@@ -212,6 +213,12 @@ export class ConverterHelper {
             initialPrimaryReserveLiquidity = null,
             initialSecondaryReserveLiquidity = null,
             minReturn = new BN(1),
+            finalPrimaryReserveBalance = null,
+            finalSecondaryReserveBalance = null,
+            finalPrimaryReserveWeight = null,
+            finalSecondaryReserveWeight = null,
+            primaryPriceOracleAnswer = null,
+            secondaryPriceOracleAnswer = null,
         } = opts;
         if (!primaryReserveToken || !secondaryReserveToken) {
             throw new Error('primaryReserveToken and secondaryReserveToken are required');
@@ -225,11 +232,6 @@ export class ConverterHelper {
         );
 
         const converter = await LiquidityPoolV2Converter.new(anchor.address, this.contractRegistry.address, maxConversionFee);
-
-        const now = await latest(); // TODO: could also use this.now
-        await converter.setTime(now);
-        // make sure oracle prices are taken into account
-        await converter.setReferenceRateUpdateTime(now.sub(duration.seconds(1)));
 
         await converter.addReserve(primaryReserveToken.address, initialPrimaryReserveWeight);
         await converter.addReserve(secondaryReserveToken.address, initialSecondaryReserveWeight);
@@ -269,6 +271,41 @@ export class ConverterHelper {
             await converter.addLiquidity(secondaryReserveToken.address, initialSecondaryReserveLiquidity, minReturn);
         }
 
+        if(finalPrimaryReserveBalance !== null) {
+            await primaryReserveToken.approve(converter.address, MAX_UINT256);
+            await converter.setReserveBalance(primaryReserveToken.address, finalPrimaryReserveBalance);
+        }
+        if(finalSecondaryReserveBalance !== null) {
+            await secondaryReserveToken.approve(converter.address, MAX_UINT256);
+            await converter.setReserveBalance(secondaryReserveToken.address, finalSecondaryReserveBalance);
+        }
+        if(finalPrimaryReserveWeight !== null) {
+            await converter.setReserveWeight(primaryReserveToken.address, finalPrimaryReserveWeight);
+        }
+        if(finalSecondaryReserveWeight !== null) {
+            await converter.setReserveWeight(secondaryReserveToken.address, finalSecondaryReserveWeight);
+        }
+
+        const now = this.now;
+        if(primaryPriceOracleAnswer || secondaryPriceOracleAnswer) {
+            if(primaryPriceOracleAnswer) {
+                await primaryChainlinkPriceOracle.setTimestamp(now);
+                await primaryChainlinkPriceOracle.setAnswer(primaryPriceOracleAnswer);
+            }
+            if(secondaryPriceOracleAnswer) {
+                await secondaryChainlinkPriceOracle.setTimestamp(now);
+                await secondaryChainlinkPriceOracle.setAnswer(secondaryPriceOracleAnswer);
+            }
+            await converter.updateRateAndTimeFromPriceOracle();
+        } else {
+            // even when oracle prices are not given in initialization, set timestamps so that latest prices
+            // are taken into account when converting.
+            // this is frail. internal methods manipulate this thing so we need to do it at the very end of this method
+            // and there's no quarantee it won't break again
+            await converter.setTime(now);
+            await converter.setReferenceRateUpdateTime(now.sub(duration.seconds(1)));
+        }
+
         return converter;
     }
 
@@ -277,13 +314,15 @@ export class ConverterHelper {
         if(!oracle) {
             throw new Error(`oracle not found for token ${tokenAddress}`);
         }
+        await this.init();
+        await oracle.setTimestamp(this.now);
         await oracle.setAnswer(price);
     }
 
     async updateChainlinkOracle(converter, oracle, answer) {
         await this.init();
         await oracle.setAnswer(answer);
-        await oracle.setTimestamp(await converter.currentTime.call());
+        await oracle.setTimestamp(this.now);
 
         await converter.setReferenceRateUpdateTime(this.now.sub(duration.seconds(1)));
     }

@@ -7,6 +7,7 @@ import Arbitrage from '../../controller/arbitrage';
 
 import {initSovrynNodeForTesting} from "./base/backend";
 import {initSovrynContracts, ConverterHelper} from "./base/contracts";
+import {SmartContractStateUtility} from "../tools/showSmartContractState";
 
 
 describe("Arbitrage controller", () => {
@@ -21,8 +22,6 @@ describe("Arbitrage controller", () => {
     let initialRBTCBalance;
     const initialWRBTCBalance = ether('100');
     const initialUSDTBalance = ether('100000');
-
-    const BN = web3.utils.toBN;
 
     beforeEach(async () => {
         sovrynContracts = await initSovrynContracts();
@@ -122,14 +121,33 @@ describe("Arbitrage controller", () => {
         await converters.initConverter({
             primaryReserveToken: wrbtcToken,
             secondaryReserveToken: usdtToken,
-            primaryReserveWeight: 500000,
-            secondaryReserveWeight: 500000,
+            initialPrimaryReserveWeight: 500000,
+            initialScondaryReserveWeight: 500000,
             initialPrimaryReserveLiquidity: ether('10'),
             initialSecondaryReserveLiquidity: ether('10'),
         });
         await converters.setOraclePrice(wrbtcToken.address, ether('10'));
 
         await converters.convert(wrbtcToken, usdtToken, ether('1'));
+
+        const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
+        expect(result).to.exists();
+    });
+
+    it('handles an actual USDT arbitrage opportunity found in production', async () => {
+        await converters.initConverter({
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            initialPrimaryReserveLiquidity: new BN('159658299529181487177'),
+            initialSecondaryReserveLiquidity: new BN('2344204953216918397465575'),
+            finalPrimaryReserveBalance: new BN('184968372923849153200'),
+            finalSecondaryReserveBalance: new BN('769563135046785056451752'),
+            finalPrimaryReserveWeight: 812160,
+            finalSecondaryReserveWeight: 187840,
+            primaryPriceOracleAnswer: new BN('63500099999999998544808'),
+            secondaryPriceOracleAnswer: new BN('1000000000000000000'),
+        });
+        //await new SmartContractStateUtility().queryAllForTokenPair(wrbtcToken, usdtToken);
 
         const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
         expect(result).to.exists();

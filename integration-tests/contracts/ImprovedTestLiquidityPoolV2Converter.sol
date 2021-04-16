@@ -5,7 +5,8 @@ import "./copied/amm/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.
   * @dev Improved testing version of the liquidity Pool v2 Converter
   *
   * This builds on top of oracle-based-amm/solidity/contracts/helpers/TestLiquidityPoolV2Converter.sol
-  * but adds methods for setting the reserve balances without affecting staked balances.
+  * but adds methods for setting the reserve balances without affecting staked balances, and for doing other useful
+  * development stuff.
   * This way, we can initialize the contract to any state we want in unit tests.
   *
   * It should go without saying, but:
@@ -104,5 +105,16 @@ contract ImprovedTestLiquidityPoolV2Converter is LiquidityPoolV2Converter {
         } else if (_balance < reserveBalance) {
             subtractFromReserveBalance(_reserveToken, reserveBalance.sub(_balance));
         }
+    }
+
+    /**
+      * @dev updatest reference rate and update times from priceOracle.
+      * does not rebalance weights
+    */
+    function updateRateAndTimeFromPriceOracle() public {
+        (uint256 oracleRateN, uint256 oracleRateD, uint256 oracleUpdateTime) = priceOracle.latestRateAndUpdateTime(primaryReserveToken, secondaryReserveToken);
+        currentTime = oracleUpdateTime;
+        referenceRateUpdateTime = currentTime - 1 seconds;
+        referenceRate = Fraction({ n: oracleRateN, d: oracleRateD });
     }
 }
