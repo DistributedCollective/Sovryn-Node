@@ -41,6 +41,16 @@ export class ArbitrageOpportunity {
         this.sourceTokenSymbol = sourceTokenSymbol;
         this.destTokenSymbol = destTokenSymbol;
     }
+
+    toString() {
+        return (
+            `<ArbitrageOpportunity(` +
+            `source=${this.sourceTokenSymbol}(${this.sourceTokenAddress}), ` +
+            `dest=${this.destTokenSymbol}(${this.destTokenAddress}), ` +
+            `amount=${C.web3.utils.fromWei(this.amount)} (${this.amount.toString()} wei)` +
+            `)>`
+        )
+    }
 }
 
 /**
