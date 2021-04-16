@@ -240,4 +240,50 @@ describe("Arbitrage controller", () => {
         expect(newUsdtDelta).to.be.bignumber.above(ether('-0.02'));
         expect(newUsdtDelta).to.be.bignumber.below(ether('0.02'));
     });
+
+    it('checks RBTC balance instead of WRBTC balance when checking user balance', async () => {
+        // this is just the USDT->RBTC opportunity found on mainnet, but with the token balances, weights and
+        // oracle prices reversed
+        const converterOpts = {
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            initialPrimaryReserveLiquidity: ether('10'),
+            initialSecondaryReserveLiquidity: ether('10'),
+            finalPrimaryReserveBalance: ether('1'),
+            finalSecondaryReserveBalance: ether('19'),
+            // 1 RBTC = 1 USDT
+            primaryPriceOracleAnswer: ether('1'),
+            secondaryPriceOracleAnswer: ether('1'),
+        };
+        await converters.initConverter(converterOpts);
+
+        // transfer all WRBTC away from arbitrager address
+        // RBTC balance should be enough
+        if(initialWRBTCBalance.gt(new BN(0))) {
+            await wrbtcToken.transfer(contractOwnerAddress, initialWRBTCBalance, { from: arbitragerAddress });
+        }
+
+        const wrbtcDelta = converterOpts.initialPrimaryReserveLiquidity.sub(converterOpts.finalPrimaryReserveBalance);
+        const usdtDelta = converterOpts.initialSecondaryReserveLiquidity.sub(converterOpts.finalSecondaryReserveBalance);
+
+        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
+        expect(opportunity).to.not.equal(null)
+        expect(opportunity.amount).to.be.bignumber.equal(ether('9'));
+        expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+        expect(opportunity.destTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
+
+        const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
+        expect(result).to.exists();
+
+        const usdtBalance = await usdtToken.balanceOf(arbitragerAddress);
+        const usdtEarned = usdtBalance.sub(initialUSDTBalance);
+
+        const rbtcBalance = new BN(await web3.eth.getBalance(arbitragerAddress));
+        const rbtcEarned = rbtcBalance.sub(initialRBTCBalance);
+
+        expect(rbtcEarned).to.be.bignumber.above(wrbtcDelta.neg().sub(ether('0.02')));
+        expect(rbtcEarned).to.be.bignumber.below(wrbtcDelta.neg().add(ether('0.02')));
+        expect(usdtEarned).to.be.bignumber.above(usdtDelta.neg().sub(ether('0.02')));
+        expect(usdtEarned).to.be.bignumber.below(usdtDelta.neg().add(ether('0.5')));
+    });
 });

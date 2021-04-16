@@ -294,9 +294,16 @@ class Arbitrage {
         console.log(`EXECUTING ARBITRAGE! SELL ${sourceSymbol}, BUY ${destSymbol}!`)
         let amount = arbitrageOpportunity.amount;
 
-        // TODO: we should check RBTC balance instead of WRBTC! (and also take gas into account)
-        const arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
-        if(arbitragerBalance.isZero()) {
+        let arbitragerBalance;
+        if(sourceContract._address === C.contractTokenRBTC._address) {
+            // because of the RBTC wrapper proxy, we only care about RBTC balance and not WRBTC balance
+            arbitragerBalance = this.BN(await C.web3.eth.getBalance(fromAddress));
+            // Add some buffer for gas. Exact amount is up for debate...
+            arbitragerBalance = arbitragerBalance.sub(this.BN(C.web3.utils.toWei('0.0001')));
+        } else {
+            arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
+        }
+        if(arbitragerBalance.isZero() || arbitragerBalance.isNeg()) {
             console.log('no balance held in wallet -- cannot do anything')
             return;
         } else if(arbitragerBalance.lt(amount)) {
