@@ -11,6 +11,7 @@ import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
 import tokensDictionary from '../config/tokensDictionary.json'
+import Extra from 'telegraf/extra';
 import dbCtrl from './db';
 
 class Rollover {
@@ -73,7 +74,7 @@ class Rollover {
                 .then(async (tx) => {
                     const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${pos.loanId} with ${tokensDictionary[conf.network][pos.collateralToken]} as collateral token`;
                     console.log(msg);
-                    common.telegramBot.sendMessage(`${conf.network}-${msg}`);
+                    common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML());
 
                     p.handleRolloverSuccess(pos.loanId);
                     resolve(tx.transactionHash);
@@ -81,7 +82,7 @@ class Rollover {
                 .catch(async (err) => {
                     console.error("Error in rolling over position "+pos.loanId);
                     console.error(err);
-                    common.telegramBot.sendMessage(err.toString());
+                    common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx (loanId ${pos.loanId})`, Extra.HTML());
                     p.handleRolloverError(pos.loanId);
                     resolve();
                 });
@@ -130,7 +131,7 @@ class Rollover {
 
     async handleNoWalletError() {
         console.error("No wallet available for rollover");
-        common.telegramBot.sendMessage("No wallet available for rollover");
+        common.telegramBot.sendMessage("<b><u>R</u></b>\t\t\t\t No wallet available for rollover", Extra.HTML());
     }
 }
 

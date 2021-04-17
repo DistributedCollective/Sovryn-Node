@@ -8,10 +8,10 @@ class TelegramBot {
         this.bot = conf.errorBotTelegram ? new Telegram(conf.errorBotTelegram) : null;
     }
 
-    async sendMessage(msg) {
+    async sendMessage(msg, extra) {
         if (this.bot) {
             try {
-                this.bot.sendMessage(conf.sovrynInternalTelegramId, msg);
+                this.bot.sendMessage(conf.sovrynInternalTelegramId, msg, extra);
             } catch(err) {
                 console.log(err)
             }

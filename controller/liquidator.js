@@ -14,6 +14,7 @@ import conf from '../config/config';
 import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
+import Extra from 'telegraf/extra';
 import dbCtrl from './db';
 
 class Liquidator {
@@ -134,6 +135,7 @@ class Liquidator {
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
+                common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx (loanId ${pos.loanId})`, Extra.HTML());
                 await p.handleLiqError(wallet, loanId);
             });
     }
@@ -141,8 +143,8 @@ class Liquidator {
     async handleLiqSuccess(wallet, loanId, txHash, amount, token) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
-        const msg = `${conf.network} net-liquidation of loan ${loanId} of ${amount} ${tokensDictionary[conf.network][token].toUpperCase()} successful. \n ${txHash}`;
-        common.telegramBot.sendMessage(msg);
+        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} of ${amount} ${tokensDictionary[conf.network][token].toUpperCase()} successful. \n ${txHash}`;
+        common.telegramBot.sendMessage(msg, Extra.HTML());
     }
 
     /**
@@ -158,13 +160,13 @@ class Liquidator {
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed.");
+            common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} failed.`, Extra.HTML());
         }
     }
 
     async handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        common.telegramBot.sendMessage(conf.network + "net-liquidation of loan " + loanId + " failed because no wallet with enough funds was found.");
+        common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} failed because no wallet with enough funds was found.`, Extra.HTML());
     }
 
     async calculateLiqProfit(liqEvent) {

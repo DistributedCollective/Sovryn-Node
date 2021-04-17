@@ -15,6 +15,7 @@ import C from './contract';
 import U from '../util/helper';
 import A from '../secrets/accounts';
 import Web3 from 'web3';
+import Extra from 'telegraf/extra';
 import conf from '../config/config';
 import  common from './common';
 import abiDecoder from 'abi-decoder';
@@ -517,14 +518,14 @@ class Arbitrage {
                         .then(async (tx) => {
                             const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val.toString(), 'Ether')} ${tokensDictionary[conf.network][sourceToken].toUpperCase()} for ${tokensDictionary[conf.network][destToken].toUpperCase()}`;
                             console.log(msg);
-                            common.telegramBot.sendMessage(`${conf.network}-${msg}`)
+                            common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML())
 
                             return resolve(tx);
                         })
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
-                            common.telegramBot.sendMessage(`error on arbitrage tx (${amount} ${sourceCurrency} -> ${destCurrency}): ` + JSON.stringify(err, null, 2));
+                            common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on arbitrage tx (${amount} ${sourceCurrency} -> ${destCurrency})`, Extra.HTML());
 
                             return resolve();
                         });
