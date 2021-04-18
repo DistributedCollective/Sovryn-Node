@@ -108,7 +108,7 @@ contract ImprovedTestLiquidityPoolV2Converter is LiquidityPoolV2Converter {
     }
 
     /**
-      * @dev updatest reference rate and update times from priceOracle.
+      * @dev updates reference rate and update times from priceOracle.
       * does not rebalance weights
     */
     function updateRateAndTimeFromPriceOracle() public {
@@ -116,5 +116,17 @@ contract ImprovedTestLiquidityPoolV2Converter is LiquidityPoolV2Converter {
         currentTime = oracleUpdateTime;
         referenceRateUpdateTime = currentTime - 1 seconds;
         referenceRate = Fraction({ n: oracleRateN, d: oracleRateD });
+    }
+
+    /**
+      * @dev forces rebalancing of weights according to the reference rate
+    */
+    function forceRebalance() public {
+        // get the new reserve weights
+        (uint256 primaryReserveWeight, uint256 secondaryReserveWeight) = effectiveReserveWeights();
+
+        // update the reserve weights with the new values
+        reserves[primaryReserveToken].weight = uint32(primaryReserveWeight);
+        reserves[secondaryReserveToken].weight = uint32(secondaryReserveWeight);
     }
 }
