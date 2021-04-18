@@ -184,27 +184,27 @@ class Contract {
         const token1Anchors = await registry.methods.getConvertibleTokenAnchors(token1Address).call();
         const token2Anchors = await registry.methods.getConvertibleTokenAnchors(token2Address).call();
         let anchor = null;
-        for(const token1Anchor of token1Anchors) {
-            if(token2Anchors.indexOf(token1Anchor) !== -1) {
-                if(anchor) {
+        for (const token1Anchor of token1Anchors) {
+            if (token2Anchors.indexOf(token1Anchor) !== -1) {
+                if (anchor) {
                     throw new Error(`multiple anchors found for ${token1Address} and ${token2Address}`);
                 }
                 anchor = token1Anchor;
             }
         }
-        if(!anchor) {
+        if (!anchor) {
             throw new Error(`no anchors found for ${token1Address} and ${token2Address}`);
         }
         const converterAddresses = await registry.methods.getConvertersByAnchors([anchor]).call();
-        if(converterAddresses.length === 0) {
+        if (converterAddresses.length === 0) {
             throw new Error(`no converters found for ${token1Address} and ${token2Address}`);
         }
-        if(converterAddresses.length > 1) {
+        if (converterAddresses.length > 1) {
             throw new Error(`multiple converters found for ${token1Address} and ${token2Address}: ${converterAddresses}`);
         }
         const converterAddress = converterAddresses[0];
         const isLiquidityPool = await registry.methods.isLiquidityPool(converterAddress);
-        if(!isLiquidityPool) {
+        if (!isLiquidityPool) {
             throw new Error(`converter ${converterAddress} for ${token1Address} and ${token2Address} is not a liquidity pool`);
         }
         return new this.web3.eth.Contract(abiLiquidityPoolV2Converter, converterAddress);
