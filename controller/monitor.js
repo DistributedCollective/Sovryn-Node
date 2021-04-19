@@ -34,7 +34,6 @@ class MonitorController {
      * Wrapper for health signals, called from client
      */
     async getSignals(cb) {
-        console.log("get signals")
         const resp =
         {
             blockInfoLn: await this.getCurrentBlockPrivateNode(),
@@ -51,7 +50,6 @@ class MonitorController {
     }
 
     async getAddresses(cb) {
-        console.log("get addresses")
         const resp = {
             liquidator: await Promise.all(accounts.liquidator.map(async (account) => await this.getAccountInfoForFrontend(account, "liquidator"))),
             rollover: await this.getAccountInfoForFrontend(accounts.rollover[0], "rollover"),
