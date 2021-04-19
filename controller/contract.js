@@ -20,6 +20,8 @@ class Contract {
      * Creates all the contract instances to query open positions, balances, prices
      */
     constructor() {
+        this.tokenContractsByAddress = {};
+        this.tokenSymbolsByAddress = {};
         this.init();
     }
 
@@ -31,10 +33,22 @@ class Contract {
         } = opts
         this.web3 = web3;
         this.contractSovryn = new this.web3.eth.Contract(abiComplete, conf.sovrynProtocolAdr);
+
         this.contractTokenSUSD = new this.web3.eth.Contract(abiTestToken, conf.docToken);
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
         this.contractTokenUSDT = new this.web3.eth.Contract(abiTestToken, conf.USDTToken);
         this.contractTokenBPRO = new this.web3.eth.Contract(abiTestToken, conf.BProToken);
+
+        this.tokenContractsByAddress = {}
+        this.tokenContractsByAddress[conf.docToken.toLowerCase()] = this.contractTokenSUSD;
+        this.tokenContractsByAddress[conf.testTokenRBTC.toLowerCase()] = this.contractTokenRBTC;
+        this.tokenContractsByAddress[conf.USDTToken.toLowerCase()] = this.contractTokenUSDT;
+        this.tokenContractsByAddress[conf.BProToken.toLowerCase()] = this.contractTokenBPRO;
+        this.tokenSymbolsByAddress = {}
+        this.tokenSymbolsByAddress[conf.docToken.toLowerCase()] = "doc"
+        this.tokenSymbolsByAddress[conf.testTokenRBTC.toLowerCase()] = "rbtc";
+        this.tokenSymbolsByAddress[conf.USDTToken.toLowerCase()] = "usdt";
+        this.tokenSymbolsByAddress[conf.BProToken.toLowerCase()] = "bpro";
 
         this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
         this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);
@@ -213,12 +227,37 @@ class Contract {
     /**
      * helper function
      */
-    getTokenInstance(adr) {
-        if (adr && adr.toLowerCase() === conf.docToken.toLowerCase()) return this.contractTokenSUSD;
-        else if (adr && adr.toLowerCase() === conf.testTokenRBTC.toLowerCase()) return this.contractTokenRBTC;
-        else if (adr && adr.toLowerCase() === conf.USDTToken.toLowerCase()) return this.contractTokenUSDT;
-        else if (adr && adr.toLowerCase() === conf.BProToken.toLowerCase()) return this.contractTokenBPRO;
-        return false;
+
+    /**
+     * Get token contract, given an address
+     * @param tokenAddress
+     * @returns {*} Token contract, or false if contract not found
+     */
+    getTokenInstance(tokenAddress) {
+        if(!tokenAddress) {
+            return false;
+        }
+        return this.tokenContractsByAddress[tokenAddress.toLowerCase()] || false;
+    }
+
+    /**
+     * Get the symbol of a token, given symbol
+     * @param tokenAddress
+     * @returns {string} Symbol of token, or "(unknown)" if symbol is not found.
+     */
+    getTokenSymbol(tokenAddress) {
+        if(!tokenAddress) {
+            return '(unknown)';
+        }
+        return this.tokenSymbolsByAddress[tokenAddress.toLowerCase()] || '(unknown)';
+    }
+
+    /**
+     * Return addresses of all tokens used
+     * @returns {string[]} Addresses of all tokens used
+     */
+    getAllTokenAddresses() {
+        return Object.keys(this.tokenContractsByAddress);
     }
 
     async getGasPrice() {

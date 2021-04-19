@@ -10,7 +10,6 @@ import conf from '../config/config';
 import common from './common'
 import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
-import tokensDictionary from '../config/tokensDictionary.json'
 import Extra from 'telegraf/extra';
 import dbCtrl from './db';
 
@@ -43,7 +42,7 @@ class Rollover {
                 else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
                
                 if (this.positions[p].endTimestamp < Date.now() / 1000) {
-                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collateralToken: "+conf.tokensDictionary[this.positions[p].collateralToken.toLowerCase()]);
+                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collateralToken: "+C.getTokenSymbol(this.positions[p].collateralToken));
                     const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     if (wallet) {
                         const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
@@ -72,7 +71,7 @@ class Rollover {
             C.contractSovryn.methods.rollover(pos.loanId, loanDataBytes)
                 .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce:nonce })
                 .then(async (tx) => {
-                    const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${pos.loanId} with ${tokensDictionary[conf.network][pos.collateralToken].toLowerCase()} as collateral token`;
+                    const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${pos.loanId} with ${C.getTokenSymbol(pos.collateralToken)} as collateral token`;
                     console.log(msg);
                     common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML());
 

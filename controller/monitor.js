@@ -6,13 +6,9 @@ const axios = require('axios');
 import A from '../secrets/accounts';
 import C from './contract';
 import conf from '../config/config';
-import tokensDictionary from '../config/tokensDictionary.json';
 import common from './common';
 import dbCtrl from './db';
 import accounts from '../secrets/accounts';
-
-const tokensArray = Object.values(tokensDictionary[conf.network]);
-const tokensAddressArray = Object.keys(tokensDictionary[conf.network]);
 
 class MonitorController {
 
@@ -167,6 +163,7 @@ class MonitorController {
     }
 
     async getAccountInfoForFrontend(account, type) {
+        const tokenAddresses = C.getAllTokenAddresses();
         let accountWithInfo = { 
             address: account.adr,
             type, 
@@ -174,10 +171,10 @@ class MonitorController {
                 await C.web3.eth.getBalance(account.adr), "Ether")
             ).toFixed(5),
             tokenBalances: await Promise.all(
-                tokensArray.map(async token => ({
-                    token,
+                tokenAddresses.map(async tokenAddress => ({
+                    token: C.getTokenSymbol(tokenAddress),
                     balance: Number(
-                        C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokensAddressArray[tokensArray.indexOf(token)]), "Ether")
+                        C.web3.utils.fromWei(await C.getWalletTokenBalance(account.adr, tokenAddress), "Ether")
                     ).toFixed(5),
                 }))
             )

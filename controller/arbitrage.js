@@ -20,7 +20,6 @@ import conf from '../config/config';
 import  common from './common';
 import abiDecoder from 'abi-decoder';
 import abiSwap from "../config/abiSovrynSwapNetwork";
-import tokensDictionary from '../config/tokensDictionary.json'
 import db from "./db";
 
 const BN = Web3.utils.BN;
@@ -351,12 +350,12 @@ class Arbitrage {
                 if (arb && (arb === parseFloat(prices[p][0]).toFixed(5))) {
                     let convertedAmount = C.web3.utils.toWei(prices[p][0].toString(), "Ether");
                     res = await this.swap(convertedAmount, p, 'rbtc');
-                    arbitrageDeals.push({from: tokensDictionary[p], to: 'rBTC'});
+                    arbitrageDeals.push({from: C.getTokenSymbol(p), to: 'rBTC'});
                 }
                 //the oracle price is lower -> sell btc
                 else if (arb && (arb === parseFloat(prices[p][1]).toFixed(5))) {
                     res = await this.swap(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
-                    arbitrageDeals.push({from: 'rBTC', to: tokensDictionary[p]});
+                    arbitrageDeals.push({from: 'rBTC', to: C.getTokenSymbol(p)});
                 }
 
                 if(res) profit = await this.calculateProfit(res, p[1]);
@@ -387,7 +386,6 @@ class Arbitrage {
 
     async getRBtcPrices() {
         const amount = C.web3.utils.toWei(conf.amountArbitrage.toString(), "Ether");
-        // TODO: refactor to automatically include all tokens from tokensDictionary
 
         //doc
         let rBtcDocAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.docToken, amount);
@@ -516,7 +514,7 @@ class Arbitrage {
                     contract2.methods["convertByPath"](result, amount, minReturn)
                         .send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
-                            const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val.toString(), 'Ether')} ${tokensDictionary[conf.network][sourceToken].toUpperCase()} for ${tokensDictionary[conf.network][destToken].toUpperCase()}`;
+                            const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val.toString(), 'Ether')} ${C.getTokenSymbol(sourceToken)} for ${C.getTokenSymbol(destToken)}`;
                             console.log(msg);
                             common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML())
 
