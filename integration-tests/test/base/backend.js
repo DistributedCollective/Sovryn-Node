@@ -3,7 +3,6 @@ import conf from '../../../config/config';
 import C from '../../../controller/contract';
 import A from '../../../secrets/accounts';
 import db from '../../../controller/db';
-import tokensDictionary from '../../../config/tokensDictionary.json';
 
 const { ZERO_ADDRESS } = constants;
 
@@ -53,16 +52,6 @@ export async function initSovrynNodeForTesting({
     conf.loanTokenUSDT = ZERO_ADDRESS;
     conf.loanTokenBPRO = ZERO_ADDRESS;
     conf.loanTokenRBTC = ZERO_ADDRESS;
-
-    // Handle this thing too.
-    tokensDictionary['main'] = {};
-    const tmpDictionary = tokensDictionary[conf.network];
-    tmpDictionary[wrbtcToken.address.toLowerCase()] = "wrbtc";
-    tmpDictionary[bproToken.address.toLowerCase()] = "bpro";
-    tmpDictionary[usdtToken.address.toLowerCase()] = "usdt";
-    tmpDictionary[docToken.address.toLowerCase()] = "doc";
-    tokensDictionary[conf.network] = tmpDictionary;
-    conf.tokensDictionary = tmpDictionary;
 
     // also deal with accounts
     A.liquidator = [

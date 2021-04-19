@@ -7,7 +7,6 @@
 
 import C from './contract';
 import U from '../util/helper';
-import A from '../secrets/accounts';
 import Wallet from './wallet';
 import Arbitrage from '../controller/arbitrage';
 import conf from '../config/config';
@@ -90,8 +89,8 @@ class Liquidator {
     * @param destCurrency is defaulting for now to 'rbtc'
     */
     async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc', wallet) {
-        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : conf.tokensDictionary[sourceCurrency.toLowerCase()];
-        destCurrency = destCurrency === 'rbtc' ? destCurrency : conf.tokensDictionary[destCurrency.toLowerCase()];
+        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : C.getTokenSymbol(sourceCurrency);
+        destCurrency = destCurrency === 'rbtc' ? destCurrency : C.getTokenSymbol(destCurrency);
         console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency}`);
         try {
             const prices = await Arbitrage.getRBtcPrices();
@@ -143,7 +142,7 @@ class Liquidator {
     async handleLiqSuccess(wallet, loanId, txHash, amount, token) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
-        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} of ${amount} ${tokensDictionary[conf.network][token].toUpperCase()} successful. \n ${txHash}`;
+        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} of ${amount} ${C.getTokenSymbol(token).toUpperCase()} successful. \n ${txHash}`;
         common.telegramBot.sendMessage(msg, Extra.HTML());
     }
 
@@ -177,7 +176,7 @@ class Liquidator {
         const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
         if (convertedPaidAmount) {
             const liqProfit = C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount));
-            console.log("You made "+liqProfit+" "+conf.tokensDictionary[liqEvent.collateralToken.toLowerCase()]+" with this liquidation");
+            console.log(`You made ${liqProfit} ${C.getTokenSymbol(liqEvent.collateralToken)} with this liquidation`);
             return liqProfit;
         }
         else {
@@ -226,7 +225,7 @@ class Liquidator {
                         C.web3.utils.toBN(balAfter).sub(C.web3.utils.toBN(balBefore)),
                         "ether"
                     )).toFixed(5);
-                    console.log("\nYou made "+profit+" "+tokensDictionary[conf.network][collateralToken]+" with this liquidation");
+                    console.log(`\nYou made ${profit} ${C.getTokenSymbol(collateralToken)} with this liquidation`);
 
                     //wrong -> update
                     const pos = loanToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
