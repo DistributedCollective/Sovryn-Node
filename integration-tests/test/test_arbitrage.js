@@ -185,8 +185,7 @@ describe("Arbitrage controller", () => {
         expect(newUsdtDelta).to.be.bignumber.equal(new BN(0));
 
         // WRBTC delta should be *close to* 0, but not quite
-        expect(newWrbtcDelta).to.be.bignumber.above(ether('-0.02'));
-        expect(newWrbtcDelta).to.be.bignumber.below(ether('0.02'));
+        expect(newWrbtcDelta).to.be.bignumber.closeTo(new BN(0), ether('0.02'));
     });
 
     it('handles a RBTC -> USDT arbitrage opportunity', async () => {
@@ -224,10 +223,8 @@ describe("Arbitrage controller", () => {
         const rbtcBalance = new BN(await web3.eth.getBalance(arbitragerAddress));
         const rbtcEarned = rbtcBalance.sub(initialRBTCBalance);
 
-        expect(rbtcEarned).to.be.bignumber.above(wrbtcDelta.neg().sub(ether('0.02')));
-        expect(rbtcEarned).to.be.bignumber.below(wrbtcDelta.neg().add(ether('0.02')));
-        expect(usdtEarned).to.be.bignumber.above(usdtDelta.neg().sub(ether('0.02')));
-        expect(usdtEarned).to.be.bignumber.below(usdtDelta.neg().add(ether('0.02')));
+        expect(rbtcEarned).to.be.bignumber.closeTo(wrbtcDelta.neg(), ether('0.02'));
+        expect(usdtEarned).to.be.bignumber.closeTo(usdtDelta.neg(), ether('0.02'));
 
         // test that the pool is balanced
         const newWrbtcDelta = (await converter.reserveStakedBalance(wrbtcToken.address)).sub(await converter.reserveBalance(wrbtcToken.address));
@@ -237,8 +234,7 @@ describe("Arbitrage controller", () => {
         expect(newWrbtcDelta).to.be.bignumber.equal(new BN(0));
 
         // USDT delta should be *close to* 0, but not quite
-        expect(newUsdtDelta).to.be.bignumber.above(ether('-0.02'));
-        expect(newUsdtDelta).to.be.bignumber.below(ether('0.02'));
+        expect(newUsdtDelta).to.be.bignumber.closeTo(new BN(0), ether('0.02'));
     });
 
     it('checks RBTC balance instead of WRBTC balance when checking user balance', async () => {
@@ -281,8 +277,7 @@ describe("Arbitrage controller", () => {
         const rbtcBalance = new BN(await web3.eth.getBalance(arbitragerAddress));
         const rbtcEarned = rbtcBalance.sub(initialRBTCBalance);
 
-        expect(rbtcEarned).to.be.bignumber.above(wrbtcDelta.neg().sub(ether('0.02')));
-        expect(rbtcEarned).to.be.bignumber.below(wrbtcDelta.neg().add(ether('0.02')));
+        expect(rbtcEarned).to.be.bignumber.closeTo(wrbtcDelta.neg(), ether('0.02'));
         expect(usdtEarned).to.be.bignumber.above(usdtDelta.neg().sub(ether('0.02')));
         expect(usdtEarned).to.be.bignumber.below(usdtDelta.neg().add(ether('0.5')));
     });
