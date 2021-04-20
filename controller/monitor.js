@@ -167,9 +167,14 @@ class MonitorController {
         let accountWithInfo = { 
             address: account.adr,
             type, 
-            balance: Number(C.web3.utils.fromWei(
-                await C.web3.eth.getBalance(account.adr), "Ether")
-            ).toFixed(5),
+            rBtcBalance: {
+                balance: Number(C.web3.utils.fromWei(
+                    await C.web3.eth.getBalance(account.adr), "Ether")
+                ).toFixed(5),
+                overThreshold: Number(C.web3.utils.fromWei(
+                    await C.web3.eth.getBalance(account.adr), "Ether")
+                ) > conf.balanceThresholds['rbtc']
+            },
             tokenBalances: await Promise.all(
                 tokenAddresses.map(async tokenAddress => ({
                     token: C.getTokenSymbol(tokenAddress),
@@ -180,7 +185,9 @@ class MonitorController {
             )
         }
         accountWithInfo.tokenBalances = accountWithInfo.tokenBalances.map(tokenBalance => ({
-            ...tokenBalance, overThreshold: tokenBalance.balance > conf.balanceThresholds[tokenBalance.token]
+            ...tokenBalance,
+            token: tokenBalance.token === 'rbtc' ? 'wrbtc' : tokenBalance.token,
+            overThreshold: tokenBalance.balance > conf.balanceThresholds[tokenBalance.token]
         }))
         return accountWithInfo;
     }
