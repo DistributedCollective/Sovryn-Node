@@ -1,6 +1,10 @@
 require("@nomiclabs/hardhat-truffle5");
 require("@nomiclabs/hardhat-web3");
-const truffleConfig = require('./truffle-config');
+require('chai')
+    .use(require('chai-as-promised'))
+    .use(require('chai-bn')(require('bn.js')))
+    .use(require('chai-string'))
+    .use(require('dirty-chai'));
 
 // monkey-patch these at the earliest opportunity, otherwise initializing controller/Contract.js
 // will fail if you have "ks" anywhere
@@ -43,5 +47,9 @@ module.exports = {
       },
     },
   },
-  mocha: truffleConfig.mocha
+  mocha: {
+    timeout: 600000,
+    useColors: true,
+    reporter: 'list',
+  }
 };
