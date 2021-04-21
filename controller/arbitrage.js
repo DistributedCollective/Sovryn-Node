@@ -238,7 +238,7 @@ class Arbitrage {
         const tokenContractBalance = this.BN(await tokenContract.methods.balanceOf(liquidityPool._address).call());
         const tokenStakedBalance = this.BN(await liquidityPool.methods.reserveStakedBalance(tokenAddress).call());
 
-        return calculateArbitrageOpportunity(
+        const opportunity = calculateArbitrageOpportunity(
             rbtcAddress,
             rbtcContractBalance,
             rbtcStakedBalance,
@@ -251,6 +251,19 @@ class Arbitrage {
                 log: true,
             }
         );
+
+        if(opportunity && conf.dynamicArbitrageMaxAmounts) {
+            const maxAmountStr = conf.dynamicArbitrageMaxAmounts[opportunity.sourceTokenSymbol] || conf.dynamicArbitrageMaxAmounts.default;
+            if(maxAmountStr) {
+                const maxAmountWei = this.BN(C.web3.utils.toWei(maxAmountStr));
+                if(opportunity.amount.gt(maxAmountWei)) {
+                    console.log(`Limiting amount to max amount specified in config: ${maxAmountStr} ${opportunity.sourceTokenSymbol}`);
+                    opportunity.amount = maxAmountWei;
+                }
+            }
+        }
+
+        return opportunity;
     }
 
     async getAmmAndPriceFeedPrices(arbitrageOpportunity) {

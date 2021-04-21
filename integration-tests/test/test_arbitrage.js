@@ -4,6 +4,7 @@ const { MAX_UINT256 } = constants;
 
 import A from '../../secrets/accounts';
 import Arbitrage from '../../controller/arbitrage';
+import conf from '../../config/config';
 
 import {initSovrynNodeForTesting} from "./base/backend";
 import {initSovrynContracts, ConverterHelper} from "./base/contracts";
@@ -280,5 +281,94 @@ describe("Arbitrage controller", () => {
         expect(rbtcEarned).to.be.bignumber.closeTo(wrbtcDelta.neg(), ether('0.02'));
         expect(usdtEarned).to.be.bignumber.above(usdtDelta.neg().sub(ether('0.02')));
         expect(usdtEarned).to.be.bignumber.below(usdtDelta.neg().add(ether('0.5')));
+    });
+
+    it('limits the max amount if specified in config', async () => {
+        // this situation was actually found on mainnet
+        const converterOpts = {
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            initialPrimaryReserveLiquidity:       new BN('159658299529181487177'),
+            initialSecondaryReserveLiquidity: new BN('2344204953216918397465575'),
+            finalPrimaryReserveBalance:           new BN('184968372923849153200'),
+            finalSecondaryReserveBalance:      new BN('769563135046785056451752'),
+            finalPrimaryReserveWeight:   812160,
+            finalSecondaryReserveWeight: 187840,
+            primaryPriceOracleAnswer: new BN('63500099999999998544808'),
+            secondaryPriceOracleAnswer:   new BN('1000000000000000000'),
+        };
+        await converters.initConverter(converterOpts);
+
+        const maxAmountStr = '1000';
+        conf.dynamicArbitrageMaxAmounts.default = maxAmountStr;
+        const usdtMaxAmountWei = ether(maxAmountStr);
+
+        const usdtDelta = converterOpts.initialSecondaryReserveLiquidity.sub(converterOpts.finalSecondaryReserveBalance);
+        expect(usdtDelta).to.be.bignumber.above(usdtMaxAmountWei);  // sanity check
+
+        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
+        expect(opportunity.amount).to.be.bignumber.equal(usdtMaxAmountWei);
+        expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
+
+        await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
+        const usdtBalance = await usdtToken.balanceOf(arbitragerAddress);
+        const usdtEarned = usdtBalance.sub(initialUSDTBalance);
+
+        expect(usdtEarned).to.be.bignumber.equal(usdtMaxAmountWei.neg());
+    });
+
+    it('limits the max amount if specified in config for rbtc', async () => {
+        // this situation was actually found on mainnet
+        const converterOpts = {
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            initialPrimaryReserveLiquidity: ether('10'),
+            initialSecondaryReserveLiquidity: ether('10'),
+            finalPrimaryReserveBalance: ether('1'),
+            finalSecondaryReserveBalance: ether('19'),
+            // 1 RBTC = 1 USDT
+            primaryPriceOracleAnswer: ether('1'),
+            secondaryPriceOracleAnswer: ether('1'),
+        };
+        await converters.initConverter(converterOpts);
+
+        const maxAmountStr = '0.1';
+        conf.dynamicArbitrageMaxAmounts.rbtc = maxAmountStr;
+        const rbtcMaxAmountWei = ether(maxAmountStr);
+
+        const rbtcDelta = converterOpts.initialPrimaryReserveLiquidity.sub(converterOpts.finalPrimaryReserveBalance);
+        expect(rbtcDelta).to.be.bignumber.above(rbtcMaxAmountWei);  // sanity check
+
+        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', wrbtcToken.address);
+        expect(opportunity.amount).to.be.bignumber.equal(rbtcMaxAmountWei);
+        expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+    });
+
+    it("doesn't limit max amount if opportunity amount is smaller", async () => {
+        // this situation was actually found on mainnet
+        const converterOpts = {
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            initialPrimaryReserveLiquidity:       new BN('159658299529181487177'),
+            initialSecondaryReserveLiquidity: new BN('2344204953216918397465575'),
+            finalPrimaryReserveBalance:           new BN('184968372923849153200'),
+            finalSecondaryReserveBalance:      new BN('769563135046785056451752'),
+            finalPrimaryReserveWeight:   812160,
+            finalSecondaryReserveWeight: 187840,
+            primaryPriceOracleAnswer: new BN('63500099999999998544808'),
+            secondaryPriceOracleAnswer:   new BN('1000000000000000000'),
+        };
+        await converters.initConverter(converterOpts);
+
+        const maxAmountStr = '1000000000000000000000000000';
+        conf.dynamicArbitrageMaxAmounts.default = maxAmountStr;
+        const usdtMaxAmountWei = ether(maxAmountStr);
+
+        const usdtDelta = converterOpts.initialSecondaryReserveLiquidity.sub(converterOpts.finalSecondaryReserveBalance);
+        expect(usdtDelta).to.be.bignumber.below(usdtMaxAmountWei);  // sanity check
+
+        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
+        expect(opportunity.amount).to.be.bignumber.equal(usdtDelta);
+        expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
     });
 });

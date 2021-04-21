@@ -38,6 +38,7 @@ export async function initSovrynNodeForTesting({
     conf.thresholdArbitrage = 1;
     conf.amountArbitrage = 0.01;
     conf.enableDynamicArbitrageAmount = true;
+    conf.dynamicArbitrageMaxAmounts = {};  // clear this by default, for easier testing
 
     // Set these just to be safe
     conf.nodeProvider = 'http://example.invalid';
