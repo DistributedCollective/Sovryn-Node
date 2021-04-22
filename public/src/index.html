@@ -37,7 +37,7 @@
           <tr>
             <th>Account</th>
             <th>Account type</th>
-            <th>rBTC</th>
+            <th>RBTC</th>
             <th ng-repeat="token in ctrl.tokens">
               {{ token.toUpperCase() }}
             </th>
@@ -45,7 +45,9 @@
           <tr ng-repeat="account in ctrl.accounts">
             <td><a ng-href="{{ctrl.blockExplorer}}address/{{account.address}}" target="_blank">{{ account.address }}</a></td>
             <td>{{ account.type }}</td>
-            <td>{{ account.balance }}</td>
+            <td ng-class="{'alert alert-success': account.rBtcBalance.overThreshold,'alert alert-danger': !account.rBtcBalance.overThreshold}">
+              {{ account.rBtcBalance.balance }}
+            </td>
             <td ng-if="account.tokenBalances.length > 0" ng-repeat="balance in account.tokenBalances"
               ng-class="{'alert alert-success': balance.overThreshold,'alert alert-danger': !balance.overThreshold}">
                 {{ balance.balance }}
