@@ -83,7 +83,7 @@ class Rollover {
                     console.error("Error in rolling over position "+pos.loanId);
                     console.error(err);
                     common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx: ${conf.blockExplorer}/tx/${err.receipt.transactionHash}
-                        \nLoanId: ${pos.loanId}`, Extra.HTML());
+                        \nLoanId: ${U.formatLoanId(pos.loanId)}`, Extra.HTML());
                     p.handleRolloverError(pos.loanId);
                     resolve();
                 });
