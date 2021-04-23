@@ -143,7 +143,8 @@ class Liquidator {
     async handleLiqSuccess(wallet, loanId, txHash, amount, token) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
-        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} of ${amount} ${C.getTokenSymbol(token).toUpperCase()} successful. \n ${txHash}`;
+        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} of ${amount} ${C.getTokenSymbol(token).toUpperCase()} successful. 
+            \n${conf.blockExplorer}/tx/${txHash}`;
         common.telegramBot.sendMessage(msg, Extra.HTML());
     }
 
