@@ -527,7 +527,7 @@ class Arbitrage {
                         .send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
                             const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(val.toString(), 'Ether')} ${C.getTokenSymbol(sourceToken)} for ${C.getTokenSymbol(destToken)}
-                                \n${conf.blockExplorer}/tx/${tx.transactionHash}`;
+                                \n${conf.blockExplorer}tx/${tx.transactionHash}`;
                             console.log(msg);
                             common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML())
 
@@ -537,7 +537,7 @@ class Arbitrage {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
                             common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on arbitrage tx swapping ${amount} ${sourceCurrency} for ${destCurrency}
-                                \nTransaction hash: ${conf.blockExplorer}/tx/${err.receipt.transactionHash}`, Extra.HTML());
+                                \nTransaction hash: ${conf.blockExplorer}tx/${err.receipt.transactionHash}`, Extra.HTML());
 
                             return resolve();
                         });

@@ -134,7 +134,7 @@ class Liquidator {
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${conf.blockExplorer}/tx/${err.receipt.transactionHash}
+                common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${conf.blockExplorer}tx/${err.receipt.transactionHash}
                     \nLoanId: ${U.formatLoanId(loanId)}`, Extra.HTML());
                 await p.handleLiqError(wallet, loanId);
             });
@@ -144,7 +144,7 @@ class Liquidator {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
         const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} of ${amount} ${C.getTokenSymbol(token).toUpperCase()} successful. 
-            \n${conf.blockExplorer}/tx/${txHash}`;
+            \n${conf.blockExplorer}tx/${txHash}`;
         common.telegramBot.sendMessage(msg, Extra.HTML());
     }
 
