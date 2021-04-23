@@ -134,7 +134,8 @@ class Liquidator {
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx (loanId ${loanId})`, Extra.HTML());
+                common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${conf.blockExplorer}/tx/${err.receipt.transactionHash}
+                    \nLoanId: ${loanId}`, Extra.HTML());
                 await p.handleLiqError(wallet, loanId);
             });
     }
