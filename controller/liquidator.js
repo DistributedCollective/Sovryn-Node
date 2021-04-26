@@ -57,7 +57,7 @@ class Liquidator {
 
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
-                await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce);
+                await this.liquidate(p, wallet.adr, liquidateAmount, token, pos.collateralToken, nonce);
                 await U.wasteTime(30); //30 seconds break to avoid rejection from node
             }
             console.log("Completed liquidation round");
@@ -108,7 +108,7 @@ class Liquidator {
     * If Loan token == WRBTC -> pass value
     * wallet = sender and receiver address
     */
-    async liquidate(loanId, wallet, amount, token, nonce) {
+    async liquidate(loanId, wallet, amount, token, collateralToken, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
         const val = (token === "rBtc") ? amount : 0;
@@ -129,7 +129,7 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
                 p.addLiqLog(tx.transactionHash);
-                if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase(), wallet);
+                if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase(), collateralToken.toLowerCase(), wallet);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
@@ -206,20 +206,19 @@ class Liquidator {
                     console.log(liquidator);
                     console.log(loanId);
                     const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
-                    const numberOfHops = loanToken === conf.testTokenRBTC ? 3 : 5
+                    const numberOfHops = loanToken === conf.testTokenRBTC || collateralToken === conf.testTokenRBTC ? 3 : 5
 
                     if (!path || path.length !== numberOfHops) return;
 
                     const balBefore = await C.getWalletTokenBalance(liquidator, loanToken);
-                    const affiliateAcc = "0x0000000000000000000000000000000000000000";
-                    const gasPrice = await C.getGasPrice();
-                    const approved = await C.approveToken(C.getTokenInstance(collateralToken), liquidator, conf.swapsImpl, collateralWithdrawAmount);
-                    const swapTx = await C.contractSwaps.methods['convertByPath'](path, collateralWithdrawAmount, 1, liquidator, affiliateAcc, 0).send({
-                        from: liquidator,
-                        gas: conf.gasLimit,
-                        gasPrice: gasPrice
-                    });
-
+                    // const affiliateAcc = "0x0000000000000000000000000000000000000000";
+                    // const gasPrice = await C.getGasPrice();
+                    // const approved = await C.approveToken(C.getTokenInstance(collateralToken), liquidator, conf.swapsImpl, collateralWithdrawAmount);
+                    // const swapTx = await C.contractSwaps.methods['convertByPath'](path, collateralWithdrawAmount, 1, liquidator, affiliateAcc, 0).send({
+                    //     from: liquidator,
+                    //     gas: conf.gasLimit,
+                    //     gasPrice: gasPrice
+                    // });
                     const balAfter = await C.getWalletTokenBalance(liquidator, loanToken);
                     const profit =  Number(C.web3.utils.fromWei(
                         C.web3.utils.toBN(balAfter).sub(C.web3.utils.toBN(balBefore)),
