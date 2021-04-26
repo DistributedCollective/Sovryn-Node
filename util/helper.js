@@ -19,6 +19,10 @@ class Util {
         });
         return params;
     }
+
+    formatLoanId(loanId, length = 4) {
+        return loanId.slice(0, length) + `…` + loanId.slice(-1 * length);
+    }
 }
 
 
