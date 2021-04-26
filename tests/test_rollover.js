@@ -91,7 +91,7 @@ describe('Contract', async () => {
             }
             console.log("start rollover");
             for(let i in rollover) {
-                const w = await Wallet.getWallet("rollover", 0.001, "rBtc");
+                const [w] = await Wallet.getWallet("rollover", 0.001, "rBtc");
                 let nonce = await C.web3.eth.getTransactionCount(w.adr.toLowerCase(), 'pending');
                 const r = await Rollover.rollover(rollover[i], w.adr.toLowerCase(), nonce);
                 console.log(r);
