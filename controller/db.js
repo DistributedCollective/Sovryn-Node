@@ -45,7 +45,7 @@ class DbCtrl {
     }
 
 
-    async addLiquidate({liquidatorAdr, liquidatedAdr, amount, pos, loanId, profit, txHash}) {
+    async addLiquidate({liquidatorAdr, liquidatedAdr, amount, pos, loanId, profit, txHash, status}) {
         try {
             return await this.liqRepo.insert({
                 liquidatorAdr,
@@ -54,26 +54,27 @@ class DbCtrl {
                 pos,
                 loanId,
                 profit,
-                txHash
+                txHash,
+                status
             })
         } catch (e) {
             console.log(e);
         }
     }
 
-    async addArbitrage({adr, fromToken, toToken, fromAmount, toAmount, profit, trade, txHash}) {
+    async addArbitrage({adr, fromToken, toToken, fromAmount, toAmount, profit, trade, txHash, status}) {
         try {
             return await this.arbRepo.insert({
                 adr, fromToken, toToken,
                 fromAmount, toAmount, profit, trade,
-                txHash
+                txHash, status
             })
         } catch (e) {
             console.log(e);
         }
     }
 
-    async addRollover({loanId, txHash, rolloverAdr, rolledoverAdr, amount, pos}) {
+    async addRollover({loanId, txHash, rolloverAdr, rolledoverAdr, amount, status, pos}) {
         try {
             return await this.rollRepo.insert({
                 loanId,
@@ -81,6 +82,7 @@ class DbCtrl {
                 rolloverAdr,
                 rolledoverAdr,
                 amount,
+                status,
                 pos
             });
         } catch (e) {

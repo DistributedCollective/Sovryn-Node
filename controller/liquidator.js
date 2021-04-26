@@ -122,20 +122,24 @@ class Liquidator {
 
         const p = this;
         const gasPrice = await C.getGasPrice();
+
+        //wrong -> update
+        const pos = token === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+
         C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
             .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
-                p.addLiqLog(tx.transactionHash);
+                p.addLiqLog(tx.transactionHash, pos);
                 if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase(), collateralToken.toLowerCase(), wallet);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
                 common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx (loanId ${loanId})`, Extra.HTML());
-                await p.handleLiqError(wallet, loanId);
+                await p.handleLiqError(wallet, loanId, amount, pos);
             });
     }
 
@@ -151,11 +155,19 @@ class Liquidator {
      * 1. Another user was faster -> position is already liquidated
      * 2. Btc price moved in opposite direction and the amount cannot be liquidated anymore
      */
-    async handleLiqError(wallet, loanId) {
+    async handleLiqError(wallet, loanId, amount, pos) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         if(!this.liquidationErrorList[loanId]) this.liquidationErrorList[loanId]=1;
         else this.liquidationErrorList[loanId]++;
 
+        // store failed transaction in DB
+        await dbCtrl.addLiquidate({
+            liquidatorAdr: liquidator,
+            amount,
+            loanId,
+            status: 'failed',
+            pos: pos,
+        });
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
@@ -185,7 +197,7 @@ class Liquidator {
     }
 
 
-    async addLiqLog(txHash) {
+    async addLiqLog(txHash, pos) {
         console.log("Add liquidation "+txHash+" to db");
         try {
             const receipt = await C.web3.eth.getTransactionReceipt(txHash);
@@ -226,17 +238,15 @@ class Liquidator {
                     )).toFixed(5);
                     console.log(`\nYou made ${profit} ${C.getTokenSymbol(collateralToken)} with this liquidation`);
 
-                    //wrong -> update
-                    const pos = loanToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
-
                     const addedLog = await dbCtrl.addLiquidate({
                         liquidatorAdr: liquidator,
                         liquidatedAdr: user,
                         amount: collateralWithdrawAmount,
-                        pos: pos,
                         loanId: loanId,
                         profit: profit,
-                        txHash: txHash
+                        txHash: txHash,
+                        status: 'successful',
+                        pos
                     });
 
                     return addedLog;

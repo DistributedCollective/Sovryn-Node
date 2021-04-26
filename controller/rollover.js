@@ -82,7 +82,7 @@ class Rollover {
                     console.error("Error in rolling over position "+pos.loanId);
                     console.error(err);
                     common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx (loanId ${pos.loanId})`, Extra.HTML());
-                    p.handleRolloverError(pos.loanId);
+                    p.handleRolloverError(pos, wallet);
                     resolve();
                 });
         });
@@ -92,9 +92,17 @@ class Rollover {
         this.RolloverErrorList[loanId] = null;
     }
 
-    handleRolloverError(loanId){
-        if(!this.RolloverErrorList[loanId]) this.RolloverErrorList[loanId]=1;
-        else this.RolloverErrorList[loanId]++;
+    async handleRolloverError(pos, wallet){
+        if(!this.RolloverErrorList[pos.loanId]) this.RolloverErrorList[pos.loanId]=1;
+        else this.RolloverErrorList[pos.loanId]++;
+
+        // store failed transaction in DB
+        await dbCtrl.addRollover({
+            rolloverAdr: wallet.adr,
+            loanId: pos.loanId,
+            status: 'failed',
+            pos
+        });
     }
 
 
@@ -123,6 +131,7 @@ class Rollover {
                             rolloverAdr: receipt.logs[0].address,
                             rolledoverAdr: params.borrower,
                             amount: Number(C.web3.utils.fromWei(params.sourceAmount, "Ether")).toFixed(6),
+                            status: 'successful',
                             pos
                         })
                     }
