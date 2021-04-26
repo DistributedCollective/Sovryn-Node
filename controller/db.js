@@ -73,12 +73,14 @@ class DbCtrl {
         }
     }
 
-    async addRollover({loanId, txHash, adr}) {
+    async addRollover({loanId, txHash, rolloverAdr, rolledoverAdr, amount}) {
         try {
             return await this.rollRepo.insert({
                 loanId,
                 txHash,
-                rolloverAdr: adr
+                rolloverAdr,
+                rolledoverAdr,
+                amount
             });
         } catch (e) {
             console.log(e);

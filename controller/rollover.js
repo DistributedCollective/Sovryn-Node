@@ -46,8 +46,8 @@ class Rollover {
                     const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     if (wallet) {
                         const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
-                        const tx = await this.rollover(this.positions[p], wallet.adr, nonce);
-                        if (tx) await this.addTx(tx);
+                        const txHash = await this.rollover(this.positions[p], wallet.adr, nonce);
+                        if (txHash) await this.addTx(txHash);
                     } else {
                         await this.handleNoWalletError();
                     }
@@ -110,7 +110,7 @@ class Rollover {
                 const logs = abiDecoder.decodeLogs(receipt.logs) || [];
 
                 for(let log in logs){
-                    if(!logs[log] || logs[log].name != "Conversion") continue;
+                    if(!logs[log] || logs[log].name === "Conversion") continue;
 
                     const params = U.parseEventParams(logs[log].events);
                 
@@ -118,7 +118,9 @@ class Rollover {
                         await dbCtrl.addRollover({
                             loanId: params.loanId,  
                             txHash: receipt.transactionHash,
-                            adr: params.borrower
+                            rolloverAdr: receipt.logs[0].address,
+                            rolledoverAdr: params.borrower,
+                            amount: Number(C.web3.utils.fromWei(params.sourceAmount, "Ether")).toFixed(6),
                         })
                     }
                 }
