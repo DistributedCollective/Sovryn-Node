@@ -115,12 +115,15 @@ class Rollover {
                     const params = U.parseEventParams(logs[log].events);
                 
                     if (params && params.loanId) {
+                        //wrong -> update
+                        const pos = params.sourceToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
                         await dbCtrl.addRollover({
                             loanId: params.loanId,  
                             txHash: receipt.transactionHash,
                             rolloverAdr: receipt.logs[0].address,
                             rolledoverAdr: params.borrower,
                             amount: Number(C.web3.utils.fromWei(params.sourceAmount, "Ether")).toFixed(6),
+                            pos
                         })
                     }
                 }
