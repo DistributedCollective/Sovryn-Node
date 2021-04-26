@@ -545,6 +545,7 @@ class Arbitrage {
                 console.error("error loading price from " + contract2._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                 console.error(e);
                 const trade = destToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'buy btc' : 'sell btc';
+                console.log('Storing failed transaction into DB');
                 // store failed transaction in DB
                 await db.addArbitrage({
                     adr: address,
