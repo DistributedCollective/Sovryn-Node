@@ -160,13 +160,14 @@ class Liquidator {
         if(!this.liquidationErrorList[loanId]) this.liquidationErrorList[loanId]=1;
         else this.liquidationErrorList[loanId]++;
 
+        console.log('Storing failed transaction into DB');
         // store failed transaction in DB
         await dbCtrl.addLiquidate({
-            liquidatorAdr: liquidator,
+            liquidatorAdr: wallet,
             amount,
             loanId,
             status: 'failed',
-            pos: pos,
+            pos
         });
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
