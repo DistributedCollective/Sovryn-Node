@@ -189,7 +189,37 @@ describe("Arbitrage controller", () => {
         expect(newWrbtcDelta).to.be.bignumber.closeTo(new BN(0), ether('0.02'));
     });
 
-    it('handles a RBTC -> USDT arbitrage opportunity', async () => {
+    it('handles an RBTC -> USDT situation with no opportunity', async () => {
+        // this situation was also actually found on mainnet
+        const converterOpts = {
+            primaryReserveToken: sovrynContracts.wrbtcToken,
+            secondaryReserveToken: sovrynContracts.usdtToken,
+            initialPrimaryReserveLiquidity: new BN('185298642986201160653'),
+            initialSecondaryReserveLiquidity: new BN('4889547557918046531663603'),
+            finalPrimaryReserveBalance: new BN('181359579931810286670'),
+            finalSecondaryReserveBalance: new BN('4832877272928639614696971'),
+            finalPrimaryReserveWeight: new BN('656038'),
+            finalSecondaryReserveWeight: new BN('343962'),
+            primaryPriceOracleAnswer: new BN('50111639999999999417923'),
+            secondaryPriceOracleAnswer: new BN('1000000000000000000'),
+        };
+        await converters.initConverter(converterOpts);
+
+        const wrbtcDelta = converterOpts.initialPrimaryReserveLiquidity.sub(converterOpts.finalPrimaryReserveBalance);
+        const usdtDelta = converterOpts.initialSecondaryReserveLiquidity.sub(converterOpts.finalSecondaryReserveBalance);
+
+        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
+        expect(opportunity).to.not.equal(null)
+        expect(opportunity.amount).to.be.bignumber.equal(wrbtcDelta);
+        expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+        expect(opportunity.destTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
+
+        // profit should be -0.21018 % -> loss -> no arbitrage
+        const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
+        expect(result).to.not.exists();
+    });
+
+    it('handles an RBTC -> USDT arbitrage opportunity', async () => {
         // this is just the USDT->RBTC opportunity found on mainnet, but with the token balances, weights and
         // oracle prices reversed
         const converterOpts = {
