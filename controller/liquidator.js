@@ -178,8 +178,8 @@ class Liquidator {
             const liqProfit = Number(C.web3.utils.fromWei(
                 C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount))
             , "Ether")).toFixed(6);
-            console.log(`You made ${liqProfit} ${C.getTokenSymbol(liqEvent.collateralToken)} with this liquidation`);
-            return liqProfit;
+            console.log(`You made ${liqProfit} ${C.getTokenSymbol(liqEvent.collateralToken).toUpperCase()} with this liquidation`);
+            return liqProfit+" "+C.getTokenSymbol(liqEvent.collateralToken).toUpperCase();
         }
         else {
             console.log("Couldn't calculate the profit for the given liquidation");
