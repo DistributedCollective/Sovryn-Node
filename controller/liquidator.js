@@ -175,7 +175,9 @@ class Liquidator {
         // Convert spent amount to collateral token 
         const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
         if (convertedPaidAmount) {
-            const liqProfit = C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount));
+            const liqProfit = Number(C.web3.utils.fromWei(
+                C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount))
+            , "Ether")).toFixed(6);
             console.log(`You made ${liqProfit} ${C.getTokenSymbol(liqEvent.collateralToken)} with this liquidation`);
             return liqProfit;
         }
@@ -195,7 +197,7 @@ class Liquidator {
                 const liqEvent = logs.find(log => log && log.name === 'Liquidate');
                 console.log(liqEvent)
                 const {
-                    user, liquidator, loanId, loanToken, collateralToken, collateralWithdrawAmount
+                    user, liquidator, loanId, loanToken, collateralWithdrawAmount
                 } = U.parseEventParams(liqEvent && liqEvent.events);
 
                 console.log(U.parseEventParams(liqEvent && liqEvent.events))
@@ -205,27 +207,8 @@ class Liquidator {
                     console.log(user);
                     console.log(liquidator);
                     console.log(loanId);
-                    const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
-                    const numberOfHops = loanToken === conf.testTokenRBTC ? 3 : 5
 
-                    if (!path || path.length !== numberOfHops) return;
-
-                    const balBefore = await C.getWalletTokenBalance(liquidator, loanToken);
-                    const affiliateAcc = "0x0000000000000000000000000000000000000000";
-                    const gasPrice = await C.getGasPrice();
-                    const approved = await C.approveToken(C.getTokenInstance(collateralToken), liquidator, conf.swapsImpl, collateralWithdrawAmount);
-                    const swapTx = await C.contractSwaps.methods['convertByPath'](path, collateralWithdrawAmount, 1, liquidator, affiliateAcc, 0).send({
-                        from: liquidator,
-                        gas: conf.gasLimit,
-                        gasPrice: gasPrice
-                    });
-
-                    const balAfter = await C.getWalletTokenBalance(liquidator, loanToken);
-                    const profit =  Number(C.web3.utils.fromWei(
-                        C.web3.utils.toBN(balAfter).sub(C.web3.utils.toBN(balBefore)),
-                        "ether"
-                    )).toFixed(5);
-                    console.log(`\nYou made ${profit} ${C.getTokenSymbol(collateralToken)} with this liquidation`);
+                    const profit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events))
 
                     //wrong -> update
                     const pos = loanToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
@@ -234,10 +217,10 @@ class Liquidator {
                         liquidatorAdr: liquidator,
                         liquidatedAdr: user,
                         amount: collateralWithdrawAmount,
-                        pos: pos,
-                        loanId: loanId,
-                        profit: profit,
-                        txHash: txHash
+                        loanId,
+                        profit,
+                        txHash,
+                        pos
                     });
 
                     return addedLog;
