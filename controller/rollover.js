@@ -30,31 +30,35 @@ class Rollover {
      */
     async checkPositionsExpiration() {
         while (true) {
-            console.log("started checking expired positions");
-
-            for (let p in this.positions) {
-                const amn = C.web3.utils.fromWei(this.positions[p].collateral.toString(), "Ether");
-
-                if(this.positions[p].collateralToken.toLowerCase() === conf.docToken.toLowerCase() && amn < 5) continue;
-                else if(this.positions[p].collateralToken.toLowerCase() === conf.USDTToken.toLowerCase() && amn < 5) continue;
-                else if(this.positions[p].collateralToken.toLowerCase() === conf.BProToken.toLowerCase()) continue; //Bpro can't be rolled over. Amm messed up
-                else if(this.positions[p].collateralToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() && amn < 0.00025) continue; 
-                else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
-               
-                if (this.positions[p].endTimestamp < Date.now() / 1000) {
-                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collateralToken: "+C.getTokenSymbol(this.positions[p].collateralToken));
-                    const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
-                    if (wallet) {
-                        const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
-                        const txHash = await this.rollover(this.positions[p], wallet.adr, nonce);
-                        if (txHash) await this.addTx(txHash);
-                    } else {
-                        await this.handleNoWalletError();
-                    }
-                }
-            }
+            await this.handleRolloverRound();
             console.log("Completed rollover");
             await U.wasteTime(conf.rolloverScanInterval);
+        }
+    }
+
+    async handleRolloverRound() {
+        console.log("started checking expired positions");
+
+        for (let p in this.positions) {
+            const amn = C.web3.utils.fromWei(this.positions[p].collateral.toString(), "Ether");
+
+            if(this.positions[p].collateralToken.toLowerCase() === conf.docToken.toLowerCase() && amn < 5) continue;
+            else if(this.positions[p].collateralToken.toLowerCase() === conf.USDTToken.toLowerCase() && amn < 5) continue;
+            else if(this.positions[p].collateralToken.toLowerCase() === conf.BProToken.toLowerCase()) continue; //Bpro can't be rolled over. Amm messed up
+            else if(this.positions[p].collateralToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() && amn < 0.00025) continue;
+            else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
+
+            if (this.positions[p].endTimestamp < Date.now() / 1000) {
+                console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collateralToken: "+C.getTokenSymbol(this.positions[p].collateralToken));
+                const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
+                if (wallet) {
+                    const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
+                    const txHash = await this.rollover(this.positions[p], wallet.adr, nonce);
+                    if (txHash) await this.addTx(txHash);
+                } else {
+                    await this.handleNoWalletError();
+                }
+            }
         }
     }
 

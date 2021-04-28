@@ -31,6 +31,11 @@ const WRBTC = artifacts.require("WRBTC");
 const RBTCWrapperProxy = artifacts.require("RBTCWrapperProxy");
 const PriceFeeds = artifacts.require("PriceFeeds");
 
+const TestToken = artifacts.require("TestToken");
+const TestWrbtc = artifacts.require("TestWrbtc");
+
+import {deployLoanToken, deployLoanTokenLogic, deployLoanTokenLogicWrbtc, deployLoanTokenWRBTC, deploySovrynProtocol} from "./loans";
+
 
 /**
  * Deploy the contracts required to use Sovryn.
@@ -100,18 +105,19 @@ export async function initSovrynContracts() {
     const pathFinder = await ConversionPathFinder.new(contractRegistry.address);
     await contractRegistry.registerAddress(registry.CONVERSION_PATH_FINDER, pathFinder.address);
 
-    const tokenSupply = ether('1000000000'); // should be enough for most use cases :P
+    //const tokenSupply = ether('1000000000'); // should be enough for most use cases :P
+    const tokenSupply = new BN(10).pow(new BN(50));
 
     // TODO: not sure if BNT token is needed
     //const bntToken = await ERC20Token.new("BNT", "BNT", 18, tokenSupply);
     //await contractRegistry.registerAddress(registry.BNT_TOKEN, bntToken.address);
     //await pathFinder.setAnchorToken(bntToken.address);
 
-    docToken = await ERC20Token.new("Dollar on Chain", "DOC", 18, tokenSupply);
-    usdtToken = await ERC20Token.new("rUSDT", "rUSDT", 18, tokenSupply);
-    bproToken = await ERC20Token.new("BitPRO", "BITP", 18, tokenSupply);
-    wrbtcToken = await WRBTC.new();
-    await wrbtcToken.deposit({ value: tokenSupply });
+    docToken = await TestToken.new("Dollar on Chain", "DOC", 18, tokenSupply);
+    usdtToken = await TestToken.new("rUSDT", "rUSDT", 18, tokenSupply);
+    bproToken = await TestToken.new("BitPRO", "BITP", 18, tokenSupply);
+    wrbtcToken = await TestWrbtc.new();
+    await wrbtcToken.deposit({ value: ether('1000000000') });  // note: different than tokenSupply
     const tokens = [docToken, usdtToken, bproToken, wrbtcToken];
 
 
@@ -144,14 +150,34 @@ export async function initSovrynContracts() {
     /// XXX: The priceFeeds contract is weird
     // - protocol token is needed and must be a contract, but is apparently not *really* used in practice
     // - base token is DoC (in production)
-    const protocolToken = await ERC20Token.new("Protocol Token", "PROTOCOL", 18, tokenSupply);
+    const protocolToken = await TestToken.new("Protocol Token", "PROTOCOL", 18, tokenSupply);
     const priceFeeds = await PriceFeeds.new(wrbtcToken.address, protocolToken.address, docToken.address);
     await priceFeeds.setPriceFeed(
         tokens.map(t => t.address),
         priceOracles.map(p => p.address)
     );
 
-    // TODO: we need to deploy the whole sovrynProtocol to test liquidation and rollover
+    // loans
+    // What is the RBTC token?
+    const rbtcTokenForLoans = await TestToken.new(
+        "RBTC",
+        "RBTC",
+        18,
+        tokenSupply
+    );
+    const sovrynProtocol = await deploySovrynProtocol({
+        wrbtcToken,
+        usdtToken,
+        docToken,
+        bproToken,
+        priceFeeds,
+        contractRegistry,
+    });
+    const loanTokenLogicWrbtc = await deployLoanTokenLogicWrbtc();
+    const loanTokenWrbtc = await deployLoanTokenWRBTC(loanTokenLogicWrbtc, accountOwner, sovrynProtocol, wrbtcToken, docToken);
+    const loanTokenDoc = await deployLoanToken(await deployLoanTokenLogic(), accountOwner, sovrynProtocol, wrbtcToken, docToken);
+    const loanTokenUsdt = await deployLoanToken(await deployLoanTokenLogic(), accountOwner, sovrynProtocol, wrbtcToken, usdtToken);
+    const loanTokenBpro = await deployLoanToken(await deployLoanTokenLogic(), accountOwner, sovrynProtocol, wrbtcToken, bproToken);
 
     return {
         accounts,
@@ -170,6 +196,12 @@ export async function initSovrynContracts() {
         upgrader,
         oracleWhitelist,
         priceFeeds,
+
+        sovrynProtocol,
+        loanTokenWrbtc,
+        loanTokenDoc,
+        loanTokenUsdt,
+        loanTokenBpro,
 
         priceOraclesByTokenAddress,
     };

@@ -21,6 +21,11 @@ export async function initSovrynNodeForTesting({
     rbtcWrapperProxy,
     priceFeeds,
     accounts,
+    sovrynProtocol,
+    loanTokenDoc,
+    loanTokenUsdt,
+    loanTokenBpro,
+    loanTokenWrbtc,
 }) {
     conf.network = 'test';
 
@@ -32,7 +37,6 @@ export async function initSovrynNodeForTesting({
 
     conf.wRbtcWrapper = rbtcWrapperProxy.address.toLowerCase();
     conf.priceFeed  = priceFeeds.address.toLowerCase();
-    //conf.sovrynProtocolAdr  // TODO: handle this, if needed. contract is sovrynProtocol (Protocol.sol)
 
     // sane settings for these
     conf.thresholdArbitrage = 1;
@@ -48,11 +52,12 @@ export async function initSovrynNodeForTesting({
     // Use a different DB too
     conf.db = 'sovryn_node_integration_tests.db';
 
-    // THESE are not yet handled
-    conf.loanTokenSUSD = ZERO_ADDRESS;
-    conf.loanTokenUSDT = ZERO_ADDRESS;
-    conf.loanTokenBPRO = ZERO_ADDRESS;
-    conf.loanTokenRBTC = ZERO_ADDRESS;
+    // Loans
+    conf.sovrynProtocolAdr  = sovrynProtocol.address.toLowerCase();
+    conf.loanTokenSUSD = loanTokenDoc.address.toLowerCase();
+    conf.loanTokenUSDT = loanTokenUsdt.address.toLowerCase();
+    conf.loanTokenBPRO = loanTokenBpro.address.toLowerCase();
+    conf.loanTokenRBTC = loanTokenWrbtc.address.toLowerCase();
 
     // also deal with accounts
     A.liquidator = [
