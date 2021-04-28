@@ -46,6 +46,7 @@ describe("Rollover controller", () => {
         PositionScanner.positions = positions;
         PositionScanner.positionsTmp = {};
         Rollover.positions = positions;
+        Rollover.rolledPositions = {};
 
         await initLoanPool({
             sovrynProtocol: sovrynContracts.sovrynProtocol,
@@ -212,5 +213,25 @@ describe("Rollover controller", () => {
         expect(rolloverRow.txHash).to.exists();
         expect(rolloverRow.txHash).to.not.equal('');
         // could maybe test something in the blockchain too...
+    });
+
+    it("should not send already sent rollovers again", async () => {
+        const {
+            loanEndTimestamp,
+        } = await setupRolloverTest(sovrynContracts.docToken, sovrynContracts.loanTokenDoc);
+
+        await advanceTime({
+            blockchainTimestamp: loanEndTimestamp + 1,
+            nodeTimestamp: loanEndTimestamp + 1,
+        });
+        await scanPositions();
+
+        await Rollover.handleRolloverRound();
+        expect(C.contractSovryn.methods.rollover.callCount).to.equal(1);
+
+        await Rollover.handleRolloverRound();
+        expect(C.contractSovryn.methods.rollover.callCount).to.equal(1);
+        const rows = await getRolloversFromDB();
+        expect(rows.length).to.equal(1);
     });
 });

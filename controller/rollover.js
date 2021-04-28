@@ -15,9 +15,10 @@ import dbCtrl from './db';
 
 class Rollover {
     constructor(){
-        this.rolloverErrorList=[];
+        this.rolledPositions = {};
         abiDecoder.addABI(abiComplete);
     }
+
     start(positions) {
         this.positions = positions;
         this.checkPositionsExpiration();
@@ -53,7 +54,7 @@ class Rollover {
                 continue;
             } else if (collateralTokenAddress === conf.testTokenRBTC.toLowerCase() && amn < 0.00025) {
                 continue;
-            } else if (this.rolloverErrorList[position.loanId] >= 5) {
+            } else if (this.isRolloverAlreadySent(position.loanId)) {
                 continue;
             }
 
@@ -80,25 +81,30 @@ class Rollover {
 
         const gasPrice = await C.getGasPrice();
 
+        const loanId = pos.loanId;
+        this.handleRolloverStart(loanId);
         try {
-            const tx = await C.contractSovryn.methods.rollover(pos.loanId, loanDataBytes).send({
+            const tx = await C.contractSovryn.methods.rollover(loanId, loanDataBytes).send({
                 from: wallet,
                 gas: 2500000,
                 gasPrice: gasPrice,
                 nonce:nonce
             });
+
             const msg = (
                 `Rollover Transaction successful: ${tx.transactionHash}\n` +
-                `Rolled over position ${U.formatLoanId(pos.loanId)} with ${C.getTokenSymbol(pos.collateralToken)} as collateral token\n` +
+                `Rolled over position ${U.formatLoanId(loanId)} with ${C.getTokenSymbol(pos.collateralToken)} as collateral token\n` +
                 `${conf.blockExplorer}tx/${tx.transactionHash}`
             );
             console.log(msg);
             common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML());
 
-            this.handleRolloverSuccess(pos.loanId);
+            this.handleRolloverSuccess(loanId);
             return tx.transactionHash;
         } catch(err) {
-            console.error("Error in rolling over position "+pos.loanId);
+            this.rolledPositions[loanId] = 'error';
+
+            console.error("Error in rolling over position " + loanId);
             console.error(err);
 
             // check if err.receipt exists instead of crashing
@@ -111,20 +117,27 @@ class Rollover {
 
             common.telegramBot.sendMessage(
                 `<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx: ${errorDetails}\n` +
-                `LoanId: ${U.formatLoanId(pos.loanId)}`,
+                `LoanId: ${U.formatLoanId(loanId)}`,
                 Extra.HTML()
             );
-            this.handleRolloverError(pos.loanId);
+            this.handleRolloverError(loanId);
         }
     }
 
+    isRolloverAlreadySent(loanId) {
+        return this.rolledPositions[loanId];
+    }
+
+    handleRolloverStart(loanId) {
+        this.rolledPositions[loanId] = 'pending';
+    }
+
     handleRolloverSuccess(loanId){
-        this.rolloverErrorList[loanId] = null;
+        this.rolledPositions[loanId] = 'success';
     }
 
     handleRolloverError(loanId){
-        if(!this.rolloverErrorList[loanId]) this.rolloverErrorList[loanId]=1;
-        else this.rolloverErrorList[loanId]++;
+        this.rolledPositions[loanId] = 'error';
     }
 
     /**
