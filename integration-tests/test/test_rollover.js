@@ -87,7 +87,6 @@ describe("Rollover controller", () => {
     const setupRolloverTest = async (token, loanToken) => {
         const sovryn = sovrynContracts.sovrynProtocol;
         const wrbtcToken = sovrynContracts.wrbtcToken;
-        const accounts = sovrynContracts.accounts;
 
         await setDemandCurve(loanToken);
         await token.approve(loanToken.address, new BN(10).pow(new BN(40)));
@@ -198,8 +197,6 @@ describe("Rollover controller", () => {
         const rows = await getRolloversFromDB();
         expect(rows.length).to.equal(1);
         const rolloverRow = rows[0];
-
-        console.log(sovrynContracts.accounts);
 
         // TODO: what address should this be then?
         //expect(rolloverRow.rolloverAdr.toLowerCase()).to.equal(rolloverAddress.toLowerCase());
