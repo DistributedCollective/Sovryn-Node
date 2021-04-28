@@ -46,8 +46,8 @@ class Rollover {
                     const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
                     if (wallet) {
                         const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
-                        const tx = await this.rollover(this.positions[p], wallet.adr, nonce);
-                        if (tx) await this.addTx(tx);
+                        const txHash = await this.rollover(this.positions[p], wallet.adr, nonce);
+                        if (txHash) await this.addTx(txHash);
                     } else {
                         await this.handleNoWalletError();
                     }
@@ -71,7 +71,8 @@ class Rollover {
             C.contractSovryn.methods.rollover(pos.loanId, loanDataBytes)
                 .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce:nonce })
                 .then(async (tx) => {
-                    const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${pos.loanId} with ${C.getTokenSymbol(pos.collateralToken)} as collateral token`;
+                    const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${U.formatLoanId(pos.loanId)} with ${C.getTokenSymbol(pos.collateralToken)} as collateral token
+                        \n${conf.blockExplorer}tx/${tx.transactionHash}`;
                     console.log(msg);
                     common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML());
 
@@ -81,7 +82,8 @@ class Rollover {
                 .catch(async (err) => {
                     console.error("Error in rolling over position "+pos.loanId);
                     console.error(err);
-                    common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx (loanId ${pos.loanId})`, Extra.HTML());
+                    common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx: ${conf.blockExplorer}tx/${err.receipt.transactionHash}
+                        \nLoanId: ${U.formatLoanId(pos.loanId)}`, Extra.HTML());
                     p.handleRolloverError(pos.loanId);
                     resolve();
                 });
@@ -110,15 +112,20 @@ class Rollover {
                 const logs = abiDecoder.decodeLogs(receipt.logs) || [];
 
                 for(let log in logs){
-                    if(!logs[log] || logs[log].name != "Conversion") continue;
+                    if(!logs[log] || logs[log].name === "Conversion") continue;
 
                     const params = U.parseEventParams(logs[log].events);
                 
                     if (params && params.loanId) {
+                        //wrong -> update
+                        const pos = params.sourceToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
                         await dbCtrl.addRollover({
                             loanId: params.loanId,  
                             txHash: receipt.transactionHash,
-                            adr: params.borrower
+                            rolloverAdr: receipt.logs[0].address,
+                            rolledoverAdr: params.borrower,
+                            amount: Number(C.web3.utils.fromWei(params.sourceAmount, "Ether")).toFixed(6),
+                            pos
                         })
                     }
                 }

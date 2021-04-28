@@ -57,7 +57,7 @@ class Liquidator {
 
                 const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
-                await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce);
+                await this.liquidate(p, wallet.adr, liquidateAmount, token, pos.collateralToken, nonce);
                 await U.wasteTime(30); //30 seconds break to avoid rejection from node
             }
             console.log("Completed liquidation round");
@@ -108,7 +108,7 @@ class Liquidator {
     * If Loan token == WRBTC -> pass value
     * wallet = sender and receiver address
     */
-    async liquidate(loanId, wallet, amount, token, nonce) {
+    async liquidate(loanId, wallet, amount, token, collateralToken, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
         const val = (token === "rBtc") ? amount : 0;
@@ -129,12 +129,13 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
                 p.addLiqLog(tx.transactionHash);
-                if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase(), wallet);
+                if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase(), collateralToken.toLowerCase(), wallet);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx (loanId ${loanId})`, Extra.HTML());
+                common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${conf.blockExplorer}tx/${err.receipt.transactionHash}
+                    \nLoanId: ${U.formatLoanId(loanId)}`, Extra.HTML());
                 await p.handleLiqError(wallet, loanId);
             });
     }
@@ -142,7 +143,8 @@ class Liquidator {
     async handleLiqSuccess(wallet, loanId, txHash, amount, token) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
-        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} of ${amount} ${C.getTokenSymbol(token).toUpperCase()} successful. \n ${txHash}`;
+        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} of ${amount} ${C.getTokenSymbol(token).toUpperCase()} successful. 
+            \n${conf.blockExplorer}tx/${txHash}`;
         common.telegramBot.sendMessage(msg, Extra.HTML());
     }
 
@@ -159,13 +161,13 @@ class Liquidator {
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} failed.`, Extra.HTML());
+            common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed.`, Extra.HTML());
         }
     }
 
     async handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${loanId} failed because no wallet with enough funds was found.`, Extra.HTML());
+        common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed because no wallet with enough funds was found.`, Extra.HTML());
     }
 
     async calculateLiqProfit(liqEvent) {
