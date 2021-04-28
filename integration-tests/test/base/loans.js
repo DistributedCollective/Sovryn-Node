@@ -108,7 +108,14 @@ export const deployLoanTokenWRBTC = async (loanTokenLogicWrbtc, owner, sovryn, W
     return loanTokenWRBTC;
 };
 
-export const initLoanPool = async ({ sovrynProtocol, owner, wrbtcToken, token, loanToken, loanTokenWrbtc }) => {
+export const initLoanPool = async ({
+    sovrynProtocol,
+    owner,
+    wrbtcToken,
+    token,
+    loanToken,
+    loanTokenWrbtc
+}) => {
     // old loan_pool_setup
     let params = [];
     let config = [
