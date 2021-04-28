@@ -48,7 +48,8 @@ class Rollover {
             else if(this.positions[p].collateralToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() && amn < 0.00025) continue;
             else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
 
-            if (this.positions[p].endTimestamp < Date.now() / 1000) {
+            const currentTime = Date.now() / 1000;
+            if (this.positions[p].endTimestamp < currentTime) {
                 console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collateralToken: "+C.getTokenSymbol(this.positions[p].collateralToken));
                 const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
                 if (wallet) {
@@ -86,7 +87,14 @@ class Rollover {
                 .catch(async (err) => {
                     console.error("Error in rolling over position "+pos.loanId);
                     console.error(err);
-                    common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx: ${conf.blockExplorer}tx/${err.receipt.transactionHash}
+                    // check if err.receipt exists instead of crashing
+                    let errorDetails;
+                    if(err.receipt) {
+                        errorDetails = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
+                    } else {
+                        errorDetails = err.toString().slice(0, 200);
+                    }
+                    common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx: ${errorDetails}
                         \nLoanId: ${U.formatLoanId(pos.loanId)}`, Extra.HTML());
                     p.handleRolloverError(pos.loanId);
                     resolve();
