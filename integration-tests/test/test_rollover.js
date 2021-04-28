@@ -1,8 +1,10 @@
 import { expect } from 'chai';
 import { BN } from '@openzeppelin/test-helpers';
+import sinon from 'sinon';
 
 import A from '../../secrets/accounts';
 import Rollover from '../../controller/rollover';
+import C from '../../controller/contract';
 import PositionScanner from '../../controller/scanner';
 import DB from '../../controller/db';
 
@@ -17,6 +19,7 @@ const oneEth = new BN(wei("1", "ether"));
 const hunEth = new BN(wei("100", "ether"));
 
 describe("Rollover controller", () => {
+    const sandbox = sinon.createSandbox();
     let rolloverAddress;
     let lenderAddress;
     let borrowerAddress;
@@ -27,19 +30,6 @@ describe("Rollover controller", () => {
     let sovrynContracts;
     let converters;
     let liquidityPool;
-
-    let currentTime = 1337000;
-    let savedNow = Date.now;
-
-    before(() => {
-        // mock date function, always return currentTime
-        global.Date.now = () => currentTime;
-    })
-
-    after(() => {
-        // restore the mocked now function
-        global.Date.now = savedNow;
-    })
 
     beforeEach(async () => {
         liquidations = {};
@@ -78,11 +68,20 @@ describe("Rollover controller", () => {
             primaryPriceOracleAnswer: new BN('63500099999999998544808'),
             secondaryPriceOracleAnswer:   new BN('1000000000000000000'),
         })
-
-        //await sovrynContracts.wrbtcToken.transfer(rolloverAddress, ether('100'));
-        //await sovrynContracts.docToken.transfer(rolloverAddress, ether('100'));
-        currentTime = 1337000;
     });
+
+    beforeEach(() => {
+        // setup mocks. we intentionally run this script
+        // after running initSovrynNodeForTesting, since
+        // that might otherwise destroy the mocks
+        sandbox.stub(Date, 'now').returns(1337000);
+        sandbox.spy(C.contractSovryn.methods, 'rollover');
+    });
+
+    afterEach(() => {
+        // clear mocks
+        sandbox.restore();
+    })
 
     const setupRolloverTest = async (token, loanToken) => {
         const sovryn = sovrynContracts.sovrynProtocol;
@@ -156,7 +155,7 @@ describe("Rollover controller", () => {
         }
 
         if(nodeTimestamp) {
-            currentTime = nodeTimestamp * 1000;
+            Date.now.returns(nodeTimestamp * 1000);
         }
     }
 
@@ -167,7 +166,6 @@ describe("Rollover controller", () => {
     it("should not rollover when a loan has not expired", async () => {
         const {
             loanEndTimestamp,
-            loanId,
         } = await setupRolloverTest(sovrynContracts.docToken, sovrynContracts.loanTokenDoc);
 
         await advanceTime({
@@ -177,6 +175,9 @@ describe("Rollover controller", () => {
         await scanPositions();
 
         await Rollover.handleRolloverRound();
+
+        expect(C.contractSovryn.methods.rollover.callCount).to.equal(0);
+
         const rows = await getRolloversFromDB();
         expect(rows.length).to.equal(0);
     });
@@ -194,6 +195,9 @@ describe("Rollover controller", () => {
         await scanPositions();
 
         await Rollover.handleRolloverRound();
+
+        expect(C.contractSovryn.methods.rollover.callCount).to.equal(1);
+
         const rows = await getRolloversFromDB();
         expect(rows.length).to.equal(1);
         const rolloverRow = rows[0];
@@ -205,6 +209,8 @@ describe("Rollover controller", () => {
         expect(rolloverRow.loanId).to.equal(loanId);
         expect(rolloverRow.amount).to.equal('0.000045');
         expect(rolloverRow.pos).to.equal('long');
+        expect(rolloverRow.txHash).to.exists();
+        expect(rolloverRow.txHash).to.not.equal('');
         // could maybe test something in the blockchain too...
     });
 });
