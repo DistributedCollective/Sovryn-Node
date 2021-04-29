@@ -569,7 +569,7 @@ class Arbitrage {
                 if (conversionEvent && conversionEvent.events) {
                     const priceFeed = Number(btcPriceFeed)/amount;
                     console.log(priceFeed)
-                    let {fromToken, toToken, fromAmount, toAmount, trader} = U.parseEventParams(conversionEvent.events);
+                    let {fromToken, toToken, fromAmount, toAmount} = U.parseEventParams(conversionEvent.events);
                     let toAmountWithPFeed, trade;
 
                     fromAmount = Number(C.web3.utils.fromWei(fromAmount.toString(), 'ether'));
@@ -587,7 +587,8 @@ class Arbitrage {
                     const profit = toAmount - toAmountWithPFeed;
                     console.log(profit)
 
-                    console.log({trader,
+                    console.log({
+                        trader: receipt.from,
                         fromToken, toToken,
                         fromAmount, toAmount,
                         profit,
@@ -595,7 +596,7 @@ class Arbitrage {
                     })
 
                     await db.addArbitrage({
-                        adr: trader,
+                        adr: receipt.from,
                         fromToken, toToken,
                         fromAmount, toAmount,
                         profit, trade,
