@@ -15,9 +15,10 @@ import dbCtrl from './db';
 
 class Rollover {
     constructor(){
-        this.RolloverErrorList=[];
+        this.rolledPositions = {};
         abiDecoder.addABI(abiComplete);
     }
+
     start(positions) {
         this.positions = positions;
         this.checkPositionsExpiration();
@@ -30,75 +31,114 @@ class Rollover {
      */
     async checkPositionsExpiration() {
         while (true) {
-            console.log("started checking expired positions");
-
-            for (let p in this.positions) {
-                const amn = C.web3.utils.fromWei(this.positions[p].collateral.toString(), "Ether");
-
-                if(this.positions[p].collateralToken.toLowerCase() === conf.docToken.toLowerCase() && amn < 5) continue;
-                else if(this.positions[p].collateralToken.toLowerCase() === conf.USDTToken.toLowerCase() && amn < 5) continue;
-                else if(this.positions[p].collateralToken.toLowerCase() === conf.BProToken.toLowerCase()) continue; //Bpro can't be rolled over. Amm messed up
-                else if(this.positions[p].collateralToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() && amn < 0.00025) continue; 
-                else if(this.RolloverErrorList[this.positions[p].loanId]>=5) continue;
-               
-                if (this.positions[p].endTimestamp < Date.now() / 1000) {
-                    console.log("Rollover " + this.positions[p].loanId+" pos size: "+amn+" collateralToken: "+C.getTokenSymbol(this.positions[p].collateralToken));
-                    const [wallet, wBalance] = await Wallet.getWallet("rollover", 0.001, "rBtc");
-                    if (wallet) {
-                        const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
-                        const txHash = await this.rollover(this.positions[p], wallet.adr, nonce);
-                        if (txHash) await this.addTx(txHash);
-                    } else {
-                        await this.handleNoWalletError();
-                    }
-                }
-            }
+            await this.handleRolloverRound();
             console.log("Completed rollover");
             await U.wasteTime(conf.rolloverScanInterval);
+        }
+    }
+
+    async handleRolloverRound() {
+        console.log("started checking expired positions");
+
+        for (let p in this.positions) {
+            const position = this.positions[p];
+            const amn = C.web3.utils.fromWei(position.collateral.toString(), "Ether");
+
+            const collateralTokenAddress = position.collateralToken.toLowerCase();
+            if (collateralTokenAddress === conf.docToken.toLowerCase() && amn < 5) {
+                continue;
+            } else if (collateralTokenAddress === conf.USDTToken.toLowerCase() && amn < 5) {
+                continue;
+            } else if (collateralTokenAddress === conf.BProToken.toLowerCase()) {
+                // Bpro can't be rolled over. Amm messed up
+                continue;
+            } else if (collateralTokenAddress === conf.testTokenRBTC.toLowerCase() && amn < 0.00025) {
+                continue;
+            } else if (this.isRolloverAlreadySent(position.loanId)) {
+                continue;
+            }
+
+            const currentTime = Date.now() / 1000;
+            if (position.endTimestamp < currentTime) {
+                console.log("Rollover " + position.loanId+" pos size: "+amn+" collateralToken: "+C.getTokenSymbol(position.collateralToken));
+                const [wallet] = await Wallet.getWallet("rollover", 0.001, "rBtc");
+                if (wallet) {
+                    const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
+                    const txHash = await this.rollover(position, wallet.adr, nonce);
+                    if (txHash) await this.addTx(txHash);
+                } else {
+                    await this.handleNoWalletError();
+                }
+            }
         }
     }
 
     /**
      * Tries to rollover a position
      */
-    rollover(pos, wallet, nonce) {
-        const p=this;
-        return new Promise(async (resolve) => {
-            const loanDataBytes = "0x"; //need to be empty
+    async rollover(pos, wallet, nonce) {
+        const loanDataBytes = "0x"; //need to be empty
 
-            const gasPrice = await C.getGasPrice();
+        const gasPrice = await C.getGasPrice();
 
-            C.contractSovryn.methods.rollover(pos.loanId, loanDataBytes)
-                .send({ from: wallet, gas: 2500000, gasPrice: gasPrice, nonce:nonce })
-                .then(async (tx) => {
-                    const msg = `Rollover Transaction successful: ${tx.transactionHash} \n Rolled over position ${U.formatLoanId(pos.loanId)} with ${C.getTokenSymbol(pos.collateralToken)} as collateral token
-                        \n${conf.blockExplorer}tx/${tx.transactionHash}`;
-                    console.log(msg);
-                    common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML());
+        const loanId = pos.loanId;
+        this.handleRolloverStart(loanId);
+        try {
+            const tx = await C.contractSovryn.methods.rollover(loanId, loanDataBytes).send({
+                from: wallet,
+                gas: 2500000,
+                gasPrice: gasPrice,
+                nonce:nonce
+            });
 
-                    p.handleRolloverSuccess(pos.loanId);
-                    resolve(tx.transactionHash);
-                })
-                .catch(async (err) => {
-                    console.error("Error in rolling over position "+pos.loanId);
-                    console.error(err);
-                    common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx: ${conf.blockExplorer}tx/${err.receipt.transactionHash}
-                        \nLoanId: ${U.formatLoanId(pos.loanId)}`, Extra.HTML());
-                    p.handleRolloverError(pos.loanId);
-                    resolve();
-                });
-        });
+            const msg = (
+                `Rollover Transaction successful: ${tx.transactionHash}\n` +
+                `Rolled over position ${U.formatLoanId(loanId)} with ${C.getTokenSymbol(pos.collateralToken)} as collateral token\n` +
+                `${conf.blockExplorer}tx/${tx.transactionHash}`
+            );
+            console.log(msg);
+            common.telegramBot.sendMessage(`<b><u>R</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML());
+
+            this.handleRolloverSuccess(loanId);
+            return tx.transactionHash;
+        } catch(err) {
+            this.rolledPositions[loanId] = 'error';
+
+            console.error("Error in rolling over position " + loanId);
+            console.error(err);
+
+            // check if err.receipt exists instead of crashing
+            let errorDetails;
+            if(err.receipt) {
+                errorDetails = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
+            } else {
+                errorDetails = err.toString().slice(0, 200);
+            }
+
+            common.telegramBot.sendMessage(
+                `<b><u>R</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on rollover tx: ${errorDetails}\n` +
+                `LoanId: ${U.formatLoanId(loanId)}`,
+                Extra.HTML()
+            );
+            this.handleRolloverError(loanId);
+        }
+    }
+
+    isRolloverAlreadySent(loanId) {
+        return this.rolledPositions[loanId];
+    }
+
+    handleRolloverStart(loanId) {
+        this.rolledPositions[loanId] = 'pending';
     }
 
     handleRolloverSuccess(loanId){
-        this.RolloverErrorList[loanId] = null;
+        this.rolledPositions[loanId] = 'success';
     }
 
     handleRolloverError(loanId){
-        if(!this.RolloverErrorList[loanId]) this.RolloverErrorList[loanId]=1;
-        else this.RolloverErrorList[loanId]++;
+        this.rolledPositions[loanId] = 'error';
     }
-
 
     /**
      * Rollover currently does not emit logs

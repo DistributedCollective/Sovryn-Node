@@ -1,10 +1,10 @@
 import { constants } from "@openzeppelin/test-helpers";
 import conf from '../../../config/config';
 import C from '../../../controller/contract';
+import Wallet from '../../../controller/wallet';
 import A from '../../../secrets/accounts';
 import db from '../../../controller/db';
-
-const { ZERO_ADDRESS } = constants;
+import {existsSync, unlinkSync} from 'fs';
 
 /**
  * Initialize (read: monkey-patch) Sovryn-Node so that it works for testing.
@@ -21,6 +21,11 @@ export async function initSovrynNodeForTesting({
     rbtcWrapperProxy,
     priceFeeds,
     accounts,
+    sovrynProtocol,
+    loanTokenDoc,
+    loanTokenUsdt,
+    loanTokenBpro,
+    loanTokenWrbtc,
 }) {
     conf.network = 'test';
 
@@ -32,7 +37,6 @@ export async function initSovrynNodeForTesting({
 
     conf.wRbtcWrapper = rbtcWrapperProxy.address.toLowerCase();
     conf.priceFeed  = priceFeeds.address.toLowerCase();
-    //conf.sovrynProtocolAdr  // TODO: handle this, if needed. contract is sovrynProtocol (Protocol.sol)
 
     // sane settings for these
     conf.thresholdArbitrage = 1;
@@ -45,14 +49,12 @@ export async function initSovrynNodeForTesting({
     conf.publicNodeProvider = 'http://example.invalid';
     conf.errorBotTelegram = undefined;
 
-    // Use a different DB too
-    conf.db = 'sovryn_node_integration_tests.db';
-
-    // THESE are not yet handled
-    conf.loanTokenSUSD = ZERO_ADDRESS;
-    conf.loanTokenUSDT = ZERO_ADDRESS;
-    conf.loanTokenBPRO = ZERO_ADDRESS;
-    conf.loanTokenRBTC = ZERO_ADDRESS;
+    // Loans
+    conf.sovrynProtocolAdr  = sovrynProtocol.address.toLowerCase();
+    conf.loanTokenSUSD = loanTokenDoc.address.toLowerCase();
+    conf.loanTokenUSDT = loanTokenUsdt.address.toLowerCase();
+    conf.loanTokenBPRO = loanTokenBpro.address.toLowerCase();
+    conf.loanTokenRBTC = loanTokenWrbtc.address.toLowerCase();
 
     // also deal with accounts
     A.liquidator = [
@@ -65,12 +67,29 @@ export async function initSovrynNodeForTesting({
         {adr: accounts[7]}
     ];
 
+    // and wallet
+    Wallet.queue = {
+        'liquidator': {
+            [A.liquidator[0].adr]: [],
+        },
+        'rollover': {
+            [A.rollover[0].adr]: [],
+        }
+    };
+
+
     // We also need to re-init contracts, since it stores stuff in constructor
     C.init({
         web3,
         addAccounts: false,
     });
 
-    // And ditto for the DB
+    // Use a different DB, clear and initialize it
+    const dbFileName = 'sovryn_node_integration_tests.db';
+    conf.db = dbFileName;
+    const dbPath = `${__dirname}/../../../db/${dbFileName}`
+    if (existsSync(dbPath)) {
+        unlinkSync(dbPath);
+    }
     await db.initDb(conf.db);
 }

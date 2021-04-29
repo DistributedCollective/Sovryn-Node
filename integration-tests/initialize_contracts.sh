@@ -14,14 +14,9 @@ cp -vr oracle-based-amm/solidity/contracts contracts/copied/amm
 
 # RBTCWrapperProxy
 cp -vr oracle-based-amm/rbtcwrapperproxy/ contracts/copied/rbtc
+rm -f contracts/copied/rbtc/WRBTC.sol  # this comes from sovryn-smart-contracts
 
 # Sovryn-smart-contracts
-# NOTE: instead of copying all contracts, we just copy what we need (at least for now)
-mkdir -p contracts/copied/sovryn/feeds/testnet
-mkdir -p contracts/copied/sovryn/interfaces
-cp -vr sovryn-smart-contracts/contracts/feeds/{PriceFeedsConstants,PriceFeeds}.sol contracts/copied/sovryn/feeds/
-cp -vr sovryn-smart-contracts/contracts/feeds/testnet/PriceFeedsLocal.sol contracts/copied/sovryn/feeds/testnet/
-cp -vr sovryn-smart-contracts/contracts/interfaces/{IWrbtcERC20,IWrbtc,IERC20}.sol contracts/copied/sovryn/interfaces
-cp -vr sovryn-smart-contracts/contracts/openzeppelin contracts/copied/sovryn/openzeppelin
+cp -vr sovryn-smart-contracts/contracts contracts/copied/sovryn
 
 echo "All contracts copied."
