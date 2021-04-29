@@ -553,6 +553,16 @@ class Arbitrage {
             catch (e) {
                 console.error("error loading price from " + contract2._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
                 console.error(e);
+                const trade = destToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'buy btc' : 'sell btc';
+                console.log('Storing failed transaction into DB');
+                // store failed transaction in DB
+                await db.addArbitrage({
+                    adr: address,
+                    fromToken: sourceCurrency, 
+                    toToken: destCurrency,
+                    fromAmount: amount, trade,
+                    status: 'failed'
+                })
                 resolve()
             }
         });
@@ -606,7 +616,8 @@ class Arbitrage {
                         fromToken, toToken,
                         fromAmount, toAmount,
                         profit, trade,
-                        txHash: tx.transactionHash
+                        txHash: tx.transactionHash,
+                        status: 'successful'
                     })
                 }
             }

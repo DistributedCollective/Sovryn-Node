@@ -120,7 +120,7 @@ class Rollover {
                 `LoanId: ${U.formatLoanId(loanId)}`,
                 Extra.HTML()
             );
-            this.handleRolloverError(loanId);
+            await this.handleRolloverError(loanId, wallet);
         }
     }
 
@@ -136,8 +136,19 @@ class Rollover {
         this.rolledPositions[loanId] = 'success';
     }
 
-    handleRolloverError(loanId){
+    async handleRolloverError(loanId, wallet){
         this.rolledPositions[loanId] = 'error';
+
+        //wrong -> update
+        const position = pos[2].toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+        console.log('Storing failed transaction into DB');
+        // store failed transaction in DB
+        await dbCtrl.addRollover({
+            rolloverAdr: wallet,
+            status: 'failed',
+            pos: position,
+            loanId
+        });
     }
 
     /**
@@ -158,13 +169,14 @@ class Rollover {
                 
                     if (params && params.loanId) {
                         //wrong -> update
-                        const pos = params.sourceToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+                        const pos = params.sourceToken.toLowerCase() === conf.testTokenRBTC ? 'long' : 'short';
                         await dbCtrl.addRollover({
                             loanId: params.loanId,  
                             txHash: receipt.transactionHash,
                             rolloverAdr: receipt.logs[0].address,
                             rolledoverAdr: params.borrower,
                             amount: Number(C.web3.utils.fromWei(params.sourceAmount, "Ether")).toFixed(6),
+                            status: 'successful',
                             pos
                         })
                     }
