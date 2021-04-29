@@ -3,6 +3,7 @@ import conf from '../../../config/config';
 import C from '../../../controller/contract';
 import A from '../../../secrets/accounts';
 import db from '../../../controller/db';
+import {existsSync, unlinkSync} from "fs";
 
 const { ZERO_ADDRESS } = constants;
 
@@ -45,9 +46,6 @@ export async function initSovrynNodeForTesting({
     conf.publicNodeProvider = 'http://example.invalid';
     conf.errorBotTelegram = undefined;
 
-    // Use a different DB too
-    conf.db = 'sovryn_node_integration_tests.db';
-
     // THESE are not yet handled
     conf.loanTokenSUSD = ZERO_ADDRESS;
     conf.loanTokenUSDT = ZERO_ADDRESS;
@@ -71,6 +69,12 @@ export async function initSovrynNodeForTesting({
         addAccounts: false,
     });
 
-    // And ditto for the DB
+    // Use a different DB, clear and initialize it
+    const dbFileName = 'sovryn_node_integration_tests.db';
+    conf.db = dbFileName;
+    const dbPath = `${__dirname}/../../../db/${dbFileName}`
+    if (existsSync(dbPath)) {
+        unlinkSync(dbPath);
+    }
     await db.initDb(conf.db);
 }
