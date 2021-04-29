@@ -377,7 +377,7 @@ class Arbitrage {
                     arbitrageDeals.push({from: 'rBTC', to: C.getTokenSymbol(p)});
                 }
 
-                if(res) profit = await this.calculateProfit(res.transactionHash, p[1]);
+                if(res) profit = await this.calculateProfit(res.transactionHash);
             }
 
             console.log("Completed checking prices at ");
