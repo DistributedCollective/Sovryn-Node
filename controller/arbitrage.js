@@ -568,11 +568,11 @@ class Arbitrage {
 
             let profit, trade;
             if (fromToken.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
-                const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, fromAmount);
+                const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, toAmount);
                 profit = Number(pricePriceFeed).toFixed(6);
                 trade = 'sell btc';
             } else {
-                const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, toAmount);
+                const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, fromAmount);
                 profit = Number(pricePriceFeed).toFixed(6);              
                 trade = 'buy btc';
             }
