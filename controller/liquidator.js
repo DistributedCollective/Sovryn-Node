@@ -34,34 +34,38 @@ class Liquidator {
      */
     async checkPositionsForLiquidations() {
         while (true) {
-            console.log("started liquidation round");
-            console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
-
-            for (let p in this.liquidations) {
-                const pos = this.liquidations[p];
-                const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
-
-                //Position already in liquidation wallet-queue
-                if (Wallet.checkIfPositionExists(p)) continue;
-                //failed too often -> have to check manually
-                if(this.liquidationErrorList[p]>=5) continue;
-
-                const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
-                if (!wallet) {
-                    await this.handleNoWalletError(p);
-                    continue;
-                } 
-
-                const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet)
-                if (!liquidateAmount) return;
-
-                const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
-
-                await this.liquidate(p, wallet.adr, liquidateAmount, token, pos.collateralToken, nonce);
-                await U.wasteTime(30); //30 seconds break to avoid rejection from node
-            }
+            await this.handleLiquidationRound();
             console.log("Completed liquidation round");
             await U.wasteTime(conf.liquidatorScanInterval);
+        }
+    }
+
+    async handleLiquidationRound() {
+        console.log("started liquidation round");
+        console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
+
+        for (let p in this.liquidations) {
+            const pos = this.liquidations[p];
+            const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+
+            //Position already in liquidation wallet-queue
+            if (Wallet.checkIfPositionExists(p)) continue;
+            //failed too often -> have to check manually
+            if(this.liquidationErrorList[p]>=5) continue;
+
+            const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
+            if (!wallet) {
+                await this.handleNoWalletError(p);
+                continue;
+            }
+
+            const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet)
+            if (!liquidateAmount) return;
+
+            const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
+
+            await this.liquidate(p, wallet.adr, liquidateAmount, token, pos.collateralToken, nonce);
+            await U.wasteTime(30); //30 seconds break to avoid rejection from node
         }
     }
 
