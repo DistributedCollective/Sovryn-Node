@@ -70,17 +70,28 @@ class Liquidator {
     }
 
     async calculateLiquidateAmount(wBalance, pos, token, wallet) {
-        let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
+        let liquidateAmount = Math.min(parseInt(pos.maxLiquidatable), wBalance);
         const gasPrice = await C.getGasPrice();
-        const rbtcBalance = await C.web3.eth.getBalance(wallet.adr);
-        const txFees = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)).toNumber();
-        if(pos.maxLiquidatable<wBalance && txFees<rbtcBalance) console.log("enough balance on wallet");
-        else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
-        else {
-            if (token === "rBtc")
-                liquidateAmount = C.web3.utils.toBN(wBalance).sub(C.web3.utils.toBN(txFees)).toNumber();
-            if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
-            if (txFees>rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
+        const toBN = C.web3.utils.toBN;
+        const rbtcBalance = toBN(await C.web3.eth.getBalance(wallet.adr));
+        const txFees = toBN(conf.gasLimit).mul(toBN(gasPrice));
+        if (pos.maxLiquidatable < wBalance && txFees.lt(rbtcBalance)) {
+            console.log("enough balance on wallet");
+        } else if (wBalance === 0) {
+            console.log("not enough balance on wallet");
+            return;
+        } else {
+            if (token === "rBtc") {
+                liquidateAmount = toBN(wBalance).sub(toBN(txFees)).toNumber();
+            }
+            if (liquidateAmount <= 0) {
+                console.log("not enough balance on wallet");
+                return;
+            }
+            if (txFees.gt(rbtcBalance)) {
+                console.log("not enough RBTC balance on wallet to pay fees");
+                return;
+            }
             console.log("not enough balance on wallet. only use "+liquidateAmount);
         }
         return liquidateAmount;
