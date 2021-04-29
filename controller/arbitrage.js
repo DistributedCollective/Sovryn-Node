@@ -339,9 +339,10 @@ class Arbitrage {
             rbtcPrice = pricePriceFeed;
             rbtcAmount = parseFloat(C.web3.utils.fromWei(arbitrageOpportunity.amount));
         } else {
-            // TODO: this is probably a bit wrong here. See if it could be made more robust
-            rbtcPrice = 1/pricePriceFeed;
-            rbtcAmount = rbtcPrice * parseFloat(C.web3.utils.fromWei(arbitrageOpportunity.amount));
+            // when selling tokenAmount TOKEN, pricePriceFeed is the amount of RBTC you get for tokenAmount TOKEN.
+            // hence, rbtcPrice = tokenAmount and rbtcAmount = price feed price.
+            rbtcPrice = parseFloat(C.web3.utils.fromWei(arbitrageOpportunity.amount));
+            rbtcAmount = pricePriceFeed;
         }
         await this.calculateProfit(arbitrageTx, rbtcPrice, rbtcAmount);
     }
