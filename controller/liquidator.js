@@ -149,8 +149,18 @@ class Liquidator {
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${conf.blockExplorer}tx/${err.receipt.transactionHash}
-                    \nLoanId: ${U.formatLoanId(loanId)}`, Extra.HTML());
+
+                let errorDetails;
+                if(err.receipt) {
+                    errorDetails = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
+                } else {
+                    errorDetails = err.toString().slice(0, 200);
+                }
+                common.telegramBot.sendMessage(
+                    `<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${errorDetails}\n` +
+                    `LoanId: ${U.formatLoanId(loanId)}`,
+                    Extra.HTML()
+                );
                 await p.handleLiqError(wallet, loanId);
             });
     }

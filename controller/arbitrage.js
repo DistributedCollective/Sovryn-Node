@@ -536,8 +536,15 @@ class Arbitrage {
                         .catch(async (err) => {
                             console.error("Error on arbitrage tx ");
                             console.error(err);
-                            common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on arbitrage tx swapping ${amount} ${sourceCurrency} for ${destCurrency}
-                                \nTransaction hash: ${conf.blockExplorer}tx/${err.receipt.transactionHash}`, Extra.HTML());
+                            let explorerLink = '(not available)';
+                            if(err.receipt) {
+                                explorerLink = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
+                            }
+                            common.telegramBot.sendMessage(
+                                `<b><u>A</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on arbitrage tx swapping ${amount} ${sourceCurrency} for ${destCurrency}\n` +
+                                `Transaction hash: ${explorerLink}`,
+                                Extra.HTML()
+                            );
 
                             return resolve();
                         });
