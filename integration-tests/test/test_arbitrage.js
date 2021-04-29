@@ -4,11 +4,11 @@ const { MAX_UINT256 } = constants;
 
 import A from '../../secrets/accounts';
 import Arbitrage from '../../controller/arbitrage';
+import DB from '../../controller/db';
 import conf from '../../config/config';
 
 import {initSovrynNodeForTesting} from "./base/backend";
 import {initSovrynContracts, ConverterHelper} from "./base/contracts";
-import {SmartContractStateUtility} from "../tools/showSmartContractState";
 
 
 describe("Arbitrage controller", () => {
@@ -25,6 +25,10 @@ describe("Arbitrage controller", () => {
     // TODO: we don't actually need a WRBTC balance -- at least not after the bug in the arbitrage code is fixed
     const initialWRBTCBalance = ether('10000000');
     const initialUSDTBalance =  ether('10000000');
+
+    async function getArbitragesFromDB() {
+        return await DB.arbRepo.all("SELECT * FROM arbitrage");
+    }
 
     beforeEach(async () => {
         sovrynContracts = await initSovrynContracts();
@@ -176,7 +180,27 @@ describe("Arbitrage controller", () => {
         expect(rbtcEarned).to.be.bignumber.above(wrbtcDelta.neg().sub(ether('0.001')));
         expect(rbtcEarned).to.be.bignumber.below(wrbtcDelta.neg().add(ether('0.02')));
 
-        // TODO: test that the DB looks ok
+        // test that the DB looks ok
+        const arbitrageRows = await getArbitragesFromDB();
+        expect(arbitrageRows.length).to.equal(1);
+        const row = arbitrageRows[0];
+
+        // TODO: this seems wrong, shouldn't it actually be arbitragerAddress?
+        expect(row.adr.toLowerCase()).to.equal(sovrynContracts.rbtcWrapperProxy.address.toLowerCase());
+
+        expect(row.trade).to.equal('buy btc');
+        expect(row.fromToken.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
+        expect(row.toToken.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+        expect(row.fromAmount).to.be.closeTo(parseFloat(web3.utils.fromWei(usdtEarned.neg()).toString()), 0.000001);
+        expect(row.toAmount).to.be.closeTo(parseFloat(web3.utils.fromWei(rbtcEarned).toString()), 0.02);
+        const priceFeedAmount = await sovrynContracts.priceFeeds.queryReturn(
+            usdtToken.address,
+            wrbtcToken.address,
+            usdtDelta,
+        );
+        const profitOverPriceFeed = rbtcEarned.sub(priceFeedAmount);
+        expect(row.profit).to.be.closeTo(parseFloat(web3.utils.fromWei(profitOverPriceFeed).toString()), 0.02);
+        expect(row.profit).to.be.greaterThan(0);
 
         // test that the pool is balanced
         const newWrbtcDelta = (await converter.reserveStakedBalance(wrbtcToken.address)).sub(await converter.reserveBalance(wrbtcToken.address));
@@ -217,6 +241,9 @@ describe("Arbitrage controller", () => {
         // profit should be -0.21018 % -> loss -> no arbitrage
         const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
         expect(result).to.not.exists();
+
+        const arbitrageRows = await getArbitragesFromDB();
+        expect(arbitrageRows.length).to.equal(0);
     });
 
     it('handles an RBTC -> USDT arbitrage opportunity', async () => {
@@ -256,6 +283,28 @@ describe("Arbitrage controller", () => {
 
         expect(rbtcEarned).to.be.bignumber.closeTo(wrbtcDelta.neg(), ether('0.02'));
         expect(usdtEarned).to.be.bignumber.closeTo(usdtDelta.neg(), ether('0.02'));
+
+        // test that the DB looks ok
+        const arbitrageRows = await getArbitragesFromDB();
+        expect(arbitrageRows.length).to.equal(1);
+        const row = arbitrageRows[0];
+
+        // TODO: this seems wrong, shouldn't it actually be arbitragerAddress?
+        expect(row.adr.toLowerCase()).to.equal(sovrynContracts.rbtcWrapperProxy.address.toLowerCase());
+
+        expect(row.trade).to.equal('sell btc');
+        expect(row.fromToken.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+        expect(row.toToken.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
+        expect(row.fromAmount).to.be.closeTo(parseFloat(web3.utils.fromWei(wrbtcDelta).toString()), 0.0001);
+        expect(row.toAmount).to.be.closeTo(parseFloat(web3.utils.fromWei(usdtEarned).toString()), 0.00001);
+        expect(row.profit).to.be.greaterThan(0);
+        const priceFeedAmount = await sovrynContracts.priceFeeds.queryReturn(
+            wrbtcToken.address,
+            usdtToken.address,
+            wrbtcDelta,
+        );
+        const profitOverPriceFeed = usdtEarned.sub(priceFeedAmount);
+        expect(row.profit).to.be.closeTo(parseFloat(web3.utils.fromWei(profitOverPriceFeed).toString()), 0.00001);
 
         // test that the pool is balanced
         const newWrbtcDelta = (await converter.reserveStakedBalance(wrbtcToken.address)).sub(await converter.reserveBalance(wrbtcToken.address));
