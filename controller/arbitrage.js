@@ -207,12 +207,11 @@ class Arbitrage {
 
             if (conversionEvent && conversionEvent.events) {
                 let {fromToken, toToken, fromAmount, toAmount, trader} = U.parseEventParams(conversionEvent.events);
-                const [priceAmm, pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, fromAmount);
+                const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, fromAmount);
 
                 fromAmount = Number(C.web3.utils.fromWei(fromAmount.toString(), 'ether')).toFixed(6);
                 toAmount = Number(C.web3.utils.fromWei(toAmount.toString(), 'ether')).toFixed(6);
 
-                console.log('prices: amm: ', priceAmm.toFixed(6), ' pricefeed: ', pricePriceFeed.toFixed(6));
                 return { totalRBtcCost: pricePriceFeed, fromToken, toToken, fromAmount, toAmount, trader}
             }
         }
@@ -229,6 +228,9 @@ class Arbitrage {
             `Found arbitrage opportunity: ${C.web3.utils.fromWei(arbitrageOpportunity.amount)} ` +
             `${arbitrageOpportunity.sourceTokenSymbol} -> ${arbitrageOpportunity.destTokenSymbol}`
         );
+
+        const [priceAmm, pricePriceFeed] = await this.getAmmAndPriceFeedPrices(arbitrageOpportunity);
+        console.log('prices: amm: ', priceAmm.toFixed(5), ' pricefeed: ', pricePriceFeed.toFixed(5));
 
         const arbitragePercentage = await this.calculateArbitragePercentage(priceAmm, pricePriceFeed);
         console.log('arbitrage%', arbitragePercentage.toFixed(5));
@@ -349,17 +351,17 @@ class Arbitrage {
         return await this.swap(amount, sourceSymbol, destSymbol, fromAddress);
     }
 
-    async handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, arbitrageDeals, fromAmount, toAmount) {
+    async handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, arbitrageDeals, totalRBtcCost, fromAmount, toAmount) {
         if(arbitrageDeals) {
             arbitrageDeals.push({from: arbitrageOpportunity.sourceTokenSymbol, to: arbitrageOpportunity.destTokenSymbol});
         }
 
         let rbtcPrice, rbtcAmount;
         if(arbitrageOpportunity.sourceTokenAddress.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
-            rbtcPrice = pricePriceFeed / fromAmount;
+            rbtcPrice = totalRBtcCost / fromAmount;
             rbtcAmount = fromAmount;
         } else {
-            rbtcPrice = pricePriceFeed / toAmount;
+            rbtcPrice = totalRBtcCost / toAmount;
             rbtcAmount = toAmount;
         }
         await this.calculateProfit(arbitrageTx, rbtcPrice, rbtcAmount);
