@@ -566,22 +566,20 @@ class Arbitrage {
             console.log("Calculate profit from arbitrage");
             let { fromToken, toToken, fromAmount, toAmount, trader } = await this.getArbitrageTxData(txHash);
 
-            let profitAmount, profitToken, trade;
+            let profitAmount, trade;
             if (fromToken.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
-                const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, toAmount);
+                const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: toToken, destTokenAddress: fromToken}, fromAmount);
                 profitAmount = pricePriceFeed;
-                profitToken = toToken;
                 trade = 'sell btc';
             } else {
                 const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, fromAmount);
                 profitAmount = pricePriceFeed;
-                profitToken = 'rBtc';              
                 trade = 'buy btc';
             }
             const arbitrageCost = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, 
-                profitToken !== 'rBtc' ? toAmount : fromAmount);
+                trade === 'buy btc' ? fromAmount : toAmount);
             let profit = Number(profitAmount - arbitrageCost[1]).toFixed(6);
-            profit = profit + " " + C.getTokenSymbol(profitToken);
+            profit = profit + " " + (C.getTokenSymbol(toToken)).toUpperCase();
             console.log(`You made ${profit} with this liquidation`);
 
             fromAmount = Number(C.web3.utils.fromWei(fromAmount.toString(), 'ether')).toFixed(6);
