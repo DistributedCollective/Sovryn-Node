@@ -566,7 +566,7 @@ class Arbitrage {
             console.log("Calculate profit from arbitrage");
             let { fromToken, toToken, fromAmount, toAmount, trader } = await this.getArbitrageTxData(txHash);
 
-            let profitAmount, profitToken;
+            let profitAmount, profitToken, trade;
             if (fromToken.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
                 const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, toAmount);
                 profitAmount = pricePriceFeed;
@@ -580,7 +580,7 @@ class Arbitrage {
             }
             const arbitrageCost = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, 
                 profitToken !== 'rBtc' ? toAmount : fromAmount);
-            const profit = Number(profitAmount - arbitrageCost[1]).toFixed(6);
+            let profit = Number(profitAmount - arbitrageCost[1]).toFixed(6);
             profit = profit + " " + C.getTokenSymbol(profitToken);
             console.log(`You made ${profit} with this liquidation`);
 
