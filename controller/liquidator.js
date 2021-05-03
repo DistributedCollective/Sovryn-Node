@@ -141,13 +141,13 @@ class Liquidator {
         //wrong -> update
         const pos = token === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
 
-        C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
+        return C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
             .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
-                p.addLiqLog(tx.transactionHash, pos);
+                await p.addLiqLog(tx.transactionHash, pos);
                 if (token !== "rBtc") await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
             })
             .catch(async (err) => {
