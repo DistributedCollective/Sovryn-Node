@@ -6,6 +6,7 @@ import A from '../../secrets/accounts';
 import Liquidator from '../../controller/liquidator';
 import C from '../../controller/contract';
 import PositionScanner from '../../controller/scanner';
+import U from '../../util/helper';
 import DB from '../../controller/db';
 
 const LoanOpeningsEvents = artifacts.require("LoanOpeningsEvents");
@@ -30,7 +31,8 @@ describe("Liquidator controller", () => {
     let converters;
     let liquidityPool;
 
-    const initialTokenBalance = ether('100');
+    const initialTokenBalance = ether('100000000');
+    let initialRbtcBalance;
 
     beforeEach(async () => {
         liquidations = {};
@@ -69,15 +71,31 @@ describe("Liquidator controller", () => {
             finalSecondaryReserveWeight: 187840,
             primaryPriceOracleAnswer: new BN('63500099999999998544808'),
             secondaryPriceOracleAnswer:   new BN('1000000000000000000'),
-        })
+        });
+
+        // TODO: apparently we need the USDT pool to call Arbitrage.getRBtcPrices, which seems a bit silly
+        await converters.initConverter({
+            primaryReserveToken: sovrynContracts.wrbtcToken,
+            secondaryReserveToken: sovrynContracts.usdtToken,
+            initialPrimaryReserveLiquidity:       new BN('159658299529181487177'),
+            initialSecondaryReserveLiquidity: new BN('2344204953216918397465575'),
+            finalPrimaryReserveBalance:           new BN('184968372923849153200'),
+            finalSecondaryReserveBalance:      new BN('769563135046785056451752'),
+            finalPrimaryReserveWeight:   812160,
+            finalSecondaryReserveWeight: 187840,
+            primaryPriceOracleAnswer: new BN('63500099999999998544808'),
+            secondaryPriceOracleAnswer:   new BN('1000000000000000000'),
+        });
 
         await sovrynContracts.docToken.transfer(liquidatorAddress, initialTokenBalance);
         await sovrynContracts.wrbtcToken.transfer(liquidatorAddress, initialTokenBalance);
         await sovrynContracts.docToken.approve(sovrynContracts.sovrynProtocol.address, initialTokenBalance, {from: liquidatorAddress});
         await sovrynContracts.wrbtcToken.approve(sovrynContracts.sovrynProtocol.address, initialTokenBalance, {from: liquidatorAddress});
-        // NOT SURE if these needed
-        await sovrynContracts.docToken.approve(sovrynContracts.sovrynSwapNetwork.address, initialTokenBalance, {from: liquidatorAddress});
-        await sovrynContracts.wrbtcToken.approve(sovrynContracts.sovrynSwapNetwork.address, initialTokenBalance, {from: liquidatorAddress});
+
+        await sovrynContracts.docToken.approve(sovrynContracts.rbtcWrapperProxy.address, initialTokenBalance, {from: liquidatorAddress});
+        await sovrynContracts.wrbtcToken.approve(sovrynContracts.rbtcWrapperProxy.address, initialTokenBalance, {from: liquidatorAddress});
+
+        initialRbtcBalance = web3.utils.toBN(await web3.eth.getBalance(liquidatorAddress));
     });
 
     beforeEach(() => {
@@ -85,6 +103,9 @@ describe("Liquidator controller", () => {
         // after running initSovrynNodeForTesting, since
         // that might otherwise destroy the mocks
         sandbox.spy(C.contractSovryn.methods, 'liquidate');
+
+        // we don't want to waste 30s everytime :P
+        sandbox.stub(U, 'wasteTime');
     });
 
     afterEach(() => {
@@ -155,5 +176,50 @@ describe("Liquidator controller", () => {
 
         const rows = await getLiquidationsFromDB();
         expect(rows.length).to.equal(0);
+    });
+
+    it("should liquidate liquidatable positions", async () => {
+        const {
+            loan,
+            loanId,
+        } = await setupLiquidationTest(sovrynContracts.docToken, sovrynContracts.loanTokenDoc);
+
+        // decrease the price so that the position needs to be liquidated
+        await converters.setOraclePrice(
+            sovrynContracts.wrbtcToken.address,
+            //new BN('63500099999999998544808')
+            new BN('43500099999999998544808')
+        );
+
+        await scanPositions();
+
+        await Liquidator.handleLiquidationRound();
+
+        expect(C.contractSovryn.methods.liquidate.callCount).to.equal(1);
+
+        const rows = await getLiquidationsFromDB();
+        expect(rows.length).to.equal(1);
+        const liquidationRow = rows[0];
+
+        expect(liquidationRow.loanId).to.equal(loanId);
+
+        expect(liquidationRow.liquidatorAdr.toLowerCase()).to.equal(liquidatorAddress.toLowerCase());
+
+        expect(liquidationRow.liquidatedAdr.toLowerCase()).to.equal(borrowerAddress.toLowerCase());
+        expect(liquidationRow.pos).to.equal('short'); // double check
+        expect(liquidationRow.profit).to.equal('0.000223 RBTC'); // double check
+        expect(liquidationRow.amount).to.equal('4688241921109492'); // double check
+        // could maybe test something in the blockchain too...
+
+        const { fromWei, toBN } = web3.utils;
+        const rbtcBalance = toBN(await web3.eth.getBalance(liquidatorAddress));
+        const docBalance = toBN(await sovrynContracts.docToken.balanceOf(liquidatorAddress));
+        const rbtcEarned = parseFloat(fromWei(rbtcBalance.sub(initialRbtcBalance)));
+        const docEarned =  parseFloat(fromWei(docBalance.sub(initialTokenBalance)));
+        // expect us to earn RBTC because profit is calculated in oracle rate and amm rate is higher
+        // this is flaky and subject to change
+        expect(rbtcEarned).to.be.above(0.000223);
+        // expect us to lose DoC since we are swapping back to rbtc
+        expect(docEarned).to.be.below(0);
     });
 });
