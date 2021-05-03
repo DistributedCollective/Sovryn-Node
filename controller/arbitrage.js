@@ -566,19 +566,16 @@ class Arbitrage {
             console.log("Calculate profit from arbitrage");
             let { fromToken, toToken, fromAmount, toAmount, trader } = await this.getArbitrageTxData(txHash);
 
-            let profitAmount, trade;
+            let trade;
             if (fromToken.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
-                const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: toToken, destTokenAddress: fromToken}, fromAmount);
-                profitAmount = pricePriceFeed;
                 trade = 'sell btc';
             } else {
-                const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, fromAmount);
-                profitAmount = pricePriceFeed;
+
                 trade = 'buy btc';
             }
-            const arbitrageCost = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, 
-                trade === 'buy btc' ? fromAmount : toAmount);
-            let profit = Number(profitAmount - arbitrageCost[1]).toFixed(6);
+            const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, fromAmount);
+            const tradeCost = pricePriceFeed;
+            let profit =  (Number(C.web3.utils.fromWei(toAmount)) - tradeCost).toFixed(6);
             profit = profit + " " + (C.getTokenSymbol(toToken)).toUpperCase();
             console.log(`You made ${profit} with this liquidation`);
 
