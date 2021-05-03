@@ -120,7 +120,7 @@ class Rollover {
                 `LoanId: ${U.formatLoanId(loanId)}`,
                 Extra.HTML()
             );
-            await this.handleRolloverError(loanId, wallet);
+            await this.handleRolloverError(loanId, wallet, pos[2]);
         }
     }
 
@@ -136,11 +136,11 @@ class Rollover {
         this.rolledPositions[loanId] = 'success';
     }
 
-    async handleRolloverError(loanId, wallet){
+    async handleRolloverError(loanId, wallet, tokenAddress){
         this.rolledPositions[loanId] = 'error';
 
         //wrong -> update
-        const position = pos[2].toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+        const position = tokenAddress.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
         console.log('Storing failed transaction into DB');
         // store failed transaction in DB
         await dbCtrl.addRollover({

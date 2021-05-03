@@ -209,9 +209,10 @@ describe("Rollover controller", () => {
         expect(rolloverRow.rolledoverAdr.toLowerCase()).to.equal(borrowerAddress.toLowerCase());
         expect(rolloverRow.loanId).to.equal(loanId);
         expect(rolloverRow.amount).to.equal('0.000045');
-        expect(rolloverRow.pos).to.equal('long');
+        expect(rolloverRow.pos).to.equal('long');  // XXX: really?
         expect(rolloverRow.txHash).to.exists();
         expect(rolloverRow.txHash).to.not.equal('');
+        expect(rolloverRow.status).to.equal('successful');
         // could maybe test something in the blockchain too...
     });
 
@@ -232,6 +233,41 @@ describe("Rollover controller", () => {
         await Rollover.handleRolloverRound();
         expect(C.contractSovryn.methods.rollover.callCount).to.equal(1);
         const rows = await getRolloversFromDB();
+        expect(rows.length).to.equal(1);
+    });
+
+    it("should handle rollover error gracefully", async () => {
+        const {
+            loanId,
+            loanEndTimestamp,
+        } = await setupRolloverTest(sovrynContracts.docToken, sovrynContracts.loanTokenDoc);
+
+        await advanceTime({
+            blockchainTimestamp: loanEndTimestamp + 1,
+            nodeTimestamp: loanEndTimestamp + 1,
+        });
+        await scanPositions();
+
+        C.contractSovryn.methods.rollover.restore();
+        sandbox.stub(C.contractSovryn.methods, 'rollover').returns({
+            send: async () => {
+                throw new Error('TEST ERROR');
+            },
+        });
+        await Rollover.handleRolloverRound();
+        expect(C.contractSovryn.methods.rollover.callCount).to.equal(1);
+        let rows = await getRolloversFromDB();
+        expect(rows.length).to.equal(1);
+        const row = rows[0];
+        expect(row.status).to.equal('failed');
+        expect(row.loanId).to.equal(loanId);
+        expect(row.pos).to.equal('long');  // XXX: this is what it does but not verified
+
+
+        // assert not called again
+        await Rollover.handleRolloverRound();
+        expect(C.contractSovryn.methods.rollover.callCount).to.equal(1);
+        rows = await getRolloversFromDB();
         expect(rows.length).to.equal(1);
     });
 });
