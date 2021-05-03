@@ -185,9 +185,7 @@ describe("Arbitrage controller", () => {
         expect(arbitrageRows.length).to.equal(1);
         const row = arbitrageRows[0];
 
-        // TODO: this seems wrong, shouldn't it actually be arbitragerAddress?
-        expect(row.adr.toLowerCase()).to.equal(sovrynContracts.rbtcWrapperProxy.address.toLowerCase());
-
+        expect(row.adr.toLowerCase()).to.equal(arbitragerAddress.toLowerCase());
         expect(row.trade).to.equal('buy btc');
         expect(row.fromToken.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
         expect(row.toToken.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
@@ -289,8 +287,7 @@ describe("Arbitrage controller", () => {
         expect(arbitrageRows.length).to.equal(1);
         const row = arbitrageRows[0];
 
-        // TODO: this seems wrong, shouldn't it actually be arbitragerAddress?
-        expect(row.adr.toLowerCase()).to.equal(sovrynContracts.rbtcWrapperProxy.address.toLowerCase());
+        expect(row.adr.toLowerCase()).to.equal(arbitragerAddress.toLowerCase());
 
         expect(row.trade).to.equal('sell btc');
         expect(row.fromToken.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
