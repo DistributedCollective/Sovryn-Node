@@ -420,6 +420,79 @@ describe("Arbitrage controller", () => {
         expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
     });
 
+    it('limits the max amount to token in wallet', async () => {
+        // this situation was actually found on mainnet
+        const converterOpts = {
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            initialPrimaryReserveLiquidity:       new BN('159658299529181487177'),
+            initialSecondaryReserveLiquidity: new BN('2344204953216918397465575'),
+            finalPrimaryReserveBalance:           new BN('184968372923849153200'),
+            finalSecondaryReserveBalance:      new BN('769563135046785056451752'),
+            finalPrimaryReserveWeight:   812160,
+            finalSecondaryReserveWeight: 187840,
+            primaryPriceOracleAnswer: new BN('63500099999999998544808'),
+            secondaryPriceOracleAnswer:   new BN('1000000000000000000'),
+        };
+        await converters.initConverter(converterOpts);
+
+        const usdtMaxAmountWei = ether('100');
+        expect(usdtMaxAmountWei).to.be.bignumber.below(initialUSDTBalance);
+        await usdtToken.transfer(contractOwnerAddress, initialUSDTBalance.sub(usdtMaxAmountWei), {from: arbitragerAddress});
+        expect(await usdtToken.balanceOf(arbitragerAddress)).to.be.bignumber.equal(usdtMaxAmountWei);
+
+        const usdtDelta = converterOpts.initialSecondaryReserveLiquidity.sub(converterOpts.finalSecondaryReserveBalance);
+        expect(usdtDelta).to.be.bignumber.above(usdtMaxAmountWei);  // sanity check
+
+        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
+        expect(opportunity.amount).to.be.bignumber.equal(usdtMaxAmountWei);
+        expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
+
+        await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
+        const usdtBalance = await usdtToken.balanceOf(arbitragerAddress);
+        expect(usdtBalance).to.be.bignumber.equal(new BN(0)); // all sent
+
+        const arbitrageRows = await getArbitragesFromDB();
+        expect(arbitrageRows.length).to.equal(1);
+        const row = arbitrageRows[0];
+        expect(row.fromToken.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
+        expect(row.fromAmount).to.be.closeTo(parseFloat(web3.utils.fromWei(usdtMaxAmountWei).toString()), 0.0001);
+    });
+
+    it('limits the max rbtc amount to rbtc held in wallet', async () => {
+        // this situation was actually found on mainnet
+        const converterOpts = {
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
+            initialPrimaryReserveLiquidity: ether('10'),
+            initialSecondaryReserveLiquidity: ether('10'),
+            finalPrimaryReserveBalance: ether('1'),
+            finalSecondaryReserveBalance: ether('19'),
+            // 1 RBTC = 1 USDT
+            primaryPriceOracleAnswer: ether('1'),
+            secondaryPriceOracleAnswer: ether('1'),
+        };
+        await converters.initConverter(converterOpts);
+
+        const rbtcMaxAmountWei = ether('0.1');
+        expect(rbtcMaxAmountWei).to.be.bignumber.below(initialRBTCBalance);
+        await web3.eth.sendTransaction({
+            to: contractOwnerAddress,
+            value: initialRBTCBalance.sub(rbtcMaxAmountWei),
+            from: arbitragerAddress
+        });
+        // account for gas costs
+        expect(await web3.eth.getBalance(arbitragerAddress)).to.be.bignumber.closeTo(rbtcMaxAmountWei, ether('0.001'));
+
+        const rbtcDelta = converterOpts.initialPrimaryReserveLiquidity.sub(converterOpts.finalPrimaryReserveBalance);
+        expect(rbtcDelta).to.be.bignumber.above(rbtcMaxAmountWei);  // sanity check
+
+        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', wrbtcToken.address);
+        expect(opportunity.amount).to.be.bignumber.below(rbtcMaxAmountWei);
+        expect(opportunity.amount).to.be.bignumber.above(rbtcMaxAmountWei.sub(ether('0.001'))); // gas costs
+        expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+    });
+
     it("doesn't limit max amount if opportunity amount is smaller", async () => {
         // this situation was actually found on mainnet
         const converterOpts = {

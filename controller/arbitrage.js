@@ -252,14 +252,49 @@ class Arbitrage {
             }
         );
 
-        if(opportunity && conf.dynamicArbitrageMaxAmounts) {
-            const maxAmountStr = conf.dynamicArbitrageMaxAmounts[opportunity.sourceTokenSymbol] || conf.dynamicArbitrageMaxAmounts.default;
-            if(maxAmountStr) {
-                const maxAmountWei = this.BN(C.web3.utils.toWei(maxAmountStr));
-                if(opportunity.amount.gt(maxAmountWei)) {
-                    console.log(`Limiting amount to max amount specified in config: ${maxAmountStr} ${opportunity.sourceTokenSymbol}`);
-                    opportunity.amount = maxAmountWei;
+        if(opportunity) {
+            // limit amount according to balance and/or config
+            let arbitragerBalance;
+            const fromAddress = A.arbitrage[0].adr;
+            const sourceContract = C.getTokenInstance(opportunity.sourceTokenAddress);
+
+            if(sourceContract._address === C.contractTokenRBTC._address) {
+                // because of the RBTC wrapper proxy, we only care about RBTC balance and not WRBTC balance
+                arbitragerBalance = this.BN(await C.web3.eth.getBalance(fromAddress));
+                // Add some buffer for gas. Exact amount is up for debate...
+                arbitragerBalance = arbitragerBalance.sub(this.BN(C.web3.utils.toWei('0.0001')));
+            } else {
+                arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
+            }
+            if(arbitragerBalance.isZero() || arbitragerBalance.isNeg()) {
+                console.log('no balance held in wallet -- cannot do anything')
+                return null;
+            }
+
+            let configMaxAmountWei = null;
+            if(conf.dynamicArbitrageMaxAmounts) {
+                const configMaxAmountStr = conf.dynamicArbitrageMaxAmounts[opportunity.sourceTokenSymbol] || conf.dynamicArbitrageMaxAmounts.default;
+                if(configMaxAmountStr) {
+                    configMaxAmountWei = this.BN(C.web3.utils.toWei(configMaxAmountStr));
                 }
+            }
+
+            if(!configMaxAmountWei || arbitragerBalance.lt(configMaxAmountWei)) {
+                // config max not specified or balance < config max
+                if(opportunity.amount.gt(arbitragerBalance)) {
+                    console.log(
+                        `Limiting amount to held balance ${C.web3.utils.fromWei(arbitragerBalance)} ${opportunity.sourceTokenSymbol} ` +
+                        `instead of ${C.web3.utils.fromWei(opportunity.amount)} ${opportunity.sourceTokenSymbol} `
+                    );
+                    opportunity.amount = arbitragerBalance;
+                }
+            } else if(opportunity.amount.gt(configMaxAmountWei)) {
+                // config max amount specified and less than amount
+                console.log(
+                    `Limiting amount to max amount specified in config: ${C.web3.utils.fromWei(configMaxAmountWei)} ${opportunity.sourceTokenSymbol} ` +
+                    `instead of ${C.web3.utils.fromWei(opportunity.amount)} ${opportunity.sourceTokenSymbol}`
+                );
+                opportunity.amount = configMaxAmountWei;
             }
         }
 
@@ -301,29 +336,9 @@ class Arbitrage {
 
         const sourceSymbol = arbitrageOpportunity.sourceTokenSymbol;
         const destSymbol = arbitrageOpportunity.destTokenSymbol;
-        const sourceContract = C.getTokenInstance(arbitrageOpportunity.sourceTokenAddress);
 
-        console.log(`EXECUTING ARBITRAGE! SELL ${sourceSymbol}, BUY ${destSymbol}!`)
-        let amount = arbitrageOpportunity.amount;
-
-        let arbitragerBalance;
-        if(sourceContract._address === C.contractTokenRBTC._address) {
-            // because of the RBTC wrapper proxy, we only care about RBTC balance and not WRBTC balance
-            arbitragerBalance = this.BN(await C.web3.eth.getBalance(fromAddress));
-            // Add some buffer for gas. Exact amount is up for debate...
-            arbitragerBalance = arbitragerBalance.sub(this.BN(C.web3.utils.toWei('0.0001')));
-        } else {
-            arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
-        }
-        if(arbitragerBalance.isZero() || arbitragerBalance.isNeg()) {
-            console.log('no balance held in wallet -- cannot do anything')
-            return;
-        } else if(arbitragerBalance.lt(amount)) {
-            console.log(
-                `Limiting amount to held balance ${C.web3.utils.fromWei(arbitragerBalance)} ${sourceSymbol}`
-            );
-            amount = arbitragerBalance;
-        }
+        const amount = arbitrageOpportunity.amount;
+        console.log(`EXECUTING ARBITRAGE! SELL ${C.web3.utils.fromWei(amount)} ${sourceSymbol}, BUY ${destSymbol}!`)
 
         // TODO: this should include minAmount to avoid race conditions
         return await this.swap(amount, sourceSymbol, destSymbol, fromAddress);
