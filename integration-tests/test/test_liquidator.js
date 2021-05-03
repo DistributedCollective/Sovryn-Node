@@ -4,6 +4,7 @@ import sinon from 'sinon';
 
 import A from '../../secrets/accounts';
 import Liquidator from '../../controller/liquidator';
+import Arbitrage from '../../controller/arbitrage';
 import C from '../../controller/contract';
 import PositionScanner from '../../controller/scanner';
 import U from '../../util/helper';
@@ -33,6 +34,7 @@ describe("Liquidator controller", () => {
 
     const initialTokenBalance = ether('100000000');
     let initialRbtcBalance;
+
     beforeEach(async () => {
         liquidations = {};
         positions = {};
@@ -49,6 +51,7 @@ describe("Liquidator controller", () => {
         PositionScanner.positionsTmp = {};
         Liquidator.positions = positions;
         Liquidator.liquidations = liquidations;
+        Liquidator.liquidationErrorList = [];
 
         await initLoanPool({
             sovrynProtocol: sovrynContracts.sovrynProtocol,
@@ -217,5 +220,40 @@ describe("Liquidator controller", () => {
         expect(rbtcEarned).to.be.above(0.000223);
         // expect us to lose DoC since we are swapping back to rbtc
         expect(docEarned).to.be.below(0);
+    });
+
+    it("should handle liquidation error gracefully", async () => {
+        const { loanId } = await setupLiquidationTest(sovrynContracts.docToken, sovrynContracts.loanTokenDoc);
+
+        // decrease the price so that the position needs to be liquidated
+        await converters.setOraclePrice(
+            sovrynContracts.wrbtcToken.address,
+            //new BN('63500099999999998544808')
+            new BN('43500099999999998544808')
+        );
+
+        await scanPositions();
+
+        C.contractSovryn.methods.liquidate.restore();
+        sandbox.stub(C.contractSovryn.methods, 'liquidate').returns({
+            send: async () => {
+                throw new Error('Expected test error, please ignore!');
+            },
+        });
+        sandbox.spy(Arbitrage, 'swap');
+
+        await Liquidator.handleLiquidationRound();
+
+        expect(C.contractSovryn.methods.liquidate.callCount).to.equal(1);
+
+        const rows = await getLiquidationsFromDB();
+        expect(rows.length).to.equal(1);
+        const liquidationRow = rows[0];
+        expect(liquidationRow.status).to.equal('failed');
+        expect(liquidationRow.loanId).to.equal(loanId);
+
+        expect(Arbitrage.swap.callCount).to.equal(0);
+
+        expect(Liquidator.liquidationErrorList[loanId]).to.deep.equal(1);
     });
 });
