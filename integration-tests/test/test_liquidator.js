@@ -33,7 +33,6 @@ describe("Liquidator controller", () => {
 
     const initialTokenBalance = ether('100000000');
     let initialRbtcBalance;
-
     beforeEach(async () => {
         liquidations = {};
         positions = {};
@@ -145,13 +144,10 @@ describe("Liquidator controller", () => {
         };
     };
 
-    async function scanPositions(from = 0, to) {
+    async function scanPositions(from = 0, to = 100) {
         // because the PositionScanner logic is inside an infinite loop,
         // do this manually.
         // should rather refactor PositionScanner to be more testable
-        if(to === undefined) {
-            to = await web3.eth.getBlockNumber();
-        }
         const activePositions = await PositionScanner.loadActivePositions(from, to);
         PositionScanner.addPosition(activePositions);  // this mutates positionsTmp, not positions
         // we have to manually add them to the positions
