@@ -148,7 +148,7 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
                 p.addLiqLog(tx.transactionHash, pos);
-                if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase(), collateralToken.toLowerCase(), wallet);
+                if (token !== "rBtc") await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
@@ -225,7 +225,6 @@ class Liquidator {
             console.log("Couldn't calculate the profit for the given liquidation");
         }
     }
-
 
     async addLiqLog(txHash, pos) {
         console.log("Add liquidation "+txHash+" to db");
