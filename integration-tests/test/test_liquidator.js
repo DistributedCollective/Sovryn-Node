@@ -106,9 +106,14 @@ describe("Liquidator controller", () => {
         // handle loan token setups
         await docToken.approve(loanTokenDoc.address, new BN(10).pow(new BN(40)));
         await loanTokenDoc.mint(lenderAddress, new BN(10).pow(new BN(30)));
+        await wrbtcToken.mint(lenderAddress, new BN(10).pow(new BN(30)));
+        await wrbtcToken.approve(loanTokenWrbtc.address, new BN(10).pow(new BN(40)));
+        await loanTokenWrbtc.mint(lenderAddress, new BN(10).pow(new BN(30)));
 
         await docToken.mint(borrowerAddress, initialTokenBalance);
         await docToken.approve(loanTokenDoc.address, initialTokenBalance, { from: borrowerAddress });
+        await docToken.approve(loanTokenWrbtc.address, initialTokenBalance, { from: borrowerAddress });
+
         await wrbtcToken.mint(borrowerAddress, initialTokenBalance);
         await wrbtcToken.approve(loanTokenDoc.address, initialTokenBalance, { from: borrowerAddress });
         await wrbtcToken.approve(loanTokenWrbtc.address, initialTokenBalance, { from: borrowerAddress }); // needed?
@@ -211,7 +216,7 @@ describe("Liquidator controller", () => {
         expect(rows.length).to.equal(0);
     });
 
-    it("test what happens in margin trade", async () => {
+    it("test what happens in a short margin trade", async () => {
         const { fromWei, toBN } = web3.utils;
         const initialRbtcBalance = toBN(await web3.eth.getBalance(borrowerAddress));
         const initialWrbtcBalance = toBN(await sovrynContracts.wrbtcToken.balanceOf(borrowerAddress));
@@ -235,7 +240,7 @@ describe("Liquidator controller", () => {
         expect(rbtcEarned).to.be.above(-0.015); // gas
     });
 
-    it("test what happens in margin trade when collateral token sent", async () => {
+    it("test what happens in a short margin trade when collateral token sent", async () => {
         const { fromWei, toBN } = web3.utils;
         const initialRbtcBalance = toBN(await web3.eth.getBalance(borrowerAddress));
         const initialWrbtcBalance = toBN(await sovrynContracts.wrbtcToken.balanceOf(borrowerAddress));
@@ -259,7 +264,32 @@ describe("Liquidator controller", () => {
         expect(rbtcEarned).to.be.above(-0.015); // gas
     });
 
-    it("should liquidate liquidatable positions", async () => {
+    it("test what happens in long margin trade", async () => {
+        const { fromWei, toBN } = web3.utils;
+        const initialRbtcBalance = toBN(await web3.eth.getBalance(borrowerAddress));
+        const initialWrbtcBalance = toBN(await sovrynContracts.wrbtcToken.balanceOf(borrowerAddress));
+        const initialDocBalance = toBN(await sovrynContracts.docToken.balanceOf(borrowerAddress));
+
+        await setupLiquidationTest({
+            loanToken: sovrynContracts.loanTokenWrbtc,
+            collateralToken: sovrynContracts.docToken,
+            loanTokenSent: ether('0.01'),
+        });
+
+        const rbtcBalance = toBN(await web3.eth.getBalance(borrowerAddress));
+        const wrbtcBalance = toBN(await sovrynContracts.wrbtcToken.balanceOf(borrowerAddress));
+        const docBalance = toBN(await sovrynContracts.docToken.balanceOf(borrowerAddress));
+        const rbtcEarned = parseFloat(fromWei(rbtcBalance.sub(initialRbtcBalance)));
+        const wrbtcEarned = parseFloat(fromWei(wrbtcBalance.sub(initialWrbtcBalance)));
+        const docEarned =  parseFloat(fromWei(docBalance.sub(initialDocBalance)));
+
+        expect(wrbtcEarned).to.equal(-0.01);
+        expect(docEarned).to.equal(0);
+        expect(rbtcEarned).to.be.below(0); // gas
+        expect(rbtcEarned).to.be.above(-0.015); // gas
+    });
+
+    it("should liquidate liquidatable short position", async () => {
         const { loanId } = await setupLiquidationTest({
             loanToken: sovrynContracts.loanTokenDoc,
             loanTokenSent: ether('100'),
@@ -282,13 +312,12 @@ describe("Liquidator controller", () => {
         const liquidationRow = rows[0];
 
         expect(liquidationRow.loanId).to.equal(loanId);
-
         expect(liquidationRow.liquidatorAdr.toLowerCase()).to.equal(liquidatorAddress.toLowerCase());
-
         expect(liquidationRow.liquidatedAdr.toLowerCase()).to.equal(borrowerAddress.toLowerCase());
-        expect(liquidationRow.pos).to.equal('short'); // double check
-        expect(liquidationRow.profit).to.equal('0.000223 RBTC'); // double check
-        expect(liquidationRow.amount).to.equal('4688241921109492'); // double check
+        expect(liquidationRow.status).to.equal('successful');
+        expect(liquidationRow.pos).to.equal('short');
+        expect(liquidationRow.profit).to.equal('0.000223 RBTC'); // TODO: double check
+        expect(liquidationRow.amount).to.equal('4688241921109492'); // TODO: double check
         // could maybe test something in the blockchain too...
 
         const { fromWei, toBN } = web3.utils;
@@ -303,8 +332,55 @@ describe("Liquidator controller", () => {
         expect(docEarned).to.be.below(0);
     });
 
-    it("should liquidate liquidatable position when collateral token is sent", async () => {
+    it("should liquidate liquidatable long position", async () => {
+        const { loanId } = await setupLiquidationTest({
+            loanToken: sovrynContracts.loanTokenWrbtc,
+            collateralToken: sovrynContracts.docToken,
+            loanTokenSent: ether('1'),
+        });
+        // increase the price so that the position needs to be liquidated
+        await converters.setOraclePrice(
+            sovrynContracts.wrbtcToken.address,
+            //new BN('63500099999999998544808')
+            new BN('83500099999999998544808')
+        );
+
+        await scanPositions();
+
+        await Liquidator.handleLiquidationRound();
+
+        expect(C.contractSovryn.methods.liquidate.callCount).to.equal(1);
+
+        const rows = await getLiquidationsFromDB();
+        expect(rows.length).to.equal(1);
+        const liquidationRow = rows[0];
+
+        expect(liquidationRow.loanId).to.equal(loanId);
+        expect(liquidationRow.liquidatorAdr.toLowerCase()).to.equal(liquidatorAddress.toLowerCase());
+        expect(liquidationRow.liquidatedAdr.toLowerCase()).to.equal(borrowerAddress.toLowerCase());
+        expect(liquidationRow.status).to.equal('successful');
+        expect(liquidationRow.pos).to.equal('long');
+        expect(liquidationRow.profit).to.equal('7066.409797 DOC'); // TODO: double check
+        expect(liquidationRow.amount).to.equal('148394605733814781412442'); // TODO: double check
+        // could maybe test something in the blockchain too...
+
+        const { fromWei, toBN } = web3.utils;
+        const rbtcBalance = toBN(await web3.eth.getBalance(liquidatorAddress));
+        const docBalance = toBN(await sovrynContracts.docToken.balanceOf(liquidatorAddress));
+        const rbtcEarned = parseFloat(fromWei(rbtcBalance.sub(initialRbtcBalance)));
+        const docEarned =  parseFloat(fromWei(docBalance.sub(initialTokenBalance)));
+
+        // it doesn't do swapback. so it will lose rbtc
+        expect(rbtcEarned).to.be.below(0);
+        // expect us to earn more DOC than in the proft calculation, because that is calculated in oracle rate and amm rate is higher
+        // this is flaky and subject to change
+        expect(docEarned).to.be.above(7066.409797);
+        expect(docEarned).to.be.closeTo(148394.6057338, 0.0000001); // this is just what we see in the output
+    });
+
+    it("should liquidate liquidatable short position when collateral token is sent", async () => {
         // TODO: if this test fails, just remove/redo it
+
         // TODO: too big a value causes errors. this should be tested too though
         const { loanId } = await setupLiquidationTest({
             collateralTokenSent: ether('0.0001'),
@@ -331,9 +407,9 @@ describe("Liquidator controller", () => {
 
         expect(liquidationRow.liquidatorAdr.toLowerCase()).to.equal(liquidatorAddress.toLowerCase());
 
-        expect(liquidationRow.pos).to.equal('short'); // double check
-        expect(liquidationRow.profit).to.equal('0.000009 RBTC'); // double check
-        expect(liquidationRow.amount).to.equal('317272912639415'); // double check
+        expect(liquidationRow.pos).to.equal('short');
+        expect(liquidationRow.profit).to.equal('0.000009 RBTC'); // TODO: double check
+        expect(liquidationRow.amount).to.equal('317272912639415'); // TODO: double check
         // could maybe test something in the blockchain too...
 
         // TODO: profit it so low it will actually lose money when gas costs are taken into account!!
@@ -348,6 +424,54 @@ describe("Liquidator controller", () => {
         // expect us to lose DoC since we are swapping back to rbtc
         expect(docEarned).to.be.below(0);
     });
+
+    it("should liquidate liquidatable long position when collateral token is sent", async () => {
+        const { loanId } = await setupLiquidationTest({
+            loanToken: sovrynContracts.loanTokenWrbtc,
+            collateralToken: sovrynContracts.docToken,
+            loanTokenSent: 0,
+            collateralTokenSent: ether('1000'),
+        });
+
+        // increase the price so that the position needs to be liquidated
+        await converters.setOraclePrice(
+            sovrynContracts.wrbtcToken.address,
+            //new BN('63500099999999998544808')
+            new BN('83500099999999998544808')
+        );
+
+        await scanPositions();
+
+        await Liquidator.handleLiquidationRound();
+
+        expect(C.contractSovryn.methods.liquidate.callCount).to.equal(1);
+
+        const rows = await getLiquidationsFromDB();
+        expect(rows.length).to.equal(1);
+        const liquidationRow = rows[0];
+
+        expect(liquidationRow.loanId).to.equal(loanId);
+        expect(liquidationRow.liquidatorAdr.toLowerCase()).to.equal(liquidatorAddress.toLowerCase());
+        expect(liquidationRow.liquidatedAdr.toLowerCase()).to.equal(borrowerAddress.toLowerCase());
+        expect(liquidationRow.status).to.equal('successful');
+        expect(liquidationRow.pos).to.equal('long');
+        expect(liquidationRow.profit).to.equal('77.002715 DOC'); // TODO: double check, doesn't seem right
+        expect(liquidationRow.amount).to.equal('1617057007847678262113'); // TODO: double check
+        // could maybe test something in the blockchain too...
+
+        const { fromWei, toBN } = web3.utils;
+        const rbtcBalance = toBN(await web3.eth.getBalance(liquidatorAddress));
+        const docBalance = toBN(await sovrynContracts.docToken.balanceOf(liquidatorAddress));
+        const rbtcEarned = parseFloat(fromWei(rbtcBalance.sub(initialRbtcBalance)));
+        const docEarned =  parseFloat(fromWei(docBalance.sub(initialTokenBalance)));
+
+        // it doesn't do swapback. so it will lose rbtc
+        expect(rbtcEarned).to.be.below(0);
+        // expect us to earn more DOC than in the profit calculation, because that is calculated in oracle rate and amm rate is higher
+        // this is flaky and subject to change
+        expect(docEarned).to.be.closeTo(1617.0570078476783, 0.0000001); // this is just what we see in the output
+    });
+
 
     it("should handle liquidation error gracefully", async () => {
         const { loanId } = await setupLiquidationTest({

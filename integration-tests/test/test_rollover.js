@@ -248,7 +248,7 @@ describe("Rollover controller", () => {
         C.contractSovryn.methods.rollover.restore();
         sandbox.stub(C.contractSovryn.methods, 'rollover').returns({
             send: async () => {
-                throw new Error('TEST ERROR');
+                throw new Error('Expected test error, please ignore!');
             },
         });
         await Rollover.handleRolloverRound();

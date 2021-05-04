@@ -126,7 +126,8 @@ class Liquidator {
     async liquidate(loanId, wallet, amount, token, collateralToken, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
-        const val = (token === "rBtc") ? amount : 0;
+        const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());
+        const val = isRbtcToken ? amount : 0;
         console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
@@ -138,8 +139,7 @@ class Liquidator {
         const p = this;
         const gasPrice = await C.getGasPrice();
 
-        //wrong -> update
-        const pos = token === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+        const pos = isRbtcToken ? 'long' : 'short';
 
         return C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
             .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: val })
@@ -148,7 +148,7 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
                 await p.addLiqLog(tx.transactionHash, pos);
-                if (token !== "rBtc") await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
+                if (!isRbtcToken) await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
