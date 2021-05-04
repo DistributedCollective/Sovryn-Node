@@ -17,7 +17,6 @@ import {initLoanPool, decodeLogs, setDemandCurve} from "./base/loans";
 
 const wei = web3.utils.toWei;
 const oneEth = new BN(wei("1", "ether"));
-const hunEth = new BN(wei("100", "ether"));
 
 describe("Liquidator controller", () => {
     const sandbox = sinon.createSandbox();
@@ -53,18 +52,25 @@ describe("Liquidator controller", () => {
         Liquidator.liquidations = liquidations;
         Liquidator.liquidationErrorList = [];
 
+        const {
+            docToken,
+            loanTokenDoc,
+            wrbtcToken,
+            loanTokenWrbtc,
+            usdtToken,
+        } = sovrynContracts;
         await initLoanPool({
             sovrynProtocol: sovrynContracts.sovrynProtocol,
             owner: sovrynContracts.accountOwner,
-            wrbtcToken: sovrynContracts.wrbtcToken,
-            token: sovrynContracts.docToken,
-            loanToken: sovrynContracts.loanTokenDoc,
-            loanTokenWrbtc: sovrynContracts.loanTokenWrbtc,
+            wrbtcToken: wrbtcToken,
+            token: docToken,
+            loanToken: loanTokenDoc,
+            loanTokenWrbtc: loanTokenWrbtc,
         });
         // the converter needs to be deployed, otherwise it won't work
         liquidityPool = await converters.initConverter({
-            primaryReserveToken: sovrynContracts.wrbtcToken,
-            secondaryReserveToken: sovrynContracts.docToken,
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: docToken,
             initialPrimaryReserveLiquidity:       new BN('159658299529181487177'),
             initialSecondaryReserveLiquidity: new BN('2344204953216918397465575'),
             finalPrimaryReserveBalance:           new BN('184968372923849153200'),
@@ -77,8 +83,8 @@ describe("Liquidator controller", () => {
 
         // TODO: apparently we need the USDT pool to call Arbitrage.getRBtcPrices, which seems a bit silly
         await converters.initConverter({
-            primaryReserveToken: sovrynContracts.wrbtcToken,
-            secondaryReserveToken: sovrynContracts.usdtToken,
+            primaryReserveToken: wrbtcToken,
+            secondaryReserveToken: usdtToken,
             initialPrimaryReserveLiquidity:       new BN('159658299529181487177'),
             initialSecondaryReserveLiquidity: new BN('2344204953216918397465575'),
             finalPrimaryReserveBalance:           new BN('184968372923849153200'),
@@ -89,14 +95,25 @@ describe("Liquidator controller", () => {
             secondaryPriceOracleAnswer:   new BN('1000000000000000000'),
         });
 
-        await sovrynContracts.docToken.transfer(liquidatorAddress, initialTokenBalance);
-        await sovrynContracts.wrbtcToken.transfer(liquidatorAddress, initialTokenBalance);
-        await sovrynContracts.docToken.approve(sovrynContracts.sovrynProtocol.address, initialTokenBalance, {from: liquidatorAddress});
-        await sovrynContracts.wrbtcToken.approve(sovrynContracts.sovrynProtocol.address, initialTokenBalance, {from: liquidatorAddress});
+        // do these normal setups/approvals
+        await docToken.transfer(liquidatorAddress, initialTokenBalance);
+        await wrbtcToken.transfer(liquidatorAddress, initialTokenBalance);
+        await docToken.approve(sovrynContracts.sovrynProtocol.address, initialTokenBalance, {from: liquidatorAddress});
+        await wrbtcToken.approve(sovrynContracts.sovrynProtocol.address, initialTokenBalance, {from: liquidatorAddress});
+        await docToken.approve(sovrynContracts.rbtcWrapperProxy.address, initialTokenBalance, {from: liquidatorAddress});
+        await wrbtcToken.approve(sovrynContracts.rbtcWrapperProxy.address, initialTokenBalance, {from: liquidatorAddress});
 
-        await sovrynContracts.docToken.approve(sovrynContracts.rbtcWrapperProxy.address, initialTokenBalance, {from: liquidatorAddress});
-        await sovrynContracts.wrbtcToken.approve(sovrynContracts.rbtcWrapperProxy.address, initialTokenBalance, {from: liquidatorAddress});
+        // handle loan token setups
+        await docToken.approve(loanTokenDoc.address, new BN(10).pow(new BN(40)));
+        await loanTokenDoc.mint(lenderAddress, new BN(10).pow(new BN(30)));
 
+        await docToken.mint(borrowerAddress, initialTokenBalance);
+        await docToken.approve(loanTokenDoc.address, initialTokenBalance, { from: borrowerAddress });
+        await wrbtcToken.mint(borrowerAddress, initialTokenBalance);
+        await wrbtcToken.approve(loanTokenDoc.address, initialTokenBalance, { from: borrowerAddress });
+        await wrbtcToken.approve(loanTokenWrbtc.address, initialTokenBalance, { from: borrowerAddress }); // needed?
+
+        // store this at the very end
         initialRbtcBalance = web3.utils.toBN(await web3.eth.getBalance(liquidatorAddress));
     });
 
@@ -115,23 +132,38 @@ describe("Liquidator controller", () => {
         sandbox.restore();
     })
 
-    const setupLiquidationTest = async (token, loanToken) => {
+    const setupLiquidationTest = async ({
+        loanToken,
+        collateralToken,
+        loanTokenSent,
+        collateralTokenSent,
+    }) => {
         const sovryn = sovrynContracts.sovrynProtocol;
-        const wrbtcToken = sovrynContracts.wrbtcToken;
+        if(!loanToken) {
+            loanToken = sovrynContracts.loanTokenDoc;
+        }
+        if(!collateralToken) {
+            collateralToken = sovrynContracts.wrbtcToken;
+        }
+        if(!loanTokenSent) {
+            if(collateralTokenSent) {
+                loanTokenSent = 0;
+            } else {
+                loanTokenSent = ether('100');
+                collateralTokenSent = 0;
+            }
+        } else if (!collateralTokenSent) {
+            collateralTokenSent = 0;
+        }
 
         await setDemandCurve(loanToken);
-        await token.approve(loanToken.address, new BN(10).pow(new BN(40)));
-        await loanToken.mint(lenderAddress, new BN(10).pow(new BN(30)));
-        const loanTokenSent = hunEth;
-        await token.mint(borrowerAddress, loanTokenSent);
-        await token.approve(loanToken.address, loanTokenSent, { from: borrowerAddress });
 
         const { receipt } = await loanToken.marginTrade(
             "0x0", // loanId  (0 for new loans)
             new BN(2).mul(oneEth), // leverageAmount
             loanTokenSent, // loanTokenSent
-            0, // no collateral token sent
-            wrbtcToken.address, // collateralTokenAddress
+            collateralTokenSent, // collateralTokenSent
+            collateralToken.address, // collateralTokenAddress
             borrowerAddress, // trader,
             "0x", // loanDataBytes (only required with ether)
             { from: borrowerAddress }
@@ -165,7 +197,9 @@ describe("Liquidator controller", () => {
     }
 
     it("should work when no liquidatable positions found", async () => {
-        await setupLiquidationTest(sovrynContracts.docToken, sovrynContracts.loanTokenDoc);
+        await setupLiquidationTest({
+            loanToken: sovrynContracts.loanTokenDoc
+        });
 
         await scanPositions();
 
@@ -177,12 +211,59 @@ describe("Liquidator controller", () => {
         expect(rows.length).to.equal(0);
     });
 
-    it("should liquidate liquidatable positions", async () => {
-        const {
-            loan,
-            loanId,
-        } = await setupLiquidationTest(sovrynContracts.docToken, sovrynContracts.loanTokenDoc);
+    it("test what happens in margin trade", async () => {
+        const { fromWei, toBN } = web3.utils;
+        const initialRbtcBalance = toBN(await web3.eth.getBalance(borrowerAddress));
+        const initialWrbtcBalance = toBN(await sovrynContracts.wrbtcToken.balanceOf(borrowerAddress));
+        const initialDocBalance = toBN(await sovrynContracts.docToken.balanceOf(borrowerAddress));
 
+         await setupLiquidationTest({
+             loanToken: sovrynContracts.loanTokenDoc,
+             loanTokenSent: ether('100'),
+         });
+
+        const rbtcBalance = toBN(await web3.eth.getBalance(borrowerAddress));
+        const wrbtcBalance = toBN(await sovrynContracts.wrbtcToken.balanceOf(borrowerAddress));
+        const docBalance = toBN(await sovrynContracts.docToken.balanceOf(borrowerAddress));
+        const rbtcEarned = parseFloat(fromWei(rbtcBalance.sub(initialRbtcBalance)));
+        const wrbtcEarned = parseFloat(fromWei(wrbtcBalance.sub(initialWrbtcBalance)));
+        const docEarned =  parseFloat(fromWei(docBalance.sub(initialDocBalance)));
+
+        expect(wrbtcEarned).to.equal(0);
+        expect(docEarned).to.equal(-100); // sent a hunder doc
+        expect(rbtcEarned).to.be.below(0); // gas
+        expect(rbtcEarned).to.be.above(-0.015); // gas
+    });
+
+    it("test what happens in margin trade when collateral token sent", async () => {
+        const { fromWei, toBN } = web3.utils;
+        const initialRbtcBalance = toBN(await web3.eth.getBalance(borrowerAddress));
+        const initialWrbtcBalance = toBN(await sovrynContracts.wrbtcToken.balanceOf(borrowerAddress));
+        const initialDocBalance = toBN(await sovrynContracts.docToken.balanceOf(borrowerAddress));
+
+        await setupLiquidationTest({
+            loanToken: sovrynContracts.loanTokenDoc,
+            collateralTokenSent: ether('1'),
+        });
+
+        const rbtcBalance = toBN(await web3.eth.getBalance(borrowerAddress));
+        const wrbtcBalance = toBN(await sovrynContracts.wrbtcToken.balanceOf(borrowerAddress));
+        const docBalance = toBN(await sovrynContracts.docToken.balanceOf(borrowerAddress));
+        const rbtcEarned = parseFloat(fromWei(rbtcBalance.sub(initialRbtcBalance)));
+        const wrbtcEarned = parseFloat(fromWei(wrbtcBalance.sub(initialWrbtcBalance)));
+        const docEarned =  parseFloat(fromWei(docBalance.sub(initialDocBalance)));
+
+        expect(wrbtcEarned).to.equal(-1);
+        expect(docEarned).to.equal(0);
+        expect(rbtcEarned).to.be.below(0); // gas
+        expect(rbtcEarned).to.be.above(-0.015); // gas
+    });
+
+    it("should liquidate liquidatable positions", async () => {
+        const { loanId } = await setupLiquidationTest({
+            loanToken: sovrynContracts.loanTokenDoc,
+            loanTokenSent: ether('100'),
+        });
         // decrease the price so that the position needs to be liquidated
         await converters.setOraclePrice(
             sovrynContracts.wrbtcToken.address,
@@ -222,8 +303,56 @@ describe("Liquidator controller", () => {
         expect(docEarned).to.be.below(0);
     });
 
+    it("should liquidate liquidatable position when collateral token is sent", async () => {
+        // TODO: if this test fails, just remove/redo it
+        // TODO: too big a value causes errors. this should be tested too though
+        const { loanId } = await setupLiquidationTest({
+            collateralTokenSent: ether('0.0001'),
+        });
+
+        // decrease the price so that the position needs to be liquidated
+        await converters.setOraclePrice(
+            sovrynContracts.wrbtcToken.address,
+            //new BN('63500099999999998544808')
+            new BN('43500099999999998544808')
+        );
+
+        await scanPositions();
+
+        await Liquidator.handleLiquidationRound();
+
+        expect(C.contractSovryn.methods.liquidate.callCount).to.equal(1);
+
+        const rows = await getLiquidationsFromDB();
+        expect(rows.length).to.equal(1);
+        const liquidationRow = rows[0];
+
+        expect(liquidationRow.loanId).to.equal(loanId);
+
+        expect(liquidationRow.liquidatorAdr.toLowerCase()).to.equal(liquidatorAddress.toLowerCase());
+
+        expect(liquidationRow.pos).to.equal('short'); // double check
+        expect(liquidationRow.profit).to.equal('0.000009 RBTC'); // double check
+        expect(liquidationRow.amount).to.equal('317272912639415'); // double check
+        // could maybe test something in the blockchain too...
+
+        // TODO: profit it so low it will actually lose money when gas costs are taken into account!!
+        const { fromWei, toBN } = web3.utils;
+        const rbtcBalance = toBN(await web3.eth.getBalance(liquidatorAddress));
+        const docBalance = toBN(await sovrynContracts.docToken.balanceOf(liquidatorAddress));
+        const rbtcEarned = parseFloat(fromWei(rbtcBalance.sub(initialRbtcBalance)));
+        const docEarned =  parseFloat(fromWei(docBalance.sub(initialTokenBalance)));
+        // expect us to earn RBTC because profit is calculated in oracle rate and amm rate is higher
+        // this is flaky and subject to change
+        //expect(rbtcEarned).to.be.above(0.000009);  // TODO: this is not the case
+        // expect us to lose DoC since we are swapping back to rbtc
+        expect(docEarned).to.be.below(0);
+    });
+
     it("should handle liquidation error gracefully", async () => {
-        const { loanId } = await setupLiquidationTest(sovrynContracts.docToken, sovrynContracts.loanTokenDoc);
+        const { loanId } = await setupLiquidationTest({
+            loanToken: sovrynContracts.loanTokenDoc,
+        });
 
         // decrease the price so that the position needs to be liquidated
         await converters.setOraclePrice(
