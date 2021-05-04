@@ -31,7 +31,7 @@ class Wallet {
      * Careful: Consider decimals for tokens. Rbtc and Doc have 18
      */
     async getWallet(type, reqTokenBalance, token) {
-        console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + token === "rBtc" ? "rBtc" : C.getTokenSymbol(token));
+        console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + (token == "rBtc" ? "rBtc" : C.getTokenSymbol(token)));
         for (let wallet of A[type]) {
             if (this.queue[type][wallet.adr].length >= 4) continue;
 

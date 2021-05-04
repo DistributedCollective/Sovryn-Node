@@ -5,6 +5,7 @@ export default class Rollover extends BaseModel {
     constructor(db) {
         super(db, 'rollover', `CREATE TABLE IF NOT EXISTS rollover (
             id INTEGER PRIMARY KEY,
+            status text,
             rolloverAdr text,
             rolledoverAdr text,
             dateAdded datetime,

@@ -5,6 +5,7 @@ export default class Liquidator extends BaseModel {
     constructor(db) {
         super(db, 'liquidator', `CREATE TABLE IF NOT EXISTS liquidator (
             id INTEGER PRIMARY KEY,
+            status text,
             liquidatorAdr text,
             liquidatedAdr text,
             dateAdded datetime,

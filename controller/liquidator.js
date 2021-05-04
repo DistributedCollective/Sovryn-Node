@@ -34,49 +34,64 @@ class Liquidator {
      */
     async checkPositionsForLiquidations() {
         while (true) {
-            console.log("started liquidation round");
-            console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
-
-            for (let p in this.liquidations) {
-                const pos = this.liquidations[p];
-                const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
-
-                //Position already in liquidation wallet-queue
-                if (Wallet.checkIfPositionExists(p)) continue;
-                //failed too often -> have to check manually
-                if(this.liquidationErrorList[p]>=5) continue;
-
-                const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
-                if (!wallet) {
-                    await this.handleNoWalletError(p);
-                    continue;
-                } 
-
-                const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet)
-                if (!liquidateAmount) return;
-
-                const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
-
-                await this.liquidate(p, wallet.adr, liquidateAmount, token, pos.collateralToken, nonce);
-                await U.wasteTime(30); //30 seconds break to avoid rejection from node
-            }
+            await this.handleLiquidationRound();
             console.log("Completed liquidation round");
             await U.wasteTime(conf.liquidatorScanInterval);
         }
     }
 
+    async handleLiquidationRound() {
+        console.log("started liquidation round");
+        console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
+
+        for (let p in this.liquidations) {
+            const pos = this.liquidations[p];
+            const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+
+            //Position already in liquidation wallet-queue
+            if (Wallet.checkIfPositionExists(p)) continue;
+            //failed too often -> have to check manually
+            if(this.liquidationErrorList[p]>=5) continue;
+
+            const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
+            if (!wallet) {
+                await this.handleNoWalletError(p);
+                continue;
+            }
+
+            const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet)
+            if (!liquidateAmount) return;
+
+            const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
+
+            await this.liquidate(p, wallet.adr, liquidateAmount, token, pos.collateralToken, nonce);
+            await U.wasteTime(30); //30 seconds break to avoid rejection from node
+        }
+    }
+
     async calculateLiquidateAmount(wBalance, pos, token, wallet) {
-        let liquidateAmount = pos.maxLiquidatable<wBalance?pos.maxLiquidatable:wBalance;
+        let liquidateAmount = Math.min(parseInt(pos.maxLiquidatable), wBalance);
         const gasPrice = await C.getGasPrice();
-        const rbtcBalance = await C.web3.eth.getBalance(wallet.adr);
-        const txFees = C.web3.utils.toBN(conf.gasLimit).mul(C.web3.utils.toBN(gasPrice)).toNumber();
-        if(pos.maxLiquidatable<wBalance && txFees<rbtcBalance) console.log("enough balance on wallet");
-        else if (wBalance === 0) { console.log("not enough balance on wallet"); return; }
-        else {
-            if (token === "rBtc")
-                liquidateAmount = C.web3.utils.toBN(wBalance).sub(C.web3.utils.toBN(txFees)).toNumber();
-            if (liquidateAmount <= 0) { console.log("not enough balance on wallet"); return; }
-            if (txFees>rbtcBalance) { console.log("not enough RBTC balance on wallet to pay fees"); return; }
+        const toBN = C.web3.utils.toBN;
+        const rbtcBalance = toBN(await C.web3.eth.getBalance(wallet.adr));
+        const txFees = toBN(conf.gasLimit).mul(toBN(gasPrice));
+        if (pos.maxLiquidatable < wBalance && txFees.lt(rbtcBalance)) {
+            console.log("enough balance on wallet");
+        } else if (wBalance === 0) {
+            console.log("not enough balance on wallet");
+            return;
+        } else {
+            if (token === "rBtc") {
+                liquidateAmount = toBN(wBalance).sub(toBN(txFees)).toNumber();
+            }
+            if (liquidateAmount <= 0) {
+                console.log("not enough balance on wallet");
+                return;
+            }
+            if (txFees.gt(rbtcBalance)) {
+                console.log("not enough RBTC balance on wallet to pay fees");
+                return;
+            }
             console.log("not enough balance on wallet. only use "+liquidateAmount);
         }
         return liquidateAmount;
@@ -122,21 +137,35 @@ class Liquidator {
 
         const p = this;
         const gasPrice = await C.getGasPrice();
-        C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
+
+        //wrong -> update
+        const pos = token === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+
+        return C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
             .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: val })
             .then(async (tx) => {
                 console.log("loan " + loanId + " liquidated!");
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
-                p.addLiqLog(tx.transactionHash);
-                if (token !== "rBtc") await p.swapBackAfterLiquidation(val, token.toLowerCase(), collateralToken.toLowerCase(), wallet);
+                await p.addLiqLog(tx.transactionHash, pos);
+                if (token !== "rBtc") await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
                 console.error(err);
-                common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${conf.blockExplorer}tx/${err.receipt.transactionHash}
-                    \nLoanId: ${U.formatLoanId(loanId)}`, Extra.HTML());
-                await p.handleLiqError(wallet, loanId);
+
+                let errorDetails;
+                if(err.receipt) {
+                    errorDetails = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
+                } else {
+                    errorDetails = err.toString().slice(0, 200);
+                }
+                common.telegramBot.sendMessage(
+                    `<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${errorDetails}\n` +
+                    `LoanId: ${U.formatLoanId(loanId)}`,
+                    Extra.HTML()
+                );
+                await p.handleLiqError(wallet, loanId, amount, pos);
             });
     }
 
@@ -153,11 +182,20 @@ class Liquidator {
      * 1. Another user was faster -> position is already liquidated
      * 2. Btc price moved in opposite direction and the amount cannot be liquidated anymore
      */
-    async handleLiqError(wallet, loanId) {
+    async handleLiqError(wallet, loanId, amount, pos) {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         if(!this.liquidationErrorList[loanId]) this.liquidationErrorList[loanId]=1;
         else this.liquidationErrorList[loanId]++;
 
+        console.log('Storing failed transaction into DB');
+        // store failed transaction in DB
+        await dbCtrl.addLiquidate({
+            liquidatorAdr: wallet,
+            amount,
+            loanId,
+            status: 'failed',
+            pos
+        });
         const updatedLoan = await C.getPositionStatus(loanId)
         if (updatedLoan.maxLiquidatable > 0) {
             console.log("loan " + loanId + " should still be liquidated. Please check manually");
@@ -177,17 +215,18 @@ class Liquidator {
         // Convert spent amount to collateral token 
         const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
         if (convertedPaidAmount) {
-            const liqProfit = C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount));
-            console.log(`You made ${liqProfit} ${C.getTokenSymbol(liqEvent.collateralToken)} with this liquidation`);
-            return liqProfit;
+            const liqProfit = Number(C.web3.utils.fromWei(
+                C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount))
+            , "Ether")).toFixed(6);
+            console.log(`You made ${liqProfit} ${C.getTokenSymbol(liqEvent.collateralToken).toUpperCase()} with this liquidation`);
+            return liqProfit+" "+C.getTokenSymbol(liqEvent.collateralToken).toUpperCase();
         }
         else {
             console.log("Couldn't calculate the profit for the given liquidation");
         }
     }
 
-
-    async addLiqLog(txHash) {
+    async addLiqLog(txHash, pos) {
         console.log("Add liquidation "+txHash+" to db");
         try {
             const receipt = await C.web3.eth.getTransactionReceipt(txHash);
@@ -197,7 +236,7 @@ class Liquidator {
                 const liqEvent = logs.find(log => log && log.name === 'Liquidate');
                 console.log(liqEvent)
                 const {
-                    user, liquidator, loanId, loanToken, collateralToken, collateralWithdrawAmount
+                    user, liquidator, loanId, loanToken, collateralWithdrawAmount
                 } = U.parseEventParams(liqEvent && liqEvent.events);
 
                 console.log(U.parseEventParams(liqEvent && liqEvent.events))
@@ -207,38 +246,18 @@ class Liquidator {
                     console.log(user);
                     console.log(liquidator);
                     console.log(loanId);
-                    const path = await C.contractSwaps.methods['conversionPath'](collateralToken, loanToken).call();
-                    const numberOfHops = loanToken === conf.testTokenRBTC || collateralToken === conf.testTokenRBTC ? 3 : 5
 
-                    if (!path || path.length !== numberOfHops) return;
-
-                    const balBefore = await C.getWalletTokenBalance(liquidator, loanToken);
-                    // const affiliateAcc = "0x0000000000000000000000000000000000000000";
-                    // const gasPrice = await C.getGasPrice();
-                    // const approved = await C.approveToken(C.getTokenInstance(collateralToken), liquidator, conf.swapsImpl, collateralWithdrawAmount);
-                    // const swapTx = await C.contractSwaps.methods['convertByPath'](path, collateralWithdrawAmount, 1, liquidator, affiliateAcc, 0).send({
-                    //     from: liquidator,
-                    //     gas: conf.gasLimit,
-                    //     gasPrice: gasPrice
-                    // });
-                    const balAfter = await C.getWalletTokenBalance(liquidator, loanToken);
-                    const profit =  Number(C.web3.utils.fromWei(
-                        C.web3.utils.toBN(balAfter).sub(C.web3.utils.toBN(balBefore)),
-                        "ether"
-                    )).toFixed(5);
-                    console.log(`\nYou made ${profit} ${C.getTokenSymbol(collateralToken)} with this liquidation`);
-
-                    //wrong -> update
-                    const pos = loanToken === conf.testTokenRBTC.toLowerCase() ? 'long' : 'short';
+                    const profit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events))
 
                     const addedLog = await dbCtrl.addLiquidate({
                         liquidatorAdr: liquidator,
                         liquidatedAdr: user,
                         amount: collateralWithdrawAmount,
-                        pos: pos,
                         loanId: loanId,
                         profit: profit,
-                        txHash: txHash
+                        txHash: txHash,
+                        status: 'successful',
+                        pos
                     });
 
                     return addedLog;

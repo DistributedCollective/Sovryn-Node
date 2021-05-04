@@ -68,7 +68,7 @@ describe('Liquidation', async () => {
                 loanToken: '0x69fe5cec81d5ef92600c1a0db1f11986ab3758ab',
                 collateralToken: '0x4d5a316d23ebe168d8f887b4447bf8dbfa4901cc',
                 repayAmount: '714815923163766',
-                collateralWithdrawAmount: '38553133972529282080',
+                collateralWithdrawAmount: '48553133972529282080',
                 collateralToLoanRate: '19468111719705',
                 currentMargin: '9970130076186921178'
             }
