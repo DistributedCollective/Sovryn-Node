@@ -70,26 +70,28 @@ class Liquidator {
     }
 
     async calculateLiquidateAmount(wBalance, pos, token, wallet) {
+        // TODO: we should not use floats, only bignumbers!
         let liquidateAmount = Math.min(parseInt(pos.maxLiquidatable), wBalance);
         const gasPrice = await C.getGasPrice();
         const toBN = C.web3.utils.toBN;
         const rbtcBalance = toBN(await C.web3.eth.getBalance(wallet.adr));
         const txFees = toBN(conf.gasLimit).mul(toBN(gasPrice));
-        if (pos.maxLiquidatable < wBalance && txFees.lt(rbtcBalance)) {
+
+        if (txFees.gt(rbtcBalance)) {
+            console.log("not enough RBTC balance on wallet to pay fees");
+            return;
+        } else if (pos.maxLiquidatable < wBalance) {
             console.log("enough balance on wallet");
         } else if (wBalance === 0) {
             console.log("not enough balance on wallet");
             return;
         } else {
             if (token === "rBtc") {
-                liquidateAmount = toBN(wBalance).sub(toBN(txFees)).toNumber();
+                // TODO: this doesn't seem right -- why do we need to subtract txfees?
+                liquidateAmount = toBN(wBalance).sub(txFees).toNumber();
             }
             if (liquidateAmount <= 0) {
                 console.log("not enough balance on wallet");
-                return;
-            }
-            if (txFees.gt(rbtcBalance)) {
-                console.log("not enough RBTC balance on wallet to pay fees");
                 return;
             }
             console.log("not enough balance on wallet. only use "+liquidateAmount);

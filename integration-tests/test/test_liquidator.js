@@ -14,6 +14,7 @@ const LoanOpeningsEvents = artifacts.require("LoanOpeningsEvents");
 import {initSovrynNodeForTesting} from "./base/backend";
 import {ConverterHelper, initSovrynContracts} from "./base/contracts";
 import {initLoanPool, decodeLogs, setDemandCurve} from "./base/loans";
+import {transferAlmostAllRbtc} from "./base/utils";
 
 const wei = web3.utils.toWei;
 const oneEth = new BN(wei("1", "ether"));
@@ -509,4 +510,77 @@ describe("Liquidator controller", () => {
 
         expect(Liquidator.liquidationErrorList[loanId]).to.deep.equal(1);
     });
+
+    it("should not liquidate if token balance in wallet is 0", async () => {
+        await setupLiquidationTest({
+            loanToken: sovrynContracts.loanTokenDoc,
+            loanTokenSent: ether('100'),
+        });
+        // decrease the price so that the position needs to be liquidated
+        await converters.setOraclePrice(
+            sovrynContracts.wrbtcToken.address,
+            //new BN('63500099999999998544808')
+            new BN('43500099999999998544808')
+        );
+        // liquidating this position takes ~194 DoC. Make sure the liquidator only has ~50 DoC
+        const docBalanceBefore = await sovrynContracts.docToken.balanceOf(liquidatorAddress);
+        await sovrynContracts.docToken.transfer(
+            sovrynContracts.accountOwner,
+            docBalanceBefore,
+            { from: liquidatorAddress }
+        );
+        expect(await sovrynContracts.docToken.balanceOf(liquidatorAddress)).to.be.bignumber.equal(new BN(0));
+
+        await scanPositions();
+
+        await Liquidator.handleLiquidationRound();
+        expect(C.contractSovryn.methods.liquidate.callCount).to.equal(0);
+        const rows = await getLiquidationsFromDB();
+        expect(rows.length).to.equal(0);
+    });
+
+    describe('when liquidator has (almost) no rbtc', () => {
+        let initialRbtcBalance;
+        let rbtcBalance;
+
+        beforeEach(async () => {
+            initialRbtcBalance = new BN(await web3.eth.getBalance(liquidatorAddress));
+            rbtcBalance = await transferAlmostAllRbtc({
+                from: liquidatorAddress,
+                to: sovrynContracts.accountOwner,
+                desiredRbtcBalance: ether('0'),
+            })
+        });
+
+        after(async () => {
+            await web3.eth.sendTransaction({
+                from: sovrynContracts.accountOwner,
+                to: liquidatorAddress,
+                value: initialRbtcBalance.sub(ether('0.1')),
+            });
+        })
+
+        it("should not liquidate if rbtc balance in wallet is close to 0", async () => {
+            await setupLiquidationTest({
+                loanToken: sovrynContracts.loanTokenWrbtc,
+                collateralToken: sovrynContracts.docToken,
+                loanTokenSent: ether('0.001'),
+            });
+            // increase the price so that the position needs to be liquidated
+            await converters.setOraclePrice(
+                sovrynContracts.wrbtcToken.address,
+                new BN('83500099999999998544808')
+            );
+
+            console.log('Rbtc balance is: ', web3.utils.fromWei(rbtcBalance));
+
+            await scanPositions();
+
+            await Liquidator.handleLiquidationRound();
+            expect(C.contractSovryn.methods.liquidate.callCount).to.equal(0);
+            const rows = await getLiquidationsFromDB();
+            expect(rows.length).to.equal(0);
+        });
+
+    })
 });
