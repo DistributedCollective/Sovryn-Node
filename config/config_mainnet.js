@@ -44,5 +44,6 @@ export default {
     sovrynInternalTelegramId: -1001308978723,
     healthMonitorPort: 10, //results in 3010
     gasPriceBuffer: 10, //in %
-    gasLimit: 2500000
+    gasLimit: 2500000,
+    maintenanceMarginBuffer: 0.95,  // <= 1.0 Require buffer when liquidating to avoid errors if price bounces back
 }
