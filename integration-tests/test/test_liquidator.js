@@ -457,7 +457,7 @@ describe("Liquidator controller", () => {
         expect(liquidationRow.status).to.equal('successful');
         expect(liquidationRow.pos).to.equal('long');
         expect(liquidationRow.profit).to.equal('77.002715 DOC'); // TODO: double check, doesn't seem right
-        expect(liquidationRow.amount).to.equal('1617057007847678262113'); // TODO: double check
+        expect(liquidationRow.amount).to.equal('1617057007847678525139'); // TODO: double check
         // could maybe test something in the blockchain too...
 
         const { fromWei, toBN } = web3.utils;
@@ -583,4 +583,31 @@ describe("Liquidator controller", () => {
         });
 
     })
+
+    it("should not choke on big numbers", async () => {
+        const { loanId } = await setupLiquidationTest({
+            loanTokenSent: ether('1716'), // 21 digits so enough for it to become 1.716e+21 which used to choke it
+        });
+        // decrease the price so that the position needs to be liquidated
+        await converters.setOraclePrice(
+            sovrynContracts.wrbtcToken.address,
+            new BN('43500099999999998544808')
+        );
+
+        await scanPositions();
+
+        await Liquidator.handleLiquidationRound();
+
+        expect(C.contractSovryn.methods.liquidate.callCount).to.equal(1);
+
+        const rows = await getLiquidationsFromDB();
+        expect(rows.length).to.equal(1);
+        const liquidationRow = rows[0];
+
+        expect(liquidationRow.loanId).to.equal(loanId);
+        expect(liquidationRow.liquidatorAdr.toLowerCase()).to.equal(liquidatorAddress.toLowerCase());
+        expect(liquidationRow.liquidatedAdr.toLowerCase()).to.equal(borrowerAddress.toLowerCase());
+        expect(liquidationRow.status).to.equal('successful');
+        expect(liquidationRow.pos).to.equal('short');
+    });
 });

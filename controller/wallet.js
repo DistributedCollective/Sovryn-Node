@@ -30,7 +30,9 @@ class Wallet {
      * @reqTokenBalance in wei
      * Careful: Consider decimals for tokens. Rbtc and Doc have 18
      */
-    async getWallet(type, reqTokenBalance, token) {
+    async getWallet(type, reqTokenBalance, token, parseBalance = parseFloat) {
+        // TODO: just rework everything to use bignumbers instead of floats and remove parseBalance
+
         console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + (token == "rBtc" ? "rBtc" : C.getTokenSymbol(token)));
         for (let wallet of A[type]) {
             if (this.queue[type][wallet.adr].length >= 4) continue;
@@ -39,7 +41,7 @@ class Wallet {
             if (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") wBalance = await C.web3.eth.getBalance(wallet.adr);
             else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
 
-            if (parseFloat(wBalance) >= parseFloat(reqTokenBalance)) return [wallet, parseFloat(wBalance)];
+            if (parseFloat(wBalance) >= parseFloat(reqTokenBalance)) return [wallet, parseBalance(wBalance)];
         }
 
         //No wallet with enough funds found, return first one with balance > 0
@@ -51,7 +53,7 @@ class Wallet {
             if (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") wBalance = await C.web3.eth.getBalance(wallet.adr);
             else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
 
-            if (parseFloat(wBalance) >= 0) return [wallet, parseFloat(wBalance)];
+            if (parseFloat(wBalance) >= 0) return [wallet, parseBalance(wBalance)];
         }
 
         //completely drained or busy or both
