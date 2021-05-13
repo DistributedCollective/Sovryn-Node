@@ -53,14 +53,15 @@ class Liquidator {
             //failed too often -> have to check manually
             if(this.liquidationErrorList[p]>=5) continue;
 
-            const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token);
+            // get wallet balance as bignumber
+            const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token, C.web3.utils.toBN);
             if (!wallet) {
                 await this.handleNoWalletError(p);
                 continue;
             }
 
-            const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet)
-            if (!liquidateAmount) return;
+            const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet);
+            if (!liquidateAmount || liquidateAmount.isZero()) return;
 
             const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
@@ -70,31 +71,32 @@ class Liquidator {
     }
 
     async calculateLiquidateAmount(wBalance, pos, token, wallet) {
-        // TODO: we should not use floats, only bignumbers!
-        let liquidateAmount = Math.min(parseInt(pos.maxLiquidatable), wBalance);
-        const gasPrice = await C.getGasPrice();
         const toBN = C.web3.utils.toBN;
+        const BN = C.web3.utils.BN;
+        const maxLiquidatable = toBN(pos.maxLiquidatable);
+        let liquidateAmount = BN.min(maxLiquidatable, wBalance);
+        const gasPrice = await C.getGasPrice();
         const rbtcBalance = toBN(await C.web3.eth.getBalance(wallet.adr));
         const txFees = toBN(conf.gasLimit).mul(toBN(gasPrice));
 
         if (txFees.gt(rbtcBalance)) {
             console.log("not enough RBTC balance on wallet to pay fees");
             return;
-        } else if (pos.maxLiquidatable < wBalance) {
+        } else if (maxLiquidatable.lt(wBalance)) {
             console.log("enough balance on wallet");
-        } else if (wBalance === 0) {
+        } else if (wBalance.isZero()) {
             console.log("not enough balance on wallet");
             return;
         } else {
             if (token === "rBtc") {
                 // TODO: this doesn't seem right -- why do we need to subtract txfees?
-                liquidateAmount = toBN(wBalance).sub(txFees).toNumber();
+                liquidateAmount = toBN(wBalance).sub(txFees);
             }
-            if (liquidateAmount <= 0) {
+            if (liquidateAmount.lte(toBN('0'))) {
                 console.log("not enough balance on wallet");
                 return;
             }
-            console.log("not enough balance on wallet. only use "+liquidateAmount);
+            console.log("not enough balance on wallet. only use "+liquidateAmount.toString());
         }
         return liquidateAmount;
     }
