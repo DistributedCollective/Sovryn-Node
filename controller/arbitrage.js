@@ -557,7 +557,7 @@ class Arbitrage {
                                 explorerLink = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
                             }
                             common.telegramBot.sendMessage(
-                                `<b><u>A</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on arbitrage tx swapping ${amount} ${sourceCurrency} for ${destCurrency}\n` +
+                                `<b><u>A</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on arbitrage tx swapping ${C.web3.utils.fromWei(amount.toString(), 'Ether')} ${sourceCurrency} for ${destCurrency}\n` +
                                 `Transaction hash: ${explorerLink}`,
                                 Extra.HTML()
                             );
