@@ -46,8 +46,12 @@ class Liquidator {
      */
     async checkPositionsForLiquidations() {
         while (true) {
-            await this.handleLiquidationRound();
-            console.log("Completed liquidation round");
+            try {
+                await this.handleLiquidationRound();
+                console.log("Completed liquidation round");
+            } catch (e) {
+                console.error("Error processing a liquidation round:", e);
+            }
             await U.wasteTime(conf.liquidatorScanInterval);
         }
     }

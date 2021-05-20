@@ -31,8 +31,12 @@ class Rollover {
      */
     async checkPositionsExpiration() {
         while (true) {
-            await this.handleRolloverRound();
-            console.log("Completed rollover");
+            try {
+                await this.handleRolloverRound();
+                console.log("Completed rollover");
+            } catch (e) {
+                console.error("Error processing a rollover round:", e);
+            }
             await U.wasteTime(conf.rolloverScanInterval);
         }
     }
