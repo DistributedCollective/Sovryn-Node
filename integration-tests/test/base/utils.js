@@ -84,3 +84,45 @@ export async function printAccountDetails({
         }
     }
 }
+
+export async function findContract(contractMap, address) {
+    for (let [ name, contract ] of Object.entries(contractMap)) {
+        //console.log(`Checking ${name}`)
+
+        //if (Array.isArray(contract)) {
+        //    const tmpMap = {};
+        //    contract.forEach((c, i) => {
+        //        tmpMap[`${name}[${i}]`] = c;
+        //    })
+        //    const tmp = findContract(tmpMap, address);
+        //    if (tmp) {
+        //        return tmp;
+        //    }
+        //    continue;
+        //}
+        let contractAddress;
+        if (typeof contract === "string") {
+            contractAddress = contract;
+        } else if (contract.address) {
+            contractAddress = contract.address;
+        } else {
+            //if (typeof contract === 'object') {
+            //    const tmpMap = {};
+            //    for(let [tmpName, tmpValue] of Object.entries(contract)) {
+            //        tmpMap[`${name}.${tmpName}`] = tmpValue;
+            //    }
+            //    const tmp = findContract(tmpMap, address);
+            //    if (tmp) {
+            //        return tmp;
+            //    }
+            //}
+            continue;
+        }
+        if (contractAddress.toLowerCase() === address.toLowerCase()) {
+            console.log(`Contract for ${address} is ${name}`);
+            return contract;
+        }
+    }
+    //console.log(`Contract not found for ${address}`);
+    return null;
+}

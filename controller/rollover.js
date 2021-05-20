@@ -31,8 +31,12 @@ class Rollover {
      */
     async checkPositionsExpiration() {
         while (true) {
-            await this.handleRolloverRound();
-            console.log("Completed rollover");
+            try {
+                await this.handleRolloverRound();
+                console.log("Completed rollover");
+            } catch (e) {
+                console.error("Error processing a rollover round:", e);
+            }
             await U.wasteTime(conf.rolloverScanInterval);
         }
     }
@@ -41,7 +45,10 @@ class Rollover {
         console.log("started checking expired positions");
 
         for (let p in this.positions) {
-            const position = this.positions[p];
+            // It's possible that something has changed in between of finding the position by the Scanner and calling
+            // this method. Thus, we fetch the loan again here.
+            const position = await C.contractSovryn.methods.getLoan(p).call();
+
             const amn = C.web3.utils.fromWei(position.collateral.toString(), "Ether");
 
             const collateralTokenAddress = position.collateralToken.toLowerCase();
