@@ -135,7 +135,7 @@ class Liquidator {
         console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
-        if (this.liquidations && this.liquidations.length > 0) {
+        if (this.liquidations && Object.keys(this.liquidations).length > 0) {
             //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
             delete this.liquidations[loanId];
         }

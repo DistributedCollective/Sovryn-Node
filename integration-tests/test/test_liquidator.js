@@ -610,4 +610,21 @@ describe("Liquidator controller", () => {
         expect(liquidationRow.status).to.equal('successful');
         expect(liquidationRow.pos).to.equal('short');
     });
+
+    it('deletes liquidations', async () => {
+        const { loanId } = await setupLiquidationTest({
+            loanTokenSent: ether('1'), // 21 digits so enough for it to become 1.716e+21 which used to choke it
+        });
+        // decrease the price so that the position needs to be liquidated
+        await converters.setOraclePrice(
+            sovrynContracts.wrbtcToken.address,
+            new BN('43500099999999998544808')
+        );
+
+        await scanPositions();
+
+        expect(Object.keys(Liquidator.liquidations).length).to.equal(1);
+        await Liquidator.handleLiquidationRound();
+        expect(Object.keys(Liquidator.liquidations).length).to.equal(0);
+    });
 });
