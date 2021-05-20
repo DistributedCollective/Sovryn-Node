@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { BN, ether } from '@openzeppelin/test-helpers';
+import { BN, ether, constants } from '@openzeppelin/test-helpers';
 import sinon from 'sinon';
 
 import A from '../../secrets/accounts';
@@ -16,6 +16,7 @@ import {ConverterHelper, initSovrynContracts} from "./base/contracts";
 import {initLoanPool, decodeLogs, setDemandCurve} from "./base/loans";
 import {transferAlmostAllRbtc} from "./base/utils";
 
+const { MAX_UINT256 } = constants;
 const wei = web3.utils.toWei;
 const oneEth = new BN(wei("1", "ether"));
 
@@ -572,8 +573,6 @@ describe("Liquidator controller", () => {
                 new BN('83500099999999998544808')
             );
 
-            console.log('Rbtc balance is: ', web3.utils.fromWei(rbtcBalance));
-
             await scanPositions();
 
             await Liquidator.handleLiquidationRound();
@@ -581,7 +580,6 @@ describe("Liquidator controller", () => {
             const rows = await getLiquidationsFromDB();
             expect(rows.length).to.equal(0);
         });
-
     })
 
     it("should not choke on big numbers", async () => {
@@ -609,5 +607,36 @@ describe("Liquidator controller", () => {
         expect(liquidationRow.liquidatedAdr.toLowerCase()).to.equal(borrowerAddress.toLowerCase());
         expect(liquidationRow.status).to.equal('successful');
         expect(liquidationRow.pos).to.equal('short');
+    });
+
+    it("should not liquidate already liquidated positions", async () => {
+        // simulate the race condition where a position is liquidated between scanning it by the Scanner
+        // and liquidating it by the liquidator
+        const { loanId } = await setupLiquidationTest({
+            loanTokenSent: ether('100'),
+        });
+        // decrease the price so that the position needs to be liquidated
+        await converters.setOraclePrice(
+            sovrynContracts.wrbtcToken.address,
+            //new BN('63500099999999998544808')
+            new BN('33500099999999998544808')
+        );
+
+        await scanPositions();
+        expect(Object.keys(liquidations).length).to.equal(1);
+
+        // refresh loan after margin change
+        let loan = await sovrynContracts.sovrynProtocol.getLoan(loanId);
+        await sovrynContracts.docToken.approve(sovrynContracts.sovrynProtocol.address, MAX_UINT256);
+        await sovrynContracts.sovrynProtocol.liquidate(loanId, liquidatorAddress, loan.maxLiquidatable);
+
+        //loan = await sovrynContracts.sovrynProtocol.getLoan(loanId);
+        //console.log('loan');
+        //console.table(loan);
+
+        await Liquidator.handleLiquidationRound();
+        expect(C.contractSovryn.methods.liquidate.callCount).to.equal(0);
+        const rows = await getLiquidationsFromDB();
+        expect(rows.length).to.equal(0);
     });
 });

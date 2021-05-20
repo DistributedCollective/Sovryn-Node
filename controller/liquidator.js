@@ -45,7 +45,11 @@ class Liquidator {
         console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
 
         for (let p in this.liquidations) {
-            const pos = this.liquidations[p];
+            // It's possible that something has changed in between of finding the position by the Scanner and calling
+            // this method. Thus, we fetch the loan again here.
+            const pos = await C.contractSovryn.methods.getLoan(p).call();
+            // TODO: check healthy position
+
             const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
 
             //Position already in liquidation wallet-queue
