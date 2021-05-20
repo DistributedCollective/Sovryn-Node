@@ -152,7 +152,8 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
                 await p.addLiqLog(tx.transactionHash, pos);
-                if (!isRbtcToken) await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
+                // remove swapback for now since it doesn't work too well
+                //if (!isRbtcToken) await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
