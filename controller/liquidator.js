@@ -56,7 +56,9 @@ class Liquidator {
             // get wallet balance as bignumber
             const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token, C.web3.utils.toBN);
             if (!wallet) {
-                await this.handleNoWalletError(p);
+                this.handleNoWalletError(p).catch(e => {
+                    console.error('Error handling noWalletError:', e);
+                });
                 continue;
             }
 
@@ -211,7 +213,7 @@ class Liquidator {
 
     async handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed because no wallet with enough funds was found.`, Extra.HTML());
+        await common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed because no wallet with enough funds was found.`, Extra.HTML());
     }
 
     async calculateLiqProfit(liqEvent) {
