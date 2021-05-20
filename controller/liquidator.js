@@ -56,7 +56,9 @@ class Liquidator {
             // get wallet balance as bignumber
             const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token, C.web3.utils.toBN);
             if (!wallet) {
-                await this.handleNoWalletError(p);
+                this.handleNoWalletError(p).catch(e => {
+                    console.error('Error handling noWalletError:', e);
+                });
                 continue;
             }
 
@@ -65,7 +67,7 @@ class Liquidator {
 
             const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
-            await this.liquidate(p, wallet.adr, liquidateAmount, token, pos.collateralToken, nonce);
+            await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce);
             await U.wasteTime(30); //30 seconds break to avoid rejection from node
         }
     }
@@ -127,7 +129,7 @@ class Liquidator {
     * If Loan token == WRBTC -> pass value
     * wallet = sender and receiver address
     */
-    async liquidate(loanId, wallet, amount, token, collateralToken, nonce) {
+    async liquidate(loanId, wallet, amount, token, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
         const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());
@@ -135,7 +137,7 @@ class Liquidator {
         console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
-        if (this.liquidations && this.liquidations.length > 0) {
+        if (this.liquidations && Object.keys(this.liquidations).length > 0) {
             //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
             delete this.liquidations[loanId];
         }
@@ -152,7 +154,8 @@ class Liquidator {
                 console.log(tx.transactionHash);
                 await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
                 await p.addLiqLog(tx.transactionHash, pos);
-                if (!isRbtcToken) await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
+                // remove swapback for now since it doesn't work too well
+                //if (!isRbtcToken) await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
             })
             .catch(async (err) => {
                 console.error("Error on liquidating loan " + loanId);
@@ -210,7 +213,7 @@ class Liquidator {
 
     async handleNoWalletError(loanId) {
         console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed because no wallet with enough funds was found.`, Extra.HTML());
+        await common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed because no wallet with enough funds was found.`, Extra.HTML());
     }
 
     async calculateLiqProfit(liqEvent) {
