@@ -27,6 +27,18 @@ class Liquidator {
         this.checkPositionsForLiquidations();
     }
 
+    isLiquidatable(position) {
+        return (
+            position.maxLiquidatable > 0 &&
+            position.currentMargin < this.getBufferedMaintenanceMargin(position)
+        );
+    }
+
+    getBufferedMaintenanceMargin(position) {
+        const maintenanceMarginBuffer = conf.maintenanceMarginBuffer || 0.95;
+        return position.maintenanceMargin * maintenanceMarginBuffer;
+    }
+
     /**
      * Wrapper for liquidations
      * 1. Get a wallet with enough funds in required tokens and which is not busy at the moment, then
@@ -48,7 +60,10 @@ class Liquidator {
             // It's possible that something has changed in between of finding the position by the Scanner and calling
             // this method. Thus, we fetch the loan again here.
             const pos = await C.contractSovryn.methods.getLoan(p).call();
-            // TODO: check healthy position
+            if(!this.isLiquidatable(pos)) {
+                console.log(`Position no longer liquidatable: ${p}`);
+                continue;
+            }
 
             const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
 

@@ -4,6 +4,7 @@
  * positions flagged for liquidation in "liquidations".
  */
 import C from './contract';
+import Liquidator from './liquidator';
 import U from '../util/helper';
 import conf from '../config/config';
 
@@ -102,7 +103,6 @@ class PositionScanner {
      * positions ready for liquidation to the liquidations queue
      */
     addPosition(loans) {
-        const maintenanceMarginBuffer = conf.maintenanceMarginBuffer || 0.95;
         for (let l of loans) {
             if (!l.loanId) continue;
 
@@ -110,11 +110,11 @@ class PositionScanner {
 
             if(l.currentMargin<l.maintenanceMargin*1.02) {
                 console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
-                console.log("Liquidation will happen at: "+C.web3.utils.fromWei((l.maintenanceMargin*maintenanceMarginBuffer).toString(), "Ether"));
+                console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
             }
 
             //If liquidating at the very edge we often get errors if the price bounces back
-            if(l.maxLiquidatable > 0 && l.currentMargin < (l.maintenanceMargin * maintenanceMarginBuffer)) {
+            if(Liquidator.isLiquidatable(l)) {
                 this.liquidations[l.loanId] = l;
             }
         }
