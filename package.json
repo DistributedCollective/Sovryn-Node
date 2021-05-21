@@ -4,14 +4,14 @@
   "version": "1.0.0",
   "description": "liquidation handler and rollover of open positions for sovryn smart contracts",
   "scripts": {
-    "test-lx": "mocha -r esm ./tests/test_liquidations.js --timeout 2500000",
-    "test-network": "node -r esm ./tests/network.js",
-    "start:test": "nodemon -r esm start.js testnet",
-    "start:main": "nodemon -r esm start.js mainnet",
+    "test-lx": "mocha -r ts-node/register ./tests/test_liquidations.js --timeout 2500000",
+    "test-network": "node -r ts-node/register ./tests/network.js",
+    "start:test": "nodemon -r ts-node/register start.js testnet",
+    "start:main": "nodemon -r ts-node/register start.js mainnet",
     "dev": "npx webpack-dev-server --open --config ./public/webpack.config.ts",
     "build-client": "npx webpack --config ./public/webpack.config.ts",
-    "approveWalletsMain": "node -r esm ./util/approval.js mainnet",
-    "approveWalletsTest": "node -r esm ./util/approval.js testnet"
+    "approveWalletsMain": "node -r ts-node/register ./util/approval.js mainnet",
+    "approveWalletsTest": "node -r ts-node/register ./util/approval.js testnet"
   },
   "author": "",
   "license": "ISC",
@@ -27,10 +27,13 @@
     "sqlite3": "^5.0.0",
     "style-loader": "^2.0.0",
     "telegraf": "^3.38.0",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.4",
     "web3": "1.3.3",
     "webpack-dev-server": "^3.11.2"
   },
   "devDependencies": {
+    "mocha": "^8.4.0",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12"
   }
