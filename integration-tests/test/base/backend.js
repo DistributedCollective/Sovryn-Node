@@ -18,6 +18,7 @@ export async function initSovrynNodeForTesting({
     docToken,
     bproToken,
     usdtToken,
+    ethsToken,
     rbtcWrapperProxy,
     priceFeeds,
     accounts,
@@ -26,6 +27,7 @@ export async function initSovrynNodeForTesting({
     loanTokenUsdt,
     loanTokenBpro,
     loanTokenWrbtc,
+    loanTokenEths,
 }) {
     conf.network = 'test';
 
@@ -34,6 +36,7 @@ export async function initSovrynNodeForTesting({
     conf.USDTToken = usdtToken.address.toLowerCase();
     conf.BProToken = bproToken.address.toLowerCase();
     conf.testTokenRBTC = wrbtcToken.address.toLowerCase();
+    conf.ethsToken = ethsToken.address.toLowerCase();
 
     conf.wRbtcWrapper = rbtcWrapperProxy.address.toLowerCase();
     conf.priceFeed  = priceFeeds.address.toLowerCase();
@@ -55,6 +58,7 @@ export async function initSovrynNodeForTesting({
     conf.loanTokenUSDT = loanTokenUsdt.address.toLowerCase();
     conf.loanTokenBPRO = loanTokenBpro.address.toLowerCase();
     conf.loanTokenRBTC = loanTokenWrbtc.address.toLowerCase();
+    conf.loanTokenETHs = loanTokenEths.address.toLowerCase();
 
     // also deal with accounts
     A.liquidator = [

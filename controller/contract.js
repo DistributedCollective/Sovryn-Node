@@ -38,17 +38,20 @@ class Contract {
         this.contractTokenRBTC = new this.web3.eth.Contract(abiTestToken, conf.testTokenRBTC);
         this.contractTokenUSDT = new this.web3.eth.Contract(abiTestToken, conf.USDTToken);
         this.contractTokenBPRO = new this.web3.eth.Contract(abiTestToken, conf.BProToken);
+        this.contractTokenETHs = new this.web3.eth.Contract(abiTestToken, conf.ethsToken);
 
         this.tokenContractsByAddress = {}
         this.tokenContractsByAddress[conf.docToken.toLowerCase()] = this.contractTokenSUSD;
         this.tokenContractsByAddress[conf.testTokenRBTC.toLowerCase()] = this.contractTokenRBTC;
         this.tokenContractsByAddress[conf.USDTToken.toLowerCase()] = this.contractTokenUSDT;
         this.tokenContractsByAddress[conf.BProToken.toLowerCase()] = this.contractTokenBPRO;
+        this.tokenContractsByAddress[conf.ethsToken.toLowerCase()] = this.contractTokenETHs;
         this.tokenSymbolsByAddress = {}
         this.tokenSymbolsByAddress[conf.docToken.toLowerCase()] = "doc"
         this.tokenSymbolsByAddress[conf.testTokenRBTC.toLowerCase()] = "rbtc";
         this.tokenSymbolsByAddress[conf.USDTToken.toLowerCase()] = "usdt";
         this.tokenSymbolsByAddress[conf.BProToken.toLowerCase()] = "bpro";
+        this.tokenSymbolsByAddress[conf.ethsToken.toLowerCase()] = "eths";
 
         this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
         this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);

@@ -57,6 +57,7 @@ export async function initSovrynContracts() {
     let wrbtcToken;
     let docToken;
     let bproToken;
+    let ethsToken;
     let usdtToken;
     let rbtcWrapperProxy;
     let upgrader;
@@ -116,6 +117,7 @@ export async function initSovrynContracts() {
     docToken = await TestToken.new("Dollar on Chain", "DOC", 18, tokenSupply);
     usdtToken = await TestToken.new("rUSDT", "rUSDT", 18, tokenSupply);
     bproToken = await TestToken.new("BitPRO", "BITP", 18, tokenSupply);
+    ethsToken = await TestToken.new("ETHs", "ETHs", 18, tokenSupply);
     wrbtcToken = await TestWrbtc.new();
     await wrbtcToken.deposit({ value: ether('1000000000') });  // note: different than tokenSupply
     const tokens = [docToken, usdtToken, bproToken, wrbtcToken];
@@ -129,7 +131,7 @@ export async function initSovrynContracts() {
 
     rbtcWrapperProxy = await RBTCWrapperProxy.new(wrbtcToken.address, sovrynSwapNetwork.address);
 
-    for(let token of [docToken, usdtToken, bproToken, wrbtcToken]) {
+    for(let token of [docToken, usdtToken, bproToken, ethsToken, wrbtcToken]) {
         // approve everything for these accounts, for ease
         await token.approve(sovrynSwapNetwork.address, MAX_UINT256, { from: accountOwner });
         await token.approve(sovrynSwapNetwork.address, MAX_UINT256, { from: accountNonOwner });
@@ -178,6 +180,8 @@ export async function initSovrynContracts() {
     const loanTokenDoc = await deployLoanToken(await deployLoanTokenLogic(), accountOwner, sovrynProtocol, wrbtcToken, docToken);
     const loanTokenUsdt = await deployLoanToken(await deployLoanTokenLogic(), accountOwner, sovrynProtocol, wrbtcToken, usdtToken);
     const loanTokenBpro = await deployLoanToken(await deployLoanTokenLogic(), accountOwner, sovrynProtocol, wrbtcToken, bproToken);
+    // TODO: should this be against dollar or btc?
+    const loanTokenEths = await deployLoanToken(await deployLoanTokenLogic(), accountOwner, sovrynProtocol, wrbtcToken, ethsToken);
 
     return {
         accounts,
@@ -192,6 +196,7 @@ export async function initSovrynContracts() {
         docToken,
         bproToken,
         usdtToken,
+        ethsToken,
         rbtcWrapperProxy,
         upgrader,
         oracleWhitelist,
@@ -202,6 +207,7 @@ export async function initSovrynContracts() {
         loanTokenDoc,
         loanTokenUsdt,
         loanTokenBpro,
+        loanTokenEths,
 
         priceOraclesByTokenAddress,
     };
