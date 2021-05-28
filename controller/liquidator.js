@@ -203,7 +203,13 @@ class Liquidator {
         Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
         const formattedAmount = C.web3.utils.fromWei(amount.toString(), 'Ether');
-        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} of ${formattedAmount} ${C.getTokenSymbol(token).toUpperCase()} successful. 
+        let tokenSymbol;
+        if (token.toLowerCase() === 'rbtc') {
+            tokenSymbol = token;
+        } else {
+            tokenSymbol = C.getTokenSymbol(token).toUpperCase();
+        }
+        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} of ${formattedAmount} ${tokenSymbol} successful. 
             \n${conf.blockExplorer}tx/${txHash}`;
         common.telegramBot.sendMessage(msg, Extra.HTML());
     }

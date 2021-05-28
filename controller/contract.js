@@ -250,9 +250,10 @@ class Contract {
      */
     getTokenSymbol(tokenAddress) {
         if(!tokenAddress) {
-            return '(unknown)';
+            return '(no address given)';
         }
-        return this.tokenSymbolsByAddress[tokenAddress.toLowerCase()] || '(unknown)';
+        // return tokenAddress as default since this is mostly used for user-representable output
+        return this.tokenSymbolsByAddress[tokenAddress.toLowerCase()] || tokenAddress;
     }
 
     /**
