@@ -196,6 +196,23 @@ class Arbitrage {
         }
     }
 
+    async getArbitrageTxData(txHash) {
+        const receipt = await C.web3.eth.getTransactionReceipt(txHash);
+        console.log(receipt);
+
+        if (receipt && receipt.logs) {
+            const logs = abiDecoder.decodeLogs(receipt.logs);
+            const conversionEvent = (logs || []).find(log => log && log.name === "Conversion");
+            console.log(JSON.stringify(logs, null, 2));
+
+            if (conversionEvent && conversionEvent.events) {
+                let {fromToken, toToken, fromAmount, toAmount, trader} = U.parseEventParams(conversionEvent.events);
+
+                return {fromToken, toToken, fromAmount, toAmount, trader}
+            }
+        }
+    }
+
     async handleDynamicArbitrageForToken(tokenSymbol, tokenAddress, arbitrageDeals) {
         console.log(`checking token ${tokenSymbol}`);
         const arbitrageOpportunity = await this.findArbitrageOpportunityForToken(tokenSymbol, tokenAddress);
@@ -220,7 +237,7 @@ class Arbitrage {
 
         const arbitrageTx = await this.executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress);
         if(arbitrageTx) {
-            await this.handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, pricePriceFeed, arbitrageDeals);
+            await this.handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, arbitrageDeals);
         } else {
             console.warn('Arbitrage not executed.')
         }
@@ -301,18 +318,18 @@ class Arbitrage {
         return opportunity;
     }
 
-    async getAmmAndPriceFeedPrices(arbitrageOpportunity) {
+    async getAmmAndPriceFeedPrices(arbitrageOpportunity, amount) {
         const priceAmmWei = await this.getPriceFromAmm(
             C.contractSwaps,
             arbitrageOpportunity.sourceTokenAddress,
             arbitrageOpportunity.destTokenAddress,
-            arbitrageOpportunity.amount
+            amount || arbitrageOpportunity.amount
         );
         const pricePriceFeedWei = await this.getPriceFromPriceFeed(
             C.contractPriceFeed,
             arbitrageOpportunity.sourceTokenAddress,
             arbitrageOpportunity.destTokenAddress,
-            arbitrageOpportunity.amount
+            amount || arbitrageOpportunity.amount
         );
         if(priceAmmWei.isZero() || priceAmmWei.isNeg()) {
             throw new Error("Invalid AMM price: " + priceAmmWei.toString());
@@ -344,22 +361,11 @@ class Arbitrage {
         return await this.swap(amount, sourceSymbol, destSymbol, fromAddress);
     }
 
-    async handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, pricePriceFeed, arbitrageDeals) {
+    async handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, arbitrageDeals) {
         if(arbitrageDeals) {
             arbitrageDeals.push({from: arbitrageOpportunity.sourceTokenSymbol, to: arbitrageOpportunity.destTokenSymbol});
         }
-
-        let rbtcPrice, rbtcAmount;
-        if(arbitrageOpportunity.sourceTokenAddress.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
-            rbtcPrice = pricePriceFeed;
-            rbtcAmount = parseFloat(C.web3.utils.fromWei(arbitrageOpportunity.amount));
-        } else {
-            // when selling tokenAmount TOKEN, pricePriceFeed is the amount of RBTC you get for tokenAmount TOKEN.
-            // hence, rbtcPrice = tokenAmount and rbtcAmount = price feed price.
-            rbtcPrice = parseFloat(C.web3.utils.fromWei(arbitrageOpportunity.amount));
-            rbtcAmount = pricePriceFeed;
-        }
-        await this.calculateProfit(arbitrageTx, rbtcPrice, rbtcAmount);
+        await this.calculateProfit(arbitrageTx.transactionHash);
     }
 
     async startFixedAmount(arbitrageDeals) {
@@ -386,7 +392,7 @@ class Arbitrage {
                     arbitrageDeals.push({from: 'rBTC', to: C.getTokenSymbol(p)});
                 }
 
-                if(res) profit = await this.calculateProfit(res, p[1]);
+                if(res) profit = await this.calculateProfit(res.transactionHash);
             }
 
             console.log("Completed checking prices at ");
@@ -585,59 +591,42 @@ class Arbitrage {
 
     }
 
-    async calculateProfit(tx, btcPriceFeed, amount){
+    async calculateProfit(txHash){
         try {
-            if(!amount) {
-                amount = conf.amountArbitrage;
-            }
             console.log("Calculate profit from arbitrage");
-            const receipt = await C.web3.eth.getTransactionReceipt(tx.transactionHash);
-            console.log(receipt);
+            let { fromToken, toToken, fromAmount, toAmount, trader } = await this.getArbitrageTxData(txHash);
 
-            if (receipt && receipt.logs) {
-                const logs = abiDecoder.decodeLogs(receipt.logs);
-                const conversionEvent = (logs || []).find(log => log && log.name === "Conversion");
-                console.log(JSON.stringify(logs, null, 2));
+            let trade;
+            if (fromToken.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
+                trade = 'sell btc';
+            } else {
 
-                if (conversionEvent && conversionEvent.events) {
-                    const priceFeed = Number(btcPriceFeed)/amount;
-                    console.log(priceFeed)
-                    let {fromToken, toToken, fromAmount, toAmount} = U.parseEventParams(conversionEvent.events);
-                    let toAmountWithPFeed, trade;
-
-                    fromAmount = Number(C.web3.utils.fromWei(fromAmount.toString(), 'ether'));
-                    toAmount = Number(C.web3.utils.fromWei(toAmount.toString(), 'ether'));
-
-                    console.log(fromAmount); console.log(toAmount);
-
-                    if (fromToken.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
-                        toAmountWithPFeed = Number(fromAmount) * priceFeed;
-                        trade = 'sell btc';
-                    } else {
-                        toAmountWithPFeed = Number(fromAmount) / priceFeed;
-                        trade = 'buy btc';
-                    }
-                    const profit = toAmount - toAmountWithPFeed;
-                    console.log(profit)
-
-                    console.log({
-                        trader: receipt.from,
-                        fromToken, toToken,
-                        fromAmount, toAmount,
-                        profit,
-                        trade
-                    })
-
-                    await db.addArbitrage({
-                        adr: receipt.from,
-                        fromToken, toToken,
-                        fromAmount, toAmount,
-                        profit, trade,
-                        txHash: tx.transactionHash,
-                        status: 'successful'
-                    })
-                }
+                trade = 'buy btc';
             }
+            const [pricePriceFeed] = await this.getAmmAndPriceFeedPrices({sourceTokenAddress: fromToken, destTokenAddress: toToken}, fromAmount);
+            const tradeCost = pricePriceFeed;
+            let profit =  (Number(C.web3.utils.fromWei(toAmount)) - tradeCost).toFixed(6);
+            profit = profit + " " + (C.getTokenSymbol(toToken)).toUpperCase();
+            console.log(`You made ${profit} with this liquidation`);
+
+            fromAmount = Number(C.web3.utils.fromWei(fromAmount.toString(), 'ether')).toFixed(6);
+            toAmount = Number(C.web3.utils.fromWei(toAmount.toString(), 'ether')).toFixed(6);
+
+            console.log({trader,
+                fromToken, toToken,
+                fromAmount, toAmount,
+                profit,
+                trade
+            })
+
+            await db.addArbitrage({
+                adr: trader,
+                fromToken, toToken,
+                fromAmount, toAmount,
+                profit, trade,
+                status: 'successful',
+                txHash
+            })
 
         } catch (e) {
             console.error("Error when calculate arbitrage profit", e);
