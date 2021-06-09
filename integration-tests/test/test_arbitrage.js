@@ -2,10 +2,10 @@ import { expect } from 'chai';
 import { BN, ether, constants } from '@openzeppelin/test-helpers';
 const { MAX_UINT256 } = constants;
 
-import A from '../../secrets/accounts';
-import Arbitrage from '../../controller/arbitrage';
-import DB from '../../controller/db';
-import conf from '../../config/config';
+import A from '../../src/secrets/accounts';
+import Arbitrage from '../../src/controller/arbitrage';
+import DB from '../../src/controller/db';
+import conf from '../../src/config/config';
 
 import {initSovrynNodeForTesting} from "./base/backend";
 import {initSovrynContracts, ConverterHelper} from "./base/contracts";

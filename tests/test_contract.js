@@ -2,7 +2,7 @@
  * Tests for the Contract helper
  * Set config file in /config.config.js manually because mocha.js overwrites process.arg
  */
-import C from '../controller/contract';
+import C from '../src/controller/contract';
 const assert = require('assert');
 
 describe('Contract', () => {

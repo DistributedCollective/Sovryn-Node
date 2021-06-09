@@ -3,9 +3,9 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: [
-    './public/src/initWeb3.js',
-    './public/src/index.js',
-    './public/src/styles.css'
+    `${__dirname}/src/initWeb3.js`,
+    `${__dirname}/src/index.js`,
+    `${__dirname}/src/styles.css`
   ],
   devtool: 'inline-source-map',
   devServer: {
@@ -24,7 +24,7 @@ module.exports = {
   plugins: [
     new CopyPlugin({
       patterns: [
-        {from: 'public/src/index.html'}
+        {from: `${__dirname}/src/index.html`}
       ]
     }),
   ],

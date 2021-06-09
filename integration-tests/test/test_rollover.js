@@ -2,11 +2,11 @@ import { expect } from 'chai';
 import { BN } from '@openzeppelin/test-helpers';
 import sinon from 'sinon';
 
-import A from '../../secrets/accounts';
-import Rollover from '../../controller/rollover';
-import C from '../../controller/contract';
-import PositionScanner from '../../controller/scanner';
-import DB from '../../controller/db';
+import A from '../../src/secrets/accounts';
+import Rollover from '../../src/controller/rollover';
+import C from '../../src/controller/contract';
+import PositionScanner from '../../src/controller/scanner';
+import DB from '../../src/controller/db';
 
 const LoanOpeningsEvents = artifacts.require("LoanOpeningsEvents");
 import {initSovrynNodeForTesting} from "./base/backend";

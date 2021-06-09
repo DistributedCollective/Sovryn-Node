@@ -8,13 +8,13 @@ require('chai')
 
 // monkey-patch these at the earliest opportunity, otherwise initializing controller/Contract.js
 // will fail if you have "ks" anywhere
-import accounts from '../secrets/accounts';
+import accounts from '../src/secrets/accounts';
 accounts.liquidator = [];
 accounts.rollover = [];
 accounts.arbitrage = [];
 
 // monkey-patch these too, to be sure.
-import conf from '../config/config';
+import conf from '../src/config/config';
 conf.nodeProvider = 'http://example.invalid';
 conf.publicNodeProvider = 'http://example.invalid';
 conf.errorBotTelegram = undefined;

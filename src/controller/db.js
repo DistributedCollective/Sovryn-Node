@@ -14,7 +14,7 @@ class DbCtrl {
 
     async initDb(dbName) {
         return new Promise(resolve => {
-            const file = path.join(__dirname, '../db/' + dbName);
+            const file = path.join(__dirname, '../../db/' + dbName);
             this.db = new sqlite3.Database(file, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
                 if (err) {
                     console.error(err.message, file);

@@ -15,7 +15,7 @@ monitor({
     port: conf.healthMonitorPort
 });
        
-app.use('/', express.static('public/dist'));
+app.use('/', express.static('../public/dist'));
 http.listen(conf.serverPort, () => {
     console.log('listening on *:'+conf.serverPort);
 });

@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { BN } from '@openzeppelin/test-helpers';
 
-import Contract from '../../controller/contract';
+import Contract from '../../src/controller/contract';
 
 import {initSovrynNodeForTesting} from "./base/backend";
 import {initSovrynContracts, ConverterHelper} from "./base/contracts";

@@ -2,8 +2,8 @@
  * general tests for interacting with the node.
  */
 
-import c from '../config/config_testnet';
-import abiComplete from '../config/abiComplete';
+import c from '../src/config/config_testnet';
+import abiComplete from '../src/config/abiComplete';
 import abiLoanToken from './abi/abiLoanToken';
 import abiLoanOpeningEvents from './abi/abiLoanOpeningEvents';
 import Web3 from 'web3';

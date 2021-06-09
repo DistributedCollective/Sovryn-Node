@@ -6,16 +6,16 @@
  *  Set test/mainnet in file /config.config.js manually because mocha.js overwrites process.arg
  */
 
-import conf from '../config/config';
+import conf from '../src/config/config';
 
-import abiComplete from '../config/abiComplete';
+import abiComplete from '../src/config/abiComplete';
 import abiLoanToken from './abi/abiLoanToken';
-import C from '../controller/contract';
-import A from '../secrets/accounts';
-import Liquidator from '../controller/liquidator';
-import PosScanner from '../controller/scanner';
-import Wallet from '../controller/wallet';
-import common from '../controller/common'
+import C from '../src/controller/contract';
+import A from '../src/secrets/accounts';
+import Liquidator from '../src/controller/liquidator';
+import PosScanner from '../src/controller/scanner';
+import Wallet from '../src/controller/wallet';
+import common from '../src/controller/common'
 
 const abiDecoder = require('abi-decoder');
 const assert = require('assert');

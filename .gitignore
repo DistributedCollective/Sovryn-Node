@@ -1,5 +1,7 @@
 node_modules
+src/public/dist
 public/dist
+src/secrets/
 /secrets/
 logs
 package-lock.json

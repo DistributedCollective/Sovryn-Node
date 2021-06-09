@@ -6,7 +6,7 @@ import conf from '../config/config';
 import C from '../controller/contract';
 import Arbitrage from '../controller/arbitrage';
 const assert = require('assert');
-import db from "../controller/db";
+import db from "../src/controller/db";
 var pPriceFeed, pAmm;
 
 describe('Arbitrage', async () => {

@@ -41,7 +41,7 @@ Webpack
 2. npm install -g mocha nodemon
 3. To build the client create an empty directory "public/dist" and run "npm run build-client"
 4. Create empty directories "logs" and "db" in the project root
-5. Create directory "secrets" and within a file accounts.js with the credentials of the liquidator/rollover/arbitrage wallets
+5. Create directory "src/secrets" and within a file accounts.js with the credentials of the liquidator/rollover/arbitrage wallets
 ks = encrypted keystore file in v3 standard.
 (alternatively, you can specify pKey instead of ks to just use the private key)
 
@@ -65,7 +65,7 @@ export default "[telegram-bot-token]";
 export default ""; for no notifications
 
 6. Charge the Sovryn node wallets with all relevant tokens and enough Rbtc to cover tx cost.
-7. Execute node -r esm util/approval.js to approve the Sovryn smart contract to spend Doc on behalf of the Sovryn node wallets as well as the swap network contract to spend tokens on behalf of the arbitrage wallet.
+7. Execute npm run approve:[main || test] to approve the Sovryn smart contract to spend Doc on behalf of the Sovryn node wallets as well as the swap network contract to spend tokens on behalf of the arbitrage wallet.
 
 ```
 

@@ -5,13 +5,13 @@
  * 
  * Set config file in /config.config.js manually because mocha.js overwrites process.arg
 */
-import conf from '../config/config';
-import abiComplete from '../config/abiComplete';
-import A from '../secrets/accounts';
-import C from '../controller/contract';
-import Rollover from '../controller/rollover';
-import PosScanner from '../controller/scanner';
-import Wallet from '../controller/wallet';
+import conf from '../src/config/config';
+import abiComplete from '../src/config/abiComplete';
+import A from '../src/secrets/accounts';
+import C from '../src/controller/contract';
+import Rollover from '../src/controller/rollover';
+import PosScanner from '../src/controller/scanner';
+import Wallet from '../src/controller/wallet';
 import abiLoanToken from './abi/abiLoanToken';
 
 const assert = require('assert');

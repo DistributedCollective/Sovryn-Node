@@ -1,6 +1,6 @@
-import C from '../../../controller/contract';
+import C from '../../../src/controller/contract';
 const { BN } = require("@openzeppelin/test-helpers");
-import abiTestToken from '../../../config/abiTestToken';
+import abiTestToken from '../../../src/config/abiTestToken';
 import {ether} from "@openzeppelin/test-helpers";
 
 export async function transferAlmostAllRbtc({

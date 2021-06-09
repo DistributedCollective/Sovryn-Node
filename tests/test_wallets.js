@@ -3,11 +3,11 @@
  * Set config file in /config.config.js manually because mocha.js overwrites process.arg
 */
 const assert = require('assert');
-import conf from '../config/config';
-import C from '../controller/contract';
-import A from '../secrets/accounts';
-import Wallet from '../controller/wallet';
-import U from '../util/helper';
+import conf from '../src/config/config';
+import C from '../src/controller/contract';
+import A from '../src/secrets/accounts';
+import Wallet from '../src/controller/wallet';
+import U from '../src/util/helper';
 
 var liqQueue={};
 

@@ -2,13 +2,13 @@ import { expect } from 'chai';
 import { BN, ether, constants } from '@openzeppelin/test-helpers';
 import sinon from 'sinon';
 
-import A from '../../secrets/accounts';
-import Liquidator from '../../controller/liquidator';
-import Arbitrage from '../../controller/arbitrage';
-import C from '../../controller/contract';
-import PositionScanner from '../../controller/scanner';
-import U from '../../util/helper';
-import DB from '../../controller/db';
+import A from '../../src/secrets/accounts';
+import Liquidator from '../../src/controller/liquidator';
+import Arbitrage from '../../src/controller/arbitrage';
+import C from '../../src/controller/contract';
+import PositionScanner from '../../src/controller/scanner';
+import U from '../../src/util/helper';
+import DB from '../../src/controller/db';
 
 const LoanOpeningsEvents = artifacts.require("LoanOpeningsEvents");
 import {initSovrynNodeForTesting} from "./base/backend";

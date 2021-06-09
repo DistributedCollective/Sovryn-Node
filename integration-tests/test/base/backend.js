@@ -1,9 +1,9 @@
 import { constants } from "@openzeppelin/test-helpers";
-import conf from '../../../config/config';
-import C from '../../../controller/contract';
-import Wallet from '../../../controller/wallet';
-import A from '../../../secrets/accounts';
-import db from '../../../controller/db';
+import conf from '../../../src/config/config';
+import C from '../../../src/controller/contract';
+import Wallet from '../../../src/controller/wallet';
+import A from '../../../src/secrets/accounts';
+import db from '../../../src/controller/db';
 import {existsSync, unlinkSync} from 'fs';
 
 /**

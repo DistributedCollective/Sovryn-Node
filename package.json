@@ -6,12 +6,12 @@
   "scripts": {
     "test-lx": "mocha -r ts-node/register ./tests/test_liquidations.js --timeout 2500000",
     "test-network": "node -r ts-node/register ./tests/network.js",
-    "start:test": "nodemon -r ts-node/register start.js testnet",
-    "start:main": "nodemon -r ts-node/register start.js mainnet",
-    "dev": "npx webpack-dev-server --open --config ./public/webpack.config.ts",
-    "build-client": "npx webpack --config ./public/webpack.config.ts",
-    "approveWalletsMain": "node -r ts-node/register ./util/approval.js mainnet",
-    "approveWalletsTest": "node -r ts-node/register ./util/approval.js testnet"
+    "start:test": "nodemon -r ts-node/register ./src/start.js testnet",
+    "start:main": "nodemon -r ts-node/register ./src/start.js mainnet",
+    "dev": "npx webpack-dev-server --open --config ./src/public/webpack.config.ts",
+    "build-client": "npx webpack --config ./src/public/webpack.config.ts",
+    "approve:main": "node -r ts-node/register ./src/util/approval.js mainnet",
+    "approve:test": "node -r ts-node/register ./src/util/approval.js testnet"
   },
   "author": "",
   "license": "ISC",

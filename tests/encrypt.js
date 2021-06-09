@@ -1,7 +1,7 @@
 
 import Web3 from 'web3';
-import conf from '../config/config';
-import wallets from '../secrets/accounts';
+import conf from '../src/config/config';
+import wallets from '../src/secrets/accounts';
 var web3 = new Web3(conf.nodeProvider);
 
 

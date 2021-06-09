@@ -1,7 +1,7 @@
 /**
  * Api tester
  */
-import c from '../config/config_testnet';
+import c from '../src/config/config_testnet';
 import io from 'socket.io-client';
 
 const assert = require('assert');

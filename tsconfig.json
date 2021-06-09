@@ -3,7 +3,7 @@
     "esModuleInterop": true,
     "allowJs": true,
   },
-  "include": ["./**/*"],
+  "include": ["./src/**/*"],
   "exclude": ["./integration-tests/**/*"]
 }
 
