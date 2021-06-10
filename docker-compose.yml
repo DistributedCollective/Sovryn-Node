@@ -1,0 +1,23 @@
+version: '3'
+services:
+  sovryn-node:
+
+    build:
+        context: ./
+        dockerfile: Dockerfile
+        target: release
+
+    entrypoint: ["npm", "run" , "start:test", "somesecretpassword"]
+    
+
+    # npm run start
+
+    dns:
+      - 8.8.8.8
+     
+
+    environment:
+     - FOO=aaaa
+
+
+    restart: always

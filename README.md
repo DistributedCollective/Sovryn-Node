@@ -90,6 +90,25 @@ To develop the frontend with Hot Reload run `npm run dev`
 Sovryn-Node includes tests created with Hardhat. To run them, first `npm install` this package,
 then follow the instructions in `integration-tests/README.md`.
 
+### Docker and docker-compose setup:
+
+To get setup start building the base image:
+
+```
+
+./build-base.sh
+
+```
+Then run docker-compose:
+```
+
+docker-compose build
+
+docker-compose up
+
+```
+
+
 License
 ----
 
