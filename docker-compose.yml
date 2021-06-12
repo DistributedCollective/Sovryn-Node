@@ -9,6 +9,8 @@ services:
 
     entrypoint: ["npm", "run" , "start:test", "somesecretpassword"]
     
+    volumes:
+      - $HOME/Desktop/docker-data/sovryn-node:/var/www/html
 
     # npm run start
 

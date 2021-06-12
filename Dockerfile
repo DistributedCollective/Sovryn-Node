@@ -10,9 +10,15 @@ FROM build as dev
 
 COPY webpack* packa* yarn.lock /var/www/
 
+RUN mkdir -p \
+		/var/www/public/dist \
+		/var/www/logs \
+		/var/www/db \
+		/var/www/secrets
+
 RUN yarn install --immutable
 # Stuff for yarn
-
+RUN npm run build-client
 # Add our code
 COPY . /var/www
 

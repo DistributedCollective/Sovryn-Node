@@ -99,6 +99,17 @@ To get setup start building the base image:
 ./build-base.sh
 
 ```
+This uses multi stage builds which is quite new in docker.
+You can build the dev section of the image with:
+
+```
+
+docker build --target dev . -t sovrynbase:latest
+
+```
+
+
+
 Then run docker-compose:
 ```
 
@@ -107,7 +118,10 @@ docker-compose build
 docker-compose up
 
 ```
-
+Create directories required for volume:
+```
+mkdir -p $HOME/Desktop/docker-data/sovryn-node
+```
 
 License
 ----
