@@ -33,26 +33,29 @@ contract Watcher is Ownable {
   ) public view returns (uint256, uint256, IERC20[] memory) {
     uint256 arbitrageAmount = 1 ether;
 
-    // TODO: cannot figure out how to convert address[] to IERC20[]
-    address[] memory conversionPath = sovrynSwapNetwork.conversionPath(_tokenA, _tokenB);
-    IERC20[] memory aToB = new IERC20[](conversionPath.length);
-    for(uint i = 0; i < conversionPath.length; i++) {
-      aToB[i] = IERC20(conversionPath[i]);
+    // TODO: cannot figure out how to easily cast address[] to IERC20[]
+    address[] memory _conversionPath = sovrynSwapNetwork.conversionPath(_tokenA, _tokenB);
+    IERC20[] memory conversionPath = new IERC20[](_conversionPath.length);
+    for(uint i = 0; i < _conversionPath.length; i++) {
+      conversionPath[i] = IERC20(_conversionPath[i]);
     }
 
-    IERC20[] memory bToA = new IERC20[](aToB.length);
-    for(uint i = 0; i < aToB.length; i++) {
-      bToA[i] = aToB[aToB.length - i - 1];
-    }
-    uint256 swapReturnAToB = sovrynSwapNetwork.rateByPath(aToB, arbitrageAmount);
-    uint256 priceFeedsReturnAToB = priceFeeds.queryReturn(address(_tokenA), address(_tokenB), arbitrageAmount);
-    uint256 swapReturnBToA = sovrynSwapNetwork.rateByPath(bToA, arbitrageAmount);
-    uint256 priceFeedsReturnBToA = priceFeeds.queryReturn(address(_tokenB), address(_tokenA), arbitrageAmount);
-
-    if (swapReturnAToB > priceFeedsReturnAToB) {
-      return (arbitrageAmount, swapReturnAToB - priceFeedsReturnAToB, aToB);
-    } else if (swapReturnBToA > priceFeedsReturnBToA) {
-      return (arbitrageAmount, swapReturnBToA - priceFeedsReturnBToA, bToA);
+    uint256 swapReturn = sovrynSwapNetwork.rateByPath(conversionPath, arbitrageAmount);
+    uint256 priceFeedReturn = priceFeeds.queryReturn(address(_tokenA), address(_tokenB), arbitrageAmount);
+    if (swapReturn > priceFeedReturn) {
+      return (arbitrageAmount, swapReturn - priceFeedReturn, conversionPath);
+    } else {
+      // reverse conversionPath
+      for(uint i = 0; i < conversionPath.length / 2; i++) {
+        IERC20 tmp = conversionPath[i];
+        conversionPath[i] = conversionPath[_conversionPath.length - i - 1];
+        conversionPath[_conversionPath.length - i - 1] = tmp;
+      }
+      swapReturn = sovrynSwapNetwork.rateByPath(conversionPath, arbitrageAmount);
+      priceFeedReturn = priceFeeds.queryReturn(address(_tokenB), address(_tokenA), arbitrageAmount);
+      if (swapReturn > priceFeedReturn) {
+        return (arbitrageAmount, swapReturn - priceFeedReturn, conversionPath);
+      }
     }
 
     return (0, 0, new IERC20[](0));
