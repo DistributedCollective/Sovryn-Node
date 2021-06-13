@@ -5,7 +5,7 @@
 pragma solidity 0.5.17;
 
 import "./openzeppelin/SafeERC20.sol";
-import "../interfaces/IPriceFeeds.sol";
+import "./interfaces/IPriceFeeds.sol";
 import "./TestToken.sol";
 import "./openzeppelin/SafeMath.sol";
 

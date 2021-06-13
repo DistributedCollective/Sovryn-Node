@@ -1,13 +1,16 @@
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { ethers } from 'hardhat';
-import { Signer, Contract } from 'ethers';
+import { Signer, Contract, BigNumber } from 'ethers';
 const { parseEther } = ethers.utils;
+
+const ZERO = BigNumber.from(0);
 
 describe("Watcher", function() {
   let accounts: Signer[];
   let sovrynSwapSimulator: Contract;
   let priceFeeds: Contract;
+  let simulatorPriceFeeds: Contract;
   let wrbtcToken: Contract;
   let docToken: Contract;
   let watcher: Contract;
@@ -32,20 +35,54 @@ describe("Watcher", function() {
 
     priceFeeds = await PriceFeedsLocal.deploy(wrbtcToken.address, protocolToken.address);
     await priceFeeds.deployed();
-    await priceFeeds.setRates(docToken.address, wrbtcToken.address, parseEther("0.01"));
+    await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
 
-    sovrynSwapSimulator = await SovrynSwapSimulator.deploy(priceFeeds.address);
+    simulatorPriceFeeds = await PriceFeedsLocal.deploy(wrbtcToken.address, protocolToken.address);
+    await simulatorPriceFeeds.deployed();
+    await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+
+    sovrynSwapSimulator = await SovrynSwapSimulator.deploy(simulatorPriceFeeds.address);
     await sovrynSwapSimulator.deployed();
 
-    watcher = await Watcher.deploy(sovrynSwapSimulator.address);
+    watcher = await Watcher.deploy(sovrynSwapSimulator.address, priceFeeds.address);
     await watcher.deployed();
   });
 
 
   describe("#checkArbitrage", () => {
-    it("smoke test works well enough", async () => {
-      const ret = await watcher.functions.checkArbitrage(wrbtcToken.address, docToken.address);
-      expect(ret).to.deep.equal([false, []]);
+    it("should return NO arbitrage if swap rate = price feed rate", async () => {
+      await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+      await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+
+      const [amount, expectedReturn, conversionPath] = await watcher.functions.checkArbitrage(wrbtcToken.address, docToken.address);
+      expect(amount).to.equal(ZERO);
+      expect(expectedReturn).to.equal(ZERO);
+      expect(conversionPath).to.deep.equal([]);
+    });
+
+    it("should return an arbitrage if swap rate > price feed rate", async () => {
+      await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+      await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("3000"));
+
+      const [amount, expectedReturn, conversionPath] = await watcher.functions.checkArbitrage(wrbtcToken.address, docToken.address);
+      expect(amount).to.equal(parseEther('1'));
+      expect(expectedReturn).to.equal(parseEther('1000'));
+      expect(conversionPath[0]).to.equal(wrbtcToken.address);
+      expect(conversionPath[conversionPath.length - 1]).to.equal(docToken.address);
+    });
+
+    it("should return an arbitrage if swap rate < price feed rate", async () => {
+      // Price feed: 1 USD = 1/2000 BTC
+      // Swaps: 1 USD = 1/1000 BTC = 2/2000 BTC
+      // Profit over price feed: 1/2000 BTC = 0.0005 BTC
+      await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+      await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("1000"));
+
+      const [amount, expectedReturn, conversionPath] = await watcher.functions.checkArbitrage(wrbtcToken.address, docToken.address);
+      expect(amount).to.equal(parseEther('1'));
+      expect(expectedReturn).to.equal(parseEther('0.0005'));
+      expect(conversionPath[0]).to.equal(docToken.address);
+      expect(conversionPath[conversionPath.length - 1]).to.equal(wrbtcToken.address);
     });
   })
 });
