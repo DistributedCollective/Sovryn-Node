@@ -1,8 +1,8 @@
 import { expect } from 'chai';
-import {describe, it, beforeEach, Test} from 'mocha';
+import { describe, it, beforeEach } from 'mocha';
 import { ethers } from 'hardhat';
 import { Signer, Contract } from 'ethers';
-const { formatUnits, parseEther } = ethers.utils;
+const { parseEther } = ethers.utils;
 
 describe("Watcher", function() {
   let accounts: Signer[];
