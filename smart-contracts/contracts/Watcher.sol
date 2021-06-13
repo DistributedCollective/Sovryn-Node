@@ -59,14 +59,13 @@ contract Watcher is Ownable {
       require(msg.value == _amount, "value must equal amount");
 
       wrbtcToken.deposit{ value: _amount }();
-      //(bool successOfDeposit, ) = address(wrbtcToken).call.value(_amount)(abi.encodeWithSignature("deposit()"));
-      //require(successOfDeposit, "error depositing WRBTC");
     } else {
       require(sourceToken.transferFrom(msg.sender, address(this), _amount), "error transferring token");
     }
 
     require(sourceToken.approve(address(sovrynSwapNetwork), _amount), "error approving token");
 
+    // For now, we just directly send everything back to the user
     address beneficiary = targetToken == wrbtcToken ? address(this) : msg.sender;
     uint256 targetTokenAmount = sovrynSwapNetwork.convertByPath(
       _conversionPath,
