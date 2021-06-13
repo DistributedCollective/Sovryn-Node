@@ -135,23 +135,20 @@ describe("Watcher", function() {
           amount,
           expectedProfit
       );
+      await expect(result).to.emit(watcher, 'Arbitrage').withArgs(
+        ownerAddress,
+        wrbtcToken.address,
+        docToken.address,
+        amount,
+        expectedTargetAmount,
+        parseEther("2000"),
+        expectedProfit,
+      );
       const wrbtcBalance = await wrbtcToken.balanceOf(ownerAddress);
       const docBalance = await docToken.balanceOf(ownerAddress);
 
       expect(wrbtcBalance).to.equal(initialWrbtcBalance.sub(amount));
       expect(docBalance).to.equal(initialDocBalance.add(expectedTargetAmount));
-
-      const receipt = await result.wait();
-      const arbitrageEvents = receipt.events.filter((e: any) => e.event === 'Arbitrage');
-      expect(arbitrageEvents.length).to.equal(1);
-      const arbitrageEvent = arbitrageEvents[0];
-      expect(arbitrageEvent.args._beneficiary).to.equal(ownerAddress);
-      expect(arbitrageEvent.args._sourceToken).to.equal(wrbtcToken.address);
-      expect(arbitrageEvent.args._targetToken).to.equal(docToken.address);
-      expect(arbitrageEvent.args._sourceTokenAmount).to.equal(amount);
-      expect(arbitrageEvent.args._targetTokenAmount).to.equal(expectedTargetAmount);
-      expect(arbitrageEvent.args._priceFeedAmount).to.equal(parseEther("2000"));
-      expect(arbitrageEvent.args._profit).to.equal(expectedProfit);
     });
 
     it("should handle arbitrage with WRBTC given in RBTC", async () => {
@@ -163,7 +160,6 @@ describe("Watcher", function() {
       const expectedTargetAmount = parseEther('3000');
       const expectedProfit = parseEther('1000');
 
-      const initialRbtcBalance = await accounts[0].getBalance();
       const result = await watcher.arbitrage(
           [wrbtcToken.address, docToken.address],
           amount,
@@ -173,23 +169,19 @@ describe("Watcher", function() {
             gasPrice: Math.round(0.06 * 1000000000)
           }
       );
-      const rbtcBalance = await accounts[0].getBalance();
+      await expect(result).to.emit(watcher, 'Arbitrage').withArgs(
+        ownerAddress,
+        wrbtcToken.address,
+        docToken.address,
+        amount,
+        expectedTargetAmount,
+        parseEther("2000"),
+        expectedProfit,
+      );
+      await expect(result).to.changeEtherBalance(accounts[0], amount.mul(-1));
       const docBalance = await docToken.balanceOf(ownerAddress);
 
       expect(docBalance).to.equal(initialDocBalance.add(expectedTargetAmount));
-      expect(rbtcBalance).to.be.closeTo(initialRbtcBalance.sub(amount) as any, parseEther('0.00001') as any);
-
-      const receipt = await result.wait();
-      const arbitrageEvents = receipt.events.filter((e: any) => e.event === 'Arbitrage');
-      expect(arbitrageEvents.length).to.equal(1);
-      const arbitrageEvent = arbitrageEvents[0];
-      expect(arbitrageEvent.args._beneficiary).to.equal(ownerAddress);
-      expect(arbitrageEvent.args._sourceToken).to.equal(wrbtcToken.address);
-      expect(arbitrageEvent.args._targetToken).to.equal(docToken.address);
-      expect(arbitrageEvent.args._sourceTokenAmount).to.equal(amount);
-      expect(arbitrageEvent.args._targetTokenAmount).to.equal(expectedTargetAmount);
-      expect(arbitrageEvent.args._priceFeedAmount).to.equal(parseEther("2000"));
-      expect(arbitrageEvent.args._profit).to.equal(expectedProfit);
     });
   });
 });
