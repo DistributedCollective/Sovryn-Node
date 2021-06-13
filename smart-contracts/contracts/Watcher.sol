@@ -128,4 +128,9 @@ contract Watcher is Ownable {
 
     return (0, 0, new IERC20[](0));
   }
+
+  receive() external payable {
+    // TODO: subject to change
+    require(msg.sender == address(wrbtcToken), "only WRBTC token can transfer RBTC");
+  }
 }

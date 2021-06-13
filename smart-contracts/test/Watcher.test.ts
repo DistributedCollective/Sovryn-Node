@@ -151,6 +151,39 @@ describe("Watcher", function() {
       expect(docBalance).to.equal(initialDocBalance.add(expectedTargetAmount));
     });
 
+    it("should handle with WRBTC as target token", async () => {
+      // Price feed: 1 USD = 1/2000 BTC
+      // Swaps: 1 USD = 1/1000 BTC = 2/2000 BTC
+      // Profit over price feed: 1/2000 BTC = 0.0005 BTC
+      await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+      await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("1000"));
+
+      const amount = parseEther('1');
+      const expectedTargetAmount = parseEther('0.001');
+      const expectedProfit = parseEther('0.0005');
+
+      const result = await watcher.arbitrage(
+          [docToken.address, wrbtcToken.address],
+          amount,
+          expectedProfit
+      );
+      await expect(result).to.emit(watcher, 'Arbitrage').withArgs(
+          ownerAddress,
+          docToken.address,
+          wrbtcToken.address,
+          amount,
+          expectedTargetAmount,
+          parseEther("0.0005"),
+          expectedProfit,
+      );
+      await expect(result).to.changeEtherBalance(accounts[0], expectedTargetAmount);
+
+      const wrbtcBalance = await wrbtcToken.balanceOf(ownerAddress);
+      const docBalance = await docToken.balanceOf(ownerAddress);
+      expect(wrbtcBalance).to.equal(initialWrbtcBalance);
+      expect(docBalance).to.equal(initialDocBalance.sub(amount));
+    });
+
     it("should handle arbitrage with WRBTC given in RBTC", async () => {
       await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
       await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("3000"));
