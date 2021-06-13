@@ -44,10 +44,9 @@ describe("Watcher", function() {
     sovrynSwapSimulator = await SovrynSwapSimulator.deploy(simulatorPriceFeeds.address);
     await sovrynSwapSimulator.deployed();
 
-    watcher = await Watcher.deploy(sovrynSwapSimulator.address, priceFeeds.address);
+    watcher = await Watcher.deploy(sovrynSwapSimulator.address, priceFeeds.address, wrbtcToken.address);
     await watcher.deployed();
   });
-
 
   describe("#checkArbitrage", () => {
     it("should return NO arbitrage if swap rate = price feed rate", async () => {
