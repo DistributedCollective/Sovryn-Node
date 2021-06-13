@@ -1,12 +1,14 @@
 pragma solidity ^0.7.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 import "hardhat/console.sol";
 
 import "./interfaces/IERC20Token.sol";
 import "./interfaces/ISovrynSwapNetwork.sol";
 
 
-contract Watcher {
+contract Watcher is Ownable {
   ISovrynSwapNetwork sovrynSwapNetwork;
 
   constructor(
