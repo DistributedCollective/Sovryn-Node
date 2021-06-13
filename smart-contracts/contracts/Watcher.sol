@@ -35,7 +35,6 @@ contract Watcher is Ownable {
     IPriceFeeds _priceFeeds,
     IWRBTCToken _wrbtcToken
   ) {
-    console.log("Deploying a Watcher with sovrynSwapNetwork: %s", address(_sovrynSwapNetwork));
     sovrynSwapNetwork = _sovrynSwapNetwork;
     priceFeeds = _priceFeeds;
     wrbtcToken = _wrbtcToken;
@@ -86,7 +85,7 @@ contract Watcher is Ownable {
     }
 
     emit Arbitrage(
-      beneficiary,
+      msg.sender,
       address(sourceToken),
       address(targetToken),
       _amount,
