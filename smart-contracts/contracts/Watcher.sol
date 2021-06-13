@@ -2,21 +2,24 @@ pragma solidity ^0.7.0;
 
 import "hardhat/console.sol";
 
+import "./interfaces/IERC20Token.sol";
+import "./interfaces/ISovrynSwapNetwork.sol";
 
-contract Greeter {
-  string greeting;
 
-  constructor(string memory _greeting) {
-    console.log("Deploying a Greeter with greeting:", _greeting);
-    greeting = _greeting;
+contract Watcher {
+  ISovrynSwapNetwork sovrynSwapNetwork;
+
+  constructor(
+    ISovrynSwapNetwork _sovrynSwapNetwork
+  ) {
+    console.log("Deploying a Watcher with sovrynSwapNetwork: %s", address(_sovrynSwapNetwork));
+    sovrynSwapNetwork = _sovrynSwapNetwork;
   }
 
-  function greet() public view returns (string memory) {
-    return greeting;
-  }
-
-  function setGreeting(string memory _greeting) public {
-    console.log("Changing greeting from '%s' to '%s'", greeting, _greeting);
-    greeting = _greeting;
+  function checkArbitrage(
+    IERC20Token _tokenA,
+    IERC20Token _tokenB
+  ) public view returns (bool hasArbitrage, address[] memory conversionPath) {
+    return (false, new address[](0));
   }
 }
