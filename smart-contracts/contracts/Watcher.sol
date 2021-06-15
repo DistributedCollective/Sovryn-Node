@@ -69,7 +69,7 @@ contract Watcher is Ownable {
     uint256 targetTokenAmount = sovrynSwapNetwork.convertByPath(
       _conversionPath,
       _amount,
-      0, // minReturn
+      1, // minReturn
       beneficiary,
       address(0), // affiliateAccount
       0 // affiliateFee
