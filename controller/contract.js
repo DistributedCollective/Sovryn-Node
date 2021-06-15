@@ -11,6 +11,7 @@ import abiRBTCWrapperProxy from '../config/abiRBTCWrapperProxy';
 import abiIContractRegistry from '../config/abiIContractRegistry';
 import abiConverterRegistry from '../config/abiConverterRegistry';
 import abiLiquidityPoolV2Converter from '../config/abiLiquidityPoolV2Converter';
+import abiWatcher from '../config/abiWatcher';
 import conf from '../config/config';
 import wallets from '../secrets/accounts';
 
@@ -56,6 +57,12 @@ class Contract {
         this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
         this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);
         this.wRbtcWrapper = new this.web3.eth.Contract(abiRBTCWrapperProxy, conf.wRbtcWrapper);
+
+        if (conf.watcherContract) {
+            this.contractWatcher = new this.web3.eth.Contract(abiWatcher, conf.watcherContract);
+        } else {
+            this.contractWatcher = null;
+        }
 
         //Add wallets to web3, so they are ready for sending transactions
         if(addAccounts) {

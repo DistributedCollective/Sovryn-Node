@@ -337,7 +337,7 @@ class Arbitrage {
         console.log(`EXECUTING ARBITRAGE! SELL ${C.web3.utils.fromWei(amount)} ${sourceSymbol}, BUY ${destSymbol}!`)
 
         // TODO: this should include minAmount to avoid race conditions
-        return await this.swap(amount, sourceSymbol, destSymbol, fromAddress);
+        return await this.arbitrageSwap(amount, sourceSymbol, destSymbol);
     }
 
     async handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, pricePriceFeed, arbitrageDeals) {
@@ -417,88 +417,68 @@ class Arbitrage {
         });
     }
 
-    /**
-     * Sending Doc or RBtc to the Amm
-     * Amount in wei
-     * todo: convert minReturn with web3-big-number lib
-     */
-    swap(amount, sourceCurrency, destCurrency, address) {
-        console.log("Send " + amount + " src "+sourceCurrency+" dest "+destCurrency+" to the amm");
+    async arbitrageSwap(amount, sourceCurrency, destCurrency) {
+        console.log("Send " + amount + " src " + sourceCurrency + " dest " + destCurrency + " to the amm");
         let sourceToken, destToken;
 
-        if(sourceCurrency === "doc") sourceToken = conf.docToken;
-        else if(sourceCurrency === "usdt") sourceToken = conf.USDTToken;
-        else if(sourceCurrency === "bpro") sourceToken = conf.BProToken;
+        if (sourceCurrency === "doc") sourceToken = conf.docToken;
+        else if (sourceCurrency === "usdt") sourceToken = conf.USDTToken;
+        else if (sourceCurrency === "bpro") sourceToken = conf.BProToken;
         else sourceToken = conf.testTokenRBTC;
 
-        if(destCurrency === "doc") destToken = conf.docToken;
-        else if(destCurrency === "usdt") destToken = conf.USDTToken;
-        else if(destCurrency === "bpro") destToken = conf.BProToken;
+        if (destCurrency === "doc") destToken = conf.docToken;
+        else if (destCurrency === "usdt") destToken = conf.USDTToken;
+        else if (destCurrency === "bpro") destToken = conf.BProToken;
         else destToken = conf.testTokenRBTC;
 
-        const contract1 = C.contractSwaps;
-        const contract2 = C.wRbtcWrapper;
-        const minReturn = 1; //amount / 100 * 99; //minReturn = 1 -> No assurance
-        const beneficiary = address || A.arbitrage[0].adr;
-        const affiliateAcc = "0x0000000000000000000000000000000000000000";
-        const affiliateFee = 0;
-        const val = sourceCurrency === "rbtc"? amount:0;
+        const minProfit = 0; // no profit enforced yet
+        const fromAddress = A.arbitrage[0].adr;
+        const val = sourceCurrency === "rbtc" ? amount : 0;
         const numberOfHops = destCurrency === "rbtc" || sourceCurrency === "rbtc" ? 3 : 5;
 
-        return new Promise(async (resolve) => {
-            try {
-                contract1.methods["conversionPath"](sourceToken, destToken).call(async (error, result) => {
-                    if (error || !result || result.length !== numberOfHops) {
-                        console.error("error loading conversion path from " + contract1._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
-                        console.error(error);
-                        return resolve();
-                    }
+        const conversionPath = await C.contractSwaps.methods.conversionPath(sourceToken, destToken).call();
+        if (conversionPath.length !== numberOfHops) {
+            throw new Error(
+                "error loading conversion path from " + contract1._address +
+                " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount
+            );
+        }
 
-                    const gasPrice = await C.getGasPrice();
-                    contract2.methods["convertByPath"](result, amount, minReturn)
-                        .send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
-                        .then(async (tx) => {
-                            const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(amount.toString(), 'Ether')} ${C.getTokenSymbol(sourceToken)} for ${C.getTokenSymbol(destToken)}
-                                \n${conf.blockExplorer}tx/${tx.transactionHash}`;
-                            console.log(msg);
-                            common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML())
-
-                            return resolve(tx);
-                        })
-                        .catch(async (err) => {
-                            console.error("Error on arbitrage tx ");
-                            console.error(err);
-                            let explorerLink = '(not available)';
-                            if(err.receipt) {
-                                explorerLink = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
-                            }
-                            common.telegramBot.sendMessage(
-                                `<b><u>A</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on arbitrage tx swapping ${C.web3.utils.fromWei(amount.toString(), 'Ether')} ${sourceCurrency} for ${destCurrency}\n` +
-                                `Transaction hash: ${explorerLink}`,
-                                Extra.HTML()
-                            );
-
-                            return resolve();
-                        });
-                });
+        const gasPrice = await C.getGasPrice();
+        let tx;
+        try {
+            tx = await C.contractWatcher.methods.arbitrage(
+                conversionPath,
+                amount,
+                minProfit,
+            ).send({
+                from: fromAddress,
+                gas: conf.gasLimit,
+                gasPrice: gasPrice,
+                value: val,
+            });
+        } catch (err) {
+            console.error("Error on arbitrage tx ");
+            console.error(err);
+            let explorerLink = '(not available)';
+            if (err.receipt) {
+                explorerLink = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
             }
-            catch (e) {
-                console.error("error loading price from " + contract2._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
-                console.error(e);
-                const trade = destToken.toLowerCase() === conf.testTokenRBTC.toLowerCase() ? 'buy btc' : 'sell btc';
-                console.log('Storing failed transaction into DB');
-                // store failed transaction in DB
-                await db.addArbitrage({
-                    adr: address,
-                    fromToken: sourceCurrency, 
-                    toToken: destCurrency,
-                    fromAmount: amount, trade,
-                    status: 'failed'
-                })
-                resolve()
-            }
-        });
-
+            await common.telegramBot.sendMessage(
+                `<b><u>A</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on arbitrage tx swapping ${C.web3.utils.fromWei(amount.toString(), 'Ether')} ${sourceCurrency} for ${destCurrency}\n` +
+                `Transaction hash: ${explorerLink}`,
+                Extra.HTML()
+            );
+            return;
+        }
+        const msg = (
+            `Arbitrage tx successful: traded ` +
+            `${C.web3.utils.fromWei(amount.toString(), 'Ether')} ${C.getTokenSymbol(sourceToken)} for ${C.getTokenSymbol(destToken)}\n` +
+            `${conf.blockExplorer}tx/${tx.transactionHash}`
+        );
+        console.log(msg);
+        await common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML())
+        return tx;
     }
 
     async calculateProfit(tx, btcPriceFeed, amount){

@@ -44,8 +44,8 @@ describe("Arbitrage controller V2", () => {
         await wrbtcToken.transfer(arbitragerAddress, initialWRBTCBalance);
         await usdtToken.transfer(arbitragerAddress, initialUSDTBalance);
 
-        await wrbtcToken.approve(sovrynContracts.rbtcWrapperProxy.address, MAX_UINT256, {from: arbitragerAddress});
-        await usdtToken.approve(sovrynContracts.rbtcWrapperProxy.address, MAX_UINT256, {from: arbitragerAddress});
+        await wrbtcToken.approve(sovrynContracts.watcher.address, MAX_UINT256, {from: arbitragerAddress});
+        await usdtToken.approve(sovrynContracts.watcher.address, MAX_UINT256, {from: arbitragerAddress});
 
         // sanity check
         expect(await wrbtcToken.balanceOf(arbitragerAddress)).to.be.bignumber.equal(initialWRBTCBalance);

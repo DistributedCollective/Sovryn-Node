@@ -31,6 +31,9 @@ module.exports = {
       {
         version: "0.5.17",
       },
+      {
+        version: "0.7.3",
+      },
     ]
   },
   paths: {
