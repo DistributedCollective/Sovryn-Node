@@ -168,11 +168,7 @@ class Arbitrage {
      */
 
     async start(arbitrageDeals) {
-        if(conf.enableDynamicArbitrageAmount) {
-            await this.startDynamicAmount(arbitrageDeals);
-        } else {
-            await this.startFixedAmount(arbitrageDeals);
-        }
+        await this.startDynamicAmount(arbitrageDeals);
     }
 
     async startDynamicAmount(arbitrageDeals = null) {
@@ -361,86 +357,6 @@ class Arbitrage {
         }
         await this.calculateProfit(arbitrageTx, rbtcPrice, rbtcAmount);
     }
-
-    async startFixedAmount(arbitrageDeals) {
-        while (true) {
-            console.log("started checking prices");
-
-            let res, arb, profit;
-            let prices = await this.getRBtcPrices();
-            console.log(prices)
-
-            for(let p in prices) {
-                //set arb to the lower price in USD (prices are actually return values given for `amount` rbtc)
-                if(prices[p][0]>0 && prices[p][1]>0) arb = this.calcArbitrage(prices[p][0], prices[p][1], p, conf.thresholdArbitrage);
-
-                //the AMM price is lower -> buy BTC
-                if (arb && (arb === parseFloat(prices[p][0]).toFixed(5))) {
-                    let convertedAmount = C.web3.utils.toWei(prices[p][0].toString(), "Ether");
-                    res = await this.swap(convertedAmount, p, 'rbtc');
-                    arbitrageDeals.push({from: C.getTokenSymbol(p), to: 'rBTC'});
-                }
-                //the oracle price is lower -> sell btc
-                else if (arb && (arb === parseFloat(prices[p][1]).toFixed(5))) {
-                    res = await this.swap(C.web3.utils.toWei(conf.amountArbitrage.toString()), 'rbtc', p);
-                    arbitrageDeals.push({from: 'rBTC', to: C.getTokenSymbol(p)});
-                }
-
-                if(res) profit = await this.calculateProfit(res, p[1]);
-            }
-
-            console.log("Completed checking prices at ");
-            await U.wasteTime(conf.arbitrageScanInterval);
-        }
-    }
-
-    /**
-     * If price difference between p1 and p2 >= threshold return Min(p1,p2)
-     * else return 0
-     */
-    calcArbitrage(p1, p2, token, threshold) {
-        const smallerAmount = Math.min(p1, p2);
-        const arbitrage = Math.abs(p1 - p2) / smallerAmount * 100;
-        if (arbitrage >= threshold) {
-            console.log(`Arbitrage ${token}: `+arbitrage);
-            if(smallerAmount === p1) console.log(`Buy ${token}!`)
-            else console.log("Buy RBtc");
-
-            return smallerAmount.toFixed(5);
-        }
-        console.log(arbitrage+ " % price difference is too small for arbitrage");
-        return;
-    }
-
-    async getRBtcPrices() {
-        const amount = C.web3.utils.toWei(conf.amountArbitrage.toString(), "Ether");
-
-        //doc
-        let rBtcDocAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.docToken, amount);
-        rBtcDocAmm = C.web3.utils.fromWei(rBtcDocAmm.toString(), "Ether");
-        rBtcDocAmm = parseFloat(rBtcDocAmm).toFixed(5);
-        let rBtcDocPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.docToken, amount);
-        rBtcDocPf = C.web3.utils.fromWei(rBtcDocPf.toString(), "Ether");
-        rBtcDocPf = parseFloat(rBtcDocPf).toFixed(5);
-
-        //usdt
-        let rBtcUsdtAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.USDTToken, amount);
-        rBtcUsdtAmm = C.web3.utils.fromWei(rBtcUsdtAmm.toString(), "Ether");
-        rBtcUsdtAmm = parseFloat(rBtcUsdtAmm).toFixed(5);
-        let rBtcUsdtPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.USDTToken, amount);
-        rBtcUsdtPf = C.web3.utils.fromWei(rBtcUsdtPf.toString(), "Ether");
-        rBtcUsdtPf = parseFloat(rBtcUsdtPf).toFixed(5);
-
-        //bpro
-        /*
-        let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
-        rBtcBproAmm = C.web3.utils.fromWei(rBtcBproAmm.toString(), "Ether");
-        let rBtcBproPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.BProToken, amount);
-        rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");*/
-
-        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], /*"bpro": [rBtcBproAmm, rBtcBproPf]*/};
-    }
-
 
     /**
     * Amount is based in sourceToken
@@ -642,13 +558,6 @@ class Arbitrage {
         } catch (e) {
             console.error("Error when calculate arbitrage profit", e);
         }
-    }
-
-    /**
-    * Converts RBtc to Doc on MoneyOnchain
-    */
-    convertOnMoc() {
-
     }
 }
 
