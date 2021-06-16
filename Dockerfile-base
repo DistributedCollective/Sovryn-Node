@@ -1,0 +1,42 @@
+FROM ubuntu
+
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG NODE_VERSION=14
+
+RUN set -ex && \
+    apt-get -y -qq update && \
+    apt-get -y -qq --no-install-recommends install \
+      php-cli \
+      php-fpm \
+      curl \
+      ca-certificates \
+      php-zip \
+      php-curl \
+      php-xml \
+      zip \
+      unzip \
+      git \
+      php-mbstring \
+      gnupg \
+      build-essential && \
+    curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add - \
+    && echo "deb https://deb.nodesource.com/node_${NODE_VERSION}.x focal main" > /etc/apt/sources.list.d/nodesource.list \
+    && curl -sSLf https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+    && echo "deb https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
+    && apt-get -y -qq update && \
+    apt-get -y -qq --no-install-recommends install \
+    nodejs \
+    yarn && \
+    apt-get autoclean && apt-get clean && \
+    rm -rf \
+      /var/lib/apt/lists/* \
+      /usr/src/* \
+      /tmp/pear \
+      /root/.composer/cache \
+      /var/cache/apt/archives
+
+RUN curl -sS https://getcomposer.org/installer | php && \
+    mv composer.phar /usr/local/bin/composer
+
+
+
