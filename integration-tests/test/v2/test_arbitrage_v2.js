@@ -476,11 +476,14 @@ describe("Arbitrage controller V2", () => {
 
         const rbtcMaxAmountWei = ether('0.1');
         expect(rbtcMaxAmountWei).to.be.bignumber.below(initialRBTCBalance);
+
+        const rbtcToSendAway = initialRBTCBalance.sub(rbtcMaxAmountWei);
         await web3.eth.sendTransaction({
             to: contractOwnerAddress,
-            value: initialRBTCBalance.sub(rbtcMaxAmountWei),
+            value: rbtcToSendAway,
             from: arbitragerAddress
         });
+
         // account for gas costs
         expect(await web3.eth.getBalance(arbitragerAddress)).to.be.bignumber.closeTo(rbtcMaxAmountWei, ether('0.001'));
 
@@ -491,6 +494,13 @@ describe("Arbitrage controller V2", () => {
         expect(opportunity.amount).to.be.bignumber.below(rbtcMaxAmountWei);
         expect(opportunity.amount).to.be.bignumber.above(rbtcMaxAmountWei.sub(ether('0.001'))); // gas costs
         expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
+
+        // NOTE: if the above assertions fail, this will also not get executed and following tests might fail
+        await web3.eth.sendTransaction({
+            to: arbitragerAddress,
+            value: rbtcToSendAway,
+            from: contractOwnerAddress
+        });
     });
 
     it("doesn't limit max amount if opportunity amount is smaller", async () => {
