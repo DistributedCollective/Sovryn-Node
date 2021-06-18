@@ -1,4 +1,5 @@
 pragma solidity ^0.7.0;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -8,6 +9,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "hardhat/console.sol";
 
 import "./interfaces/ISovrynSwapNetwork.sol";
+import "./interfaces/ISovrynProtocol.sol";
 import "./interfaces/IPriceFeeds.sol";
 import "./interfaces/IWRBTCToken.sol";
 
@@ -17,6 +19,7 @@ contract Watcher is Ownable {
   //using SafeERC20 for IERC20; // TODO: is this needed?
 
   ISovrynSwapNetwork public sovrynSwapNetwork;
+  ISovrynProtocol public sovrynProtocol;
   IPriceFeeds public priceFeeds;
   IWRBTCToken public wrbtcToken;
 
@@ -32,10 +35,12 @@ contract Watcher is Ownable {
 
   constructor(
     ISovrynSwapNetwork _sovrynSwapNetwork,
+    ISovrynProtocol _sovrynProtocol,
     IPriceFeeds _priceFeeds,
     IWRBTCToken _wrbtcToken
   ) {
     sovrynSwapNetwork = _sovrynSwapNetwork;
+    sovrynProtocol = _sovrynProtocol;
     priceFeeds = _priceFeeds;
     wrbtcToken = _wrbtcToken;
   }
@@ -45,7 +50,7 @@ contract Watcher is Ownable {
     IERC20[] calldata _conversionPath,
     uint256 _amount,
     uint256 _minProfit
-  ) public payable {
+  ) external payable {
     require(_conversionPath.length >= 2, "_conversionPath must contain at least 2 tokens");
 
     IERC20 sourceToken = _conversionPath[0];
@@ -93,6 +98,22 @@ contract Watcher is Ownable {
       priceFeedReturn,
       profit
     );
+  }
+
+  function liquidate(
+    bytes32 loanId,
+    address receiver,
+    uint256 closeAmount // denominated in loanToken
+  ) external payable returns (
+    uint256 loanCloseAmount,
+    uint256 seizedAmount,
+    address seizedToken
+  ) {
+    // This is just a dumb proxy by now
+    ISovrynProtocol.LoanReturnData memory loan = sovrynProtocol.getLoan(loanId);
+    IERC20(loan.loanToken).transferFrom(msg.sender, address(this), closeAmount);
+    IERC20(loan.loanToken).approve(address(sovrynProtocol), closeAmount);
+    return sovrynProtocol.liquidate{ value: msg.value }(loanId, receiver, closeAmount);
   }
 
   function checkArbitrage(

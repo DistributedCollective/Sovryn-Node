@@ -46,7 +46,12 @@ describe("Watcher", function() {
     sovrynSwapSimulator = await SovrynSwapSimulator.deploy(simulatorPriceFeeds.address);
     await sovrynSwapSimulator.deployed();
 
-    watcher = await Watcher.deploy(sovrynSwapSimulator.address, priceFeeds.address, wrbtcToken.address);
+    watcher = await Watcher.deploy(
+        sovrynSwapSimulator.address,
+        '0x0000000000000000000000000000000000000000',  // TODO
+        priceFeeds.address,
+        wrbtcToken.address
+    );
     await watcher.deployed();
   });
 
