@@ -133,21 +133,6 @@ class Liquidator {
     * @param sourceCurrency should be that hash of the contract
     * @param destCurrency is defaulting for now to 'rbtc'
     */
-    async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc', wallet) {
-        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : C.getTokenSymbol(sourceCurrency);
-        destCurrency = destCurrency === 'rbtc' ? destCurrency : C.getTokenSymbol(destCurrency);
-        console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency}`);
-        try {
-            const prices = await Arbitrage.getRBtcPrices();
-            const tokenPriceInRBtc = prices[sourceCurrency];
-            if (!tokenPriceInRBtc) throw "No prices found for the " + sourceCurrency + " token";
-            const res = await Arbitrage.swap(value, sourceCurrency, destCurrency, wallet);
-            if (res) console.log("Swap successful!");
-        } catch(err) {
-            console.log("Swap failed", err);
-        }
-    }
-
     /*
     * Tries to liquidate a position
     * If Loan token == WRBTC -> pass value
@@ -171,33 +156,40 @@ class Liquidator {
 
         const pos = isRbtcToken ? 'long' : 'short';
 
-        return C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
-            .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: val })
-            .then(async (tx) => {
-                console.log("loan " + loanId + " liquidated!");
-                console.log(tx.transactionHash);
-                await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
-                await p.addLiqLog(tx.transactionHash, pos);
-                // remove swapback for now since it doesn't work too well
-                //if (!isRbtcToken) await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
-            })
-            .catch(async (err) => {
-                console.error("Error on liquidating loan " + loanId);
-                console.error(err);
-
-                let errorDetails;
-                if(err.receipt) {
-                    errorDetails = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
-                } else {
-                    errorDetails = err.toString().slice(0, 200);
-                }
-                common.telegramBot.sendMessage(
-                    `<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${errorDetails}\n` +
-                    `LoanId: ${U.formatLoanId(loanId)}`,
-                    Extra.HTML()
-                );
-                await p.handleLiqError(wallet, loanId, amount, pos);
+        let tx;
+        try {
+            tx = await C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString()).send({
+                from: wallet,
+                gas: conf.gasLimit,
+                gasPrice: gasPrice,
+                nonce: nonce,
+                value: val
             });
+        } catch (err) {
+            console.error("Error on liquidating loan " + loanId);
+            console.error(err);
+
+            let errorDetails;
+            if(err.receipt) {
+                errorDetails = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
+            } else {
+                errorDetails = err.toString().slice(0, 200);
+            }
+            await common.telegramBot.sendMessage(
+                `<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${errorDetails}\n` +
+                `LoanId: ${U.formatLoanId(loanId)}`,
+                Extra.HTML()
+            );
+            await p.handleLiqError(wallet, loanId, amount, pos);
+            return;
+        }
+
+        console.log("loan " + loanId + " liquidated!");
+        console.log(tx.transactionHash);
+        await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
+        await p.addLiqLog(tx.transactionHash, pos);
+        // remove swapback for now since it doesn't work too well
+        //if (!isRbtcToken) await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
     }
 
     async handleLiqSuccess(wallet, loanId, txHash, amount, token) {
