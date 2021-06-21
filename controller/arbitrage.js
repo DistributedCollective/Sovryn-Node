@@ -642,7 +642,7 @@ class Arbitrage {
      * todo: convert minReturn with web3-big-number lib
      */
     swap(amount, sourceCurrency, destCurrency, address) {
-        console.log("Send " + amount + " src "+sourceCurrency+" dest "+destCurrency+" to the amm");
+        console.log("Send " + C.web3.utils.fromWei(amount) + " src "+sourceCurrency+" dest "+destCurrency+" to the amm");
         let sourceToken, destToken;
 
         if(sourceCurrency === "doc") sourceToken = conf.docToken;
