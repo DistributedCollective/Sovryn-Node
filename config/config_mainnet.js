@@ -41,6 +41,7 @@ export default {
     dynamicArbitrageMaxAmounts: {
         rbtc: '0.1',
         default: '1000',
+        xusd: '5000',
     },
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
