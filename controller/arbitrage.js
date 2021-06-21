@@ -648,11 +648,15 @@ class Arbitrage {
         if(sourceCurrency === "doc") sourceToken = conf.docToken;
         else if(sourceCurrency === "usdt") sourceToken = conf.USDTToken;
         else if(sourceCurrency === "bpro") sourceToken = conf.BProToken;
+        else if(sourceCurrency === "xusd") sourceToken = conf.XUSDToken;
+        else if(sourceCurrency === "eths") sourceToken = conf.ethsToken;
         else sourceToken = conf.testTokenRBTC;
 
         if(destCurrency === "doc") destToken = conf.docToken;
         else if(destCurrency === "usdt") destToken = conf.USDTToken;
         else if(destCurrency === "bpro") destToken = conf.BProToken;
+        else if(destCurrency === "xusd") destToken = conf.XUSDToken;
+        else if(destCurrency === "eths") destToken = conf.ethsToken;
         else destToken = conf.testTokenRBTC;
 
         const contract1 = C.contractSwaps;
