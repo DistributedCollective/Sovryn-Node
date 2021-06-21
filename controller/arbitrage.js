@@ -305,7 +305,7 @@ class Arbitrage {
         }
 
         let priceAmm, pricePriceFeed, arbitrageOpportunity;
-        if (rbtcToUsdPriceAmmWei.gt(rbtcToUsdPicePriceFeedWei)) {
+        if (rbtcToUsdPriceAmmWei.gt(rbtcToUsdPricePriceFeedWei)) {
             priceAmm = parseFloat(C.web3.utils.fromWei(rbtcToUsdPriceAmmWei));
             pricePriceFeed = parseFloat(C.web3.utils.fromWei(rbtcToUsdPricePriceFeedWei));
             arbitrageOpportunity = new ArbitrageOpportunity(
@@ -315,7 +315,7 @@ class Arbitrage {
                 'rbtc',
                 tokenSymbol,
             );
-        } else if (usdToRbtcPriceAmmWei.gt(usdToRbtcPicePriceFeedWei)) {
+        } else if (usdToRbtcPriceAmmWei.gt(usdToRbtcPricePriceFeedWei)) {
             priceAmm = parseFloat(C.web3.utils.fromWei(usdToRbtcPriceAmmWei));
             pricePriceFeed = parseFloat(C.web3.utils.fromWei(usdToRbtcPricePriceFeedWei));
             arbitrageOpportunity = new ArbitrageOpportunity(
