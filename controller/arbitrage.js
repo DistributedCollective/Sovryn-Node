@@ -180,7 +180,7 @@ class Arbitrage {
             ['usdt', conf.USDTToken],
             ['doc', conf.docToken],
         ];
-        const v1UsdTokens = [
+        const v1PoolTokens = [
             ['xusd', conf.XUSDToken],
         ]
         while(true) {
@@ -193,9 +193,9 @@ class Arbitrage {
                     console.error(`Error handling arbitrage for token ${tokenSymbol}`, e);
                 }
             }
-            for(const [tokenSymbol, tokenAddress] of v1UsdTokens) {
+            for(const [tokenSymbol, tokenAddress] of v1PoolTokens) {
                 try {
-                    await this.handleArbitrageForV1UsdToken(tokenSymbol, tokenAddress, arbitrageDeals);
+                    await this.handleArbitrageForV1Token(tokenSymbol, tokenAddress, arbitrageDeals);
                 } catch(e) {
                     console.error(`Error handling arbitrage for token ${tokenSymbol}`, e);
                 }
@@ -238,17 +238,20 @@ class Arbitrage {
     }
 
     /* Arbitrage a V1 liquidity pool token that's roughly equivalent to USD
-     * These don't have price feeds or staked balances different from actual reserve balances,
+     * These don't have staked balances different from actual reserve balances,
      * so we cannot use the dynamic arbitrage way for calculating the amount and/or to check prices.
      * Instead, we just compare the AMM price of the token to the Price Feed price of another USD token (DoC),
      * and see if there's an opportunity for gains.
      */
-    async handleArbitrageForV1UsdToken(tokenSymbol, tokenAddress, arbitrageDeals) {
-        console.log(`checking token ${tokenSymbol} (v1 usd token)`);
+    async handleArbitrageForV1Token(tokenSymbol, tokenAddress, arbitrageDeals) {
+        console.log(`checking token ${tokenSymbol} (v1)`);
 
         const rbtcAddress = conf.testTokenRBTC;
-        const referenceUsdTokenAddress = conf.docToken;  // used for price feed price
-        const referenceUsdTokenSymbol = 'DoC';
+        // we could use another token here, but since at least XUSD has a price feed after all, we'll use that
+        //const referenceUsdTokenAddress = conf.docToken;
+        //const referenceUsdTokenSymbol = 'DoC';
+        const referenceUsdTokenAddress = tokenAddress;
+        const referenceUsdTokenSymbol = tokenSymbol;
 
         let tokenAmount = this.BN(C.web3.utils.toWei(
             conf.dynamicArbitrageMaxAmounts[tokenSymbol] || conf.dynamicArbitrageMaxAmounts.default || '0.1'
