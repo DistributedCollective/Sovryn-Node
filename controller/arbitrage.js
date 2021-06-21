@@ -180,12 +180,22 @@ class Arbitrage {
             ['usdt', conf.USDTToken],
             ['doc', conf.docToken],
         ];
+        const v1UsdTokens = [
+            ['xusd', conf.XUSDToken],
+        ]
         while(true) {
             console.log("started checking prices (dynamic)");
 
             for(const [tokenSymbol, tokenAddress] of tokens) {
                 try {
                     await this.handleDynamicArbitrageForToken(tokenSymbol, tokenAddress, arbitrageDeals);
+                } catch(e) {
+                    console.error(`Error handling arbitrage for token ${tokenSymbol}`, e);
+                }
+            }
+            for(const [tokenSymbol, tokenAddress] of v1UsdTokens) {
+                try {
+                    await this.handleArbitrageForV1UsdToken(tokenSymbol, tokenAddress, arbitrageDeals);
                 } catch(e) {
                     console.error(`Error handling arbitrage for token ${tokenSymbol}`, e);
                 }
@@ -210,6 +220,117 @@ class Arbitrage {
 
         const [priceAmm, pricePriceFeed] = await this.getAmmAndPriceFeedPrices(arbitrageOpportunity);
         console.log('prices: amm: ', priceAmm.toFixed(5), ' pricefeed: ', pricePriceFeed.toFixed(5));
+
+        const arbitragePercentage = await this.calculateArbitragePercentage(priceAmm, pricePriceFeed);
+        console.log('arbitrage%', arbitragePercentage.toFixed(5));
+        if(arbitragePercentage < conf.thresholdArbitrage) {
+            console.log(`arbitrage too low for threshold ${conf.thresholdArbitrage}`);
+            return;
+        }
+
+        const arbitrageTx = await this.executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress);
+        if(arbitrageTx) {
+            await this.handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, pricePriceFeed, arbitrageDeals);
+        } else {
+            console.warn('Arbitrage not executed.')
+        }
+        return arbitrageTx;
+    }
+
+    /* Arbitrage a V1 liquidity pool token that's roughly equivalent to USD
+     * These don't have price feeds or staked balances different from actual reserve balances,
+     * so we cannot use the dynamic arbitrage way for calculating the amount and/or to check prices.
+     * Instead, we just compare the AMM price of the token to the Price Feed price of another USD token (DoC),
+     * and see if there's an opportunity for gains.
+     */
+    async handleArbitrageForV1UsdToken(tokenSymbol, tokenAddress, arbitrageDeals) {
+        console.log(`checking token ${tokenSymbol} (v1 usd token)`);
+
+        const rbtcAddress = conf.testTokenRBTC;
+        const referenceUsdTokenAddress = conf.docToken;  // used for price feed price
+        const referenceUsdTokenSymbol = 'DoC';
+
+        let tokenAmount = this.BN(C.web3.utils.toWei(
+            conf.dynamicArbitrageMaxAmounts[tokenSymbol] || conf.dynamicArbitrageMaxAmounts.default || '0.1'
+        ));
+        tokenAmount = await this.calculateLimitedAmount(tokenAmount, tokenAddress, tokenSymbol);
+
+        let rbtcAmount = this.BN(C.web3.utils.toWei(
+            conf.dynamicArbitrageMaxAmounts['rbtc'] || conf.dynamicArbitrageMaxAmounts.default || '5000'
+        ));
+        rbtcAmount = await this.calculateLimitedAmount(rbtcAmount, rbtcAddress, 'rbtc');
+
+        let rbtcToUsdPriceAmmWei = this.BN('0');
+        let rbtcToUsdPricePriceFeedWei = this.BN('0');
+        let usdToRbtcPriceAmmWei = this.BN('0');
+        let usdToRbtcPricePriceFeedWei = this.BN('0');
+
+        if(!rbtcAmount.isZero()) {
+            rbtcToUsdPriceAmmWei = await this.getPriceFromAmm(
+                C.contractSwaps,
+                rbtcAddress,
+                tokenAddress,
+                rbtcAmount,
+            );
+            console.log(`AMM:  ${C.web3.utils.fromWei(rbtcAmount)} RBTC = ${C.web3.utils.fromWei(rbtcToUsdPriceAmmWei)} ${tokenSymbol}`);
+
+            rbtcToUsdPricePriceFeedWei = await this.getPriceFromPriceFeed(
+                C.contractPriceFeed,
+                rbtcAddress,
+                referenceUsdTokenAddress,
+                rbtcAmount,
+            );
+            console.log(`FEED: ${C.web3.utils.fromWei(rbtcAmount)} RBTC = ${C.web3.utils.fromWei(rbtcToUsdPricePriceFeedWei)} ${referenceUsdTokenSymbol}`);
+        }
+
+        if(!tokenAmount.isZero()) {
+            usdToRbtcPriceAmmWei = await this.getPriceFromAmm(
+                C.contractSwaps,
+                tokenAddress,
+                rbtcAddress,
+                tokenAmount,
+            );
+            console.log(`AMM:  ${C.web3.utils.fromWei(tokenAmount)} ${tokenSymbol} = ${C.web3.utils.fromWei(usdToRbtcPriceAmmWei)} RBTC`);
+
+            usdToRbtcPricePriceFeedWei = await this.getPriceFromPriceFeed(
+                C.contractPriceFeed,
+                referenceUsdTokenAddress,
+                rbtcAddress,
+                tokenAmount,
+            );
+            console.log(`FEED: ${C.web3.utils.fromWei(tokenAmount)} ${referenceUsdTokenSymbol} = ${C.web3.utils.fromWei(usdToRbtcPricePriceFeedWei)} RBTC`);
+        }
+
+        let priceAmm, pricePriceFeed, arbitrageOpportunity;
+        if (rbtcToUsdPriceAmmWei.gt(rbtcToUsdPicePriceFeedWei)) {
+            priceAmm = parseFloat(C.web3.utils.fromWei(rbtcToUsdPriceAmmWei));
+            pricePriceFeed = parseFloat(C.web3.utils.fromWei(rbtcToUsdPricePriceFeedWei));
+            arbitrageOpportunity = new ArbitrageOpportunity(
+                rbtcAddress,
+                tokenAddress,
+                rbtcAmount,
+                'rbtc',
+                tokenSymbol,
+            );
+        } else if (usdToRbtcPriceAmmWei.gt(usdToRbtcPicePriceFeedWei)) {
+            priceAmm = parseFloat(C.web3.utils.fromWei(usdToRbtcPriceAmmWei));
+            pricePriceFeed = parseFloat(C.web3.utils.fromWei(usdToRbtcPricePriceFeedWei));
+            arbitrageOpportunity = new ArbitrageOpportunity(
+                tokenAddress,
+                rbtcAddress,
+                tokenAmount,
+                tokenSymbol,
+                'rbtc',
+            );
+        } else {
+            console.log(`no arbitrage opportunity found for ${tokenSymbol}`)
+            return;
+        }
+
+        console.log(
+            `Possible arbitrage opportunity: ${C.web3.utils.fromWei(arbitrageOpportunity.amount)} ` +
+            `${arbitrageOpportunity.sourceTokenSymbol} -> ${arbitrageOpportunity.destTokenSymbol}`
+        );
 
         const arbitragePercentage = await this.calculateArbitragePercentage(priceAmm, pricePriceFeed);
         console.log('arbitrage%', arbitragePercentage.toFixed(5));
@@ -253,52 +374,63 @@ class Arbitrage {
         );
 
         if(opportunity) {
-            // limit amount according to balance and/or config
-            let arbitragerBalance;
-            const fromAddress = A.arbitrage[0].adr;
-            const sourceContract = C.getTokenInstance(opportunity.sourceTokenAddress);
-
-            if(sourceContract._address === C.contractTokenRBTC._address) {
-                // because of the RBTC wrapper proxy, we only care about RBTC balance and not WRBTC balance
-                arbitragerBalance = this.BN(await C.web3.eth.getBalance(fromAddress));
-                // Add some buffer for gas. Exact amount is up for debate...
-                arbitragerBalance = arbitragerBalance.sub(this.BN(C.web3.utils.toWei('0.0001')));
-            } else {
-                arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
-            }
-            if(arbitragerBalance.isZero() || arbitragerBalance.isNeg()) {
-                console.log('no balance held in wallet -- cannot do anything')
+            opportunity.amount = await this.calculateLimitedAmount(
+                opportunity.amount,
+                opportunity.sourceTokenAddress,
+                opportunity.sourceTokenSymbol,
+            );
+            if(opportunity.amount.isZero()) {
                 return null;
-            }
-
-            let configMaxAmountWei = null;
-            if(conf.dynamicArbitrageMaxAmounts) {
-                const configMaxAmountStr = conf.dynamicArbitrageMaxAmounts[opportunity.sourceTokenSymbol] || conf.dynamicArbitrageMaxAmounts.default;
-                if(configMaxAmountStr) {
-                    configMaxAmountWei = this.BN(C.web3.utils.toWei(configMaxAmountStr));
-                }
-            }
-
-            if(!configMaxAmountWei || arbitragerBalance.lt(configMaxAmountWei)) {
-                // config max not specified or balance < config max
-                if(opportunity.amount.gt(arbitragerBalance)) {
-                    console.log(
-                        `Limiting amount to held balance ${C.web3.utils.fromWei(arbitragerBalance)} ${opportunity.sourceTokenSymbol} ` +
-                        `instead of ${C.web3.utils.fromWei(opportunity.amount)} ${opportunity.sourceTokenSymbol} `
-                    );
-                    opportunity.amount = arbitragerBalance;
-                }
-            } else if(opportunity.amount.gt(configMaxAmountWei)) {
-                // config max amount specified and less than amount
-                console.log(
-                    `Limiting amount to max amount specified in config: ${C.web3.utils.fromWei(configMaxAmountWei)} ${opportunity.sourceTokenSymbol} ` +
-                    `instead of ${C.web3.utils.fromWei(opportunity.amount)} ${opportunity.sourceTokenSymbol}`
-                );
-                opportunity.amount = configMaxAmountWei;
             }
         }
 
         return opportunity;
+    }
+
+    async calculateLimitedAmount(amount, sourceTokenAddress, sourceTokenSymbol) {
+        let arbitragerBalance;
+        const fromAddress = A.arbitrage[0].adr;
+        const sourceContract = C.getTokenInstance(sourceTokenAddress);
+
+        if(sourceContract._address === C.contractTokenRBTC._address) {
+            // because of the RBTC wrapper proxy, we only care about RBTC balance and not WRBTC balance
+            arbitragerBalance = this.BN(await C.web3.eth.getBalance(fromAddress));
+            // Add some buffer for gas. Exact amount is up for debate...
+            arbitragerBalance = arbitragerBalance.sub(this.BN(C.web3.utils.toWei('0.0001')));
+        } else {
+            arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
+        }
+        if(arbitragerBalance.isZero() || arbitragerBalance.isNeg()) {
+            console.log('no balance held in wallet -- cannot do anything')
+            return this.BN('0');
+        }
+
+        let configMaxAmountWei = null;
+        if(conf.dynamicArbitrageMaxAmounts) {
+            const configMaxAmountStr = conf.dynamicArbitrageMaxAmounts[sourceTokenSymbol] || conf.dynamicArbitrageMaxAmounts.default;
+            if(configMaxAmountStr) {
+                configMaxAmountWei = this.BN(C.web3.utils.toWei(configMaxAmountStr));
+            }
+        }
+
+        if(!configMaxAmountWei || arbitragerBalance.lt(configMaxAmountWei)) {
+            // config max not specified or balance < config max
+            if(amount.gt(arbitragerBalance)) {
+                console.log(
+                    `Limiting amount to held balance ${C.web3.utils.fromWei(arbitragerBalance)} ${sourceTokenSymbol} ` +
+                    `instead of ${C.web3.utils.fromWei(amount)} ${sourceTokenSymbol} `
+                );
+                amount = arbitragerBalance;
+            }
+        } else if(amount.gt(configMaxAmountWei)) {
+            // config max amount specified and less than amount
+            console.log(
+                `Limiting amount to max amount specified in config: ${C.web3.utils.fromWei(configMaxAmountWei)} ${sourceTokenSymbol} ` +
+                `instead of ${C.web3.utils.fromWei(amount)} ${sourceTokenSymbol}`
+            );
+            amount = configMaxAmountWei;
+        }
+        return amount;
     }
 
     async getAmmAndPriceFeedPrices(arbitrageOpportunity) {
