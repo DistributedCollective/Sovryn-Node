@@ -1,6 +1,6 @@
 import telegramBot from '../secrets/telegram.js';
 
-export default  {
+export default {
     serverPort: 3000,
     nodeProvider: 'https://testnet.sovryn.app/rpc',
     publicNodeProvider: 'https://public-node.testnet.rsk.co',
@@ -24,6 +24,7 @@ export default  {
     docToken: "0xcb46c0ddc60d18efeb0e586c17af6ea36452dae0", //former susd
     USDTToken: "0x4d5a316d23ebe168d8f887b4447bf8dbfa4901cc",
     BProToken: "0x4da7997a819bb46b6758b9102234c289dd2ad3bf",
+    XUSDToken: "0x849d38abd3962cb40d4887e4279ad0e4e5958e34",
     ethsToken: "0x499bb1355b36adeb93706b08a897ce6022de6ac9",
     sovrynProtocolAdr: "0x25380305f223b32fdb844152abd2e82bc5ad99c3",
     swapsImpl: "0x61172b53423e205a399640e5283e51fe60ec2256", //get price from amm/old execute swaps
