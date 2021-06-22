@@ -112,7 +112,34 @@
         </table>
       </div>
     </div>
+
+    <div class="row" ng-if="ctrl.tokenDetails">
+      <div class="col-12 mt-4">
+        <h2>Token details</h2>
+        <table class="table">
+          <tr>
+            <th></th>
+            <th ng-repeat="info in ctrl.tokenDetails">
+              {{ info.tokenSymbol.toUpperCase() }}
+            </th>
+          </tr>
+          <tr>
+            <td>Max liquidatable</td>
+            <td ng-repeat="info in ctrl.tokenDetails">
+              {{ info.totalMaxLiquidatable }}
+            </td>
+          </tr>
+          <tr>
+            <td>Max seizable</td>
+            <td ng-repeat="info in ctrl.tokenDetails">
+              {{ info.totalMaxSeizable }}
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
   </div>
+
 
   <!-- Optional JavaScript -->
   <!-- jQuery first, then Popper.js, then Bootstrap JS -->

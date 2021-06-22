@@ -34,6 +34,8 @@ class AppCtrl {
         this.last24HArbitrageProfit = 0;
         this.last24HRolloverProfit = 0;
 
+        this.tokenDetails = null;
+
         this.$scope = $scope;
 
         this.start();
@@ -69,6 +71,7 @@ class AppCtrl {
             p.numberOpenPositions = res.positionInfo;
             p.numberLiquidationsInQueue = res.liqInfo;
             p.arbitrageDeals = res.arbitrageDeals;
+            p.tokenDetails = res.tokenDetails;
 
             p.$scope.$applyAsync();
         });
