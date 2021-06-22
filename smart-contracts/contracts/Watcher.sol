@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 //import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
@@ -12,10 +12,12 @@ import "./interfaces/IPriceFeeds.sol";
 import "./interfaces/IWRBTCToken.sol";
 
 
-contract Watcher is Ownable {
+contract Watcher is AccessControl {
   //using SafeERC20 for IERC20; // TODO: is this needed?
 
   address public immutable RBTC_ADDRESS = address(0);
+  bytes32 public constant ROLE_EXECUTOR = keccak256("EXECUTOR");
+  bytes32 public constant ROLE_OWNER = DEFAULT_ADMIN_ROLE; // just alias this
 
   ISovrynSwapNetwork public sovrynSwapNetwork;
   ISovrynProtocol public sovrynProtocol;
@@ -42,6 +44,8 @@ contract Watcher is Ownable {
     sovrynProtocol = _sovrynProtocol;
     priceFeeds = _priceFeeds;
     wrbtcToken = _wrbtcToken;
+
+    _setupRole(ROLE_OWNER, msg.sender);
   }
 
   // TODO: non-reentrant?
@@ -153,7 +157,7 @@ contract Watcher is Ownable {
     IERC20 _token,
     uint256 _amount,
     address payable _receiver
-  ) external onlyOwner {
+  ) external onlyRole(ROLE_OWNER) {
     if (_receiver == address(0)) {
       _receiver = payable(msg.sender);
     }
@@ -169,7 +173,7 @@ contract Watcher is Ownable {
   function depositTokens(
     IERC20 _token,
     uint256 _amount
-  ) external onlyOwner payable {
+  ) external onlyRole(ROLE_OWNER) payable {
     if (msg.value != 0) {
       require(address(_token) == RBTC_ADDRESS, "Watcher: msg.value can only be given for RBTC deposits");
       require(msg.value == _amount, "Watcher: _amount and msg.value must match for RBTC deposits");
@@ -183,7 +187,7 @@ contract Watcher is Ownable {
   function withdrawRbtc(
     uint256 _amount,
     address payable _receiver
-  ) external onlyOwner {
+  ) external onlyRole(ROLE_OWNER) {
     if (_receiver == address(0)) {
       _receiver = payable(msg.sender);
     }
