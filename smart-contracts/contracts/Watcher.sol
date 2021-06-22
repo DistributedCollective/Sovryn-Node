@@ -1,10 +1,8 @@
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 //import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "hardhat/console.sol";
 
@@ -15,7 +13,6 @@ import "./interfaces/IWRBTCToken.sol";
 
 
 contract Watcher is Ownable {
-  using SafeMath for uint256;
   //using SafeERC20 for IERC20; // TODO: is this needed?
 
   address public immutable RBTC_ADDRESS = address(0);
@@ -83,12 +80,12 @@ contract Watcher is Ownable {
     );
 
     uint256 priceFeedReturn = priceFeeds.queryReturn(address(sourceToken), address(targetToken), _amount);
-    uint256 profit = targetTokenAmount.sub(priceFeedReturn);
+    uint256 profit = targetTokenAmount - priceFeedReturn;
     require(profit >= _minProfit, "Watcher: minimum profit not met");
 
     if (targetToken == wrbtcToken) {
       wrbtcToken.withdraw(targetTokenAmount);
-      msg.sender.transfer(targetTokenAmount);
+      payable(msg.sender).transfer(targetTokenAmount);
     }
 
     emit Arbitrage(
@@ -158,7 +155,7 @@ contract Watcher is Ownable {
     address payable _receiver
   ) external onlyOwner {
     if (_receiver == address(0)) {
-      _receiver = msg.sender;
+      _receiver = payable(msg.sender);
     }
 
     if (address(_token) == RBTC_ADDRESS) {
@@ -188,7 +185,7 @@ contract Watcher is Ownable {
     address payable _receiver
   ) external onlyOwner {
     if (_receiver == address(0)) {
-      _receiver = msg.sender;
+      _receiver = payable(msg.sender);
     }
 
     _receiver.transfer(_amount);

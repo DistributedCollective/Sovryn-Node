@@ -3,7 +3,7 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.0;
 
 interface IPriceFeeds {
 	function queryRate(address sourceToken, address destToken) external view returns (uint256 rate, uint256 precision);
