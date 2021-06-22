@@ -2,13 +2,18 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { ethers } from 'hardhat';
 import { Signer, Contract, BigNumber } from 'ethers';
+import doc = Mocha.reporters.doc;
 const { parseEther } = ethers.utils;
 
 const ZERO = BigNumber.from(0);
 
 describe("Watcher", function() {
-  let ownerAddress: string;
   let accounts: Signer[];
+  let ownerAddress: string;
+  let ownerAccount: Signer;
+  let adminAccount: Signer;
+  let anotherAccount: Signer;
+
   let sovrynSwapSimulator: Contract;
   let priceFeeds: Contract;
   let simulatorPriceFeeds: Contract;
@@ -18,7 +23,10 @@ describe("Watcher", function() {
 
   beforeEach(async () => {
     accounts = await ethers.getSigners();
-    ownerAddress = await accounts[0].getAddress();
+    ownerAccount = accounts[0];
+    adminAccount = accounts[1];
+    anotherAccount = accounts[2];
+    ownerAddress = await ownerAccount.getAddress();
 
     const PriceFeedsLocal  = await ethers.getContractFactory("PriceFeedsLocal");
     const SovrynSwapSimulator = await ethers.getContractFactory("TestSovrynSwap");
@@ -111,7 +119,7 @@ describe("Watcher", function() {
 
       await expect(
           watcher.arbitrage([wrbtcToken.address, docToken.address], parseEther('1'), 1)
-      ).to.be.revertedWith("minimum profit not met");
+      ).to.be.revertedWith("Watcher: minimum profit not met");
     });
 
     it("should fail if minReturn is not met 2", async () => {
@@ -124,7 +132,7 @@ describe("Watcher", function() {
             parseEther('1'),
             parseEther('1000').add(1)
         )
-      ).to.be.revertedWith("minimum profit not met");
+      ).to.be.revertedWith("Watcher: minimum profit not met");
     });
 
     it("should handle arbitrage", async () => {
@@ -181,7 +189,7 @@ describe("Watcher", function() {
           parseEther("0.0005"),
           expectedProfit,
       );
-      await expect(result).to.changeEtherBalance(accounts[0], expectedTargetAmount);
+      await expect(result).to.changeEtherBalance(ownerAccount, expectedTargetAmount);
 
       const wrbtcBalance = await wrbtcToken.balanceOf(ownerAddress);
       const docBalance = await docToken.balanceOf(ownerAddress);
@@ -216,10 +224,86 @@ describe("Watcher", function() {
         parseEther("2000"),
         expectedProfit,
       );
-      await expect(result).to.changeEtherBalance(accounts[0], amount.mul(-1));
+      await expect(result).to.changeEtherBalance(ownerAccount, amount.mul(-1));
       const docBalance = await docToken.balanceOf(ownerAddress);
 
       expect(docBalance).to.equal(initialDocBalance.add(expectedTargetAmount));
+    });
+  });
+
+  describe('#withdrawTokens', () => {
+    beforeEach(async () => {
+      await docToken.mint(await anotherAccount.getAddress(), parseEther('1000'));
+      await docToken.connect(anotherAccount).transfer(
+          watcher.address,
+          parseEther('1000')
+      );
+    });
+
+    it('owner should be able to withdraw tokens', async () => {
+      const amount = parseEther('500');
+      await expect(
+          () => watcher.withdrawTokens(docToken.address, amount, ownerAddress),
+      ).to.changeTokenBalances(
+          docToken,
+          [watcher, ownerAccount],
+          [amount.mul(-1), amount]
+      );
+    });
+
+    it('others should NOT be able to withdraw tokens', async () => {
+      const watcherWithAnotherSigner = watcher.connect(anotherAccount);
+      await expect(
+          watcherWithAnotherSigner.withdrawTokens(docToken.address, parseEther('1'), await anotherAccount.getAddress()),
+      ).to.be.reverted;
+    });
+
+    // TODO: test RBTC deposit
+  });
+
+  describe('#depositTokens', () => {
+    let docTokenWithAnotherSigner: Contract;
+    let watcherWithAnotherSigner: Contract;
+
+    beforeEach(async () => {
+      const initialBalance = parseEther('1000');
+      await docToken.mint(await ownerAccount.getAddress(), initialBalance);
+      await docToken.mint(await anotherAccount.getAddress(), initialBalance);
+
+      docTokenWithAnotherSigner = docToken.connect(anotherAccount);
+      watcherWithAnotherSigner = watcher.connect(anotherAccount);
+
+      await docToken.approve(watcher.address, initialBalance);
+      await docTokenWithAnotherSigner.approve(watcher.address, initialBalance);
+    });
+
+    it('owner should be able to deposit tokens', async () => {
+      const amount = parseEther('500');
+      await expect(
+          () => watcher.depositTokens(docToken.address, amount),
+      ).to.changeTokenBalances(
+          docToken,
+          [watcher, ownerAccount],
+          [amount, amount.mul(-1)]
+      );
+    });
+
+    it('others should NOT be able to deposit tokens', async () => {
+      await expect(
+          watcherWithAnotherSigner.depositTokens(docToken.address, parseEther('1'), await anotherAccount.getAddress()),
+      ).to.be.reverted;
+    });
+
+    it('owner should be able to deposit RBTC', async () => {
+      const amount = parseEther('500');
+      const RBTC_ADDRESS = await watcher.RBTC_ADDRESS();
+      await expect(
+          () => watcher.depositTokens(RBTC_ADDRESS, amount, { value: amount }),
+      ).to.changeTokenBalances(
+          wrbtcToken,
+          [watcher, ownerAccount],
+          [amount, 0]
+      );
     });
   });
 });

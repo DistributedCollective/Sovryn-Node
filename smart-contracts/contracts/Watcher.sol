@@ -18,6 +18,8 @@ contract Watcher is Ownable {
   using SafeMath for uint256;
   //using SafeERC20 for IERC20; // TODO: is this needed?
 
+  address public immutable RBTC_ADDRESS = address(0);
+
   ISovrynSwapNetwork public sovrynSwapNetwork;
   ISovrynProtocol public sovrynProtocol;
   IPriceFeeds public priceFeeds;
@@ -51,23 +53,23 @@ contract Watcher is Ownable {
     uint256 _amount,
     uint256 _minProfit
   ) external payable {
-    require(_conversionPath.length >= 2, "_conversionPath must contain at least 2 tokens");
+    require(_conversionPath.length >= 2, "Watcher: _conversionPath must contain at least 2 tokens");
 
     IERC20 sourceToken = _conversionPath[0];
     IERC20 targetToken = _conversionPath[_conversionPath.length - 1];
-    require(sourceToken != targetToken, "sourceToken and targetToken cannot be the same");
+    require(sourceToken != targetToken, "Watcher: sourceToken and targetToken cannot be the same");
 
     // handle WRBTC wrapping if value is given
     if (msg.value != 0) {
-      require(sourceToken == wrbtcToken, "value may only be given for WRBTC transfers");
-      require(msg.value == _amount, "value must equal amount");
+      require(sourceToken == wrbtcToken, "Watcher: value may only be given for WRBTC transfers");
+      require(msg.value == _amount, "Watcher: value must equal amount");
 
       wrbtcToken.deposit{ value: _amount }();
     } else {
-      require(sourceToken.transferFrom(msg.sender, address(this), _amount), "error transferring token");
+      require(sourceToken.transferFrom(msg.sender, address(this), _amount), "Watcher: error transferring token");
     }
 
-    require(sourceToken.approve(address(sovrynSwapNetwork), _amount), "error approving token");
+    require(sourceToken.approve(address(sovrynSwapNetwork), _amount), "Watcher: error approving token");
 
     // For now, we just directly send everything back to the user
     address beneficiary = targetToken == wrbtcToken ? address(this) : msg.sender;
@@ -82,7 +84,7 @@ contract Watcher is Ownable {
 
     uint256 priceFeedReturn = priceFeeds.queryReturn(address(sourceToken), address(targetToken), _amount);
     uint256 profit = targetTokenAmount.sub(priceFeedReturn);
-    require(profit >= _minProfit, "minimum profit not met");
+    require(profit >= _minProfit, "Watcher: minimum profit not met");
 
     if (targetToken == wrbtcToken) {
       wrbtcToken.withdraw(targetTokenAmount);
@@ -150,8 +152,50 @@ contract Watcher is Ownable {
     return (0, 0, new IERC20[](0));
   }
 
+  function withdrawTokens(
+    IERC20 _token,
+    uint256 _amount,
+    address payable _receiver
+  ) external onlyOwner {
+    if (_receiver == address(0)) {
+      _receiver = msg.sender;
+    }
+
+    if (address(_token) == RBTC_ADDRESS) {
+      wrbtcToken.withdraw(_amount);
+      _receiver.transfer(_amount);
+    } else {
+      _token.transfer(_receiver, _amount);
+    }
+  }
+
+  function depositTokens(
+    IERC20 _token,
+    uint256 _amount
+  ) external onlyOwner payable {
+    if (msg.value != 0) {
+      require(address(_token) == RBTC_ADDRESS, "Watcher: msg.value can only be given for RBTC deposits");
+      require(msg.value == _amount, "Watcher: _amount and msg.value must match for RBTC deposits");
+      wrbtcToken.deposit{ value: _amount }();
+    } else {
+      _token.transferFrom(msg.sender, address(this), _amount);
+    }
+  }
+
+  // withdraw excess RBTC, if for some reason there is unwrapped RBTC in the contract
+  function withdrawRbtc(
+    uint256 _amount,
+    address payable _receiver
+  ) external onlyOwner {
+    if (_receiver == address(0)) {
+      _receiver = msg.sender;
+    }
+
+    _receiver.transfer(_amount);
+  }
+
   receive() external payable {
     // TODO: subject to change
-    require(msg.sender == address(wrbtcToken), "only WRBTC token can transfer RBTC");
+    require(msg.sender == address(wrbtcToken), "Watcher: only WRBTC token can transfer RBTC");
   }
 }
