@@ -48,12 +48,19 @@ contract Watcher is AccessControl {
     _setupRole(ROLE_OWNER, msg.sender);
   }
 
+  receive() external payable {
+    require(msg.sender == address(wrbtcToken), "Watcher: only WRBTC token can transfer RBTC");
+  }
+
   // TODO: non-reentrant?
   function arbitrage(
     IERC20[] calldata _conversionPath,
     uint256 _amount,
     uint256 _minProfit
-  ) external payable {
+  )
+    external
+    payable
+  {
     require(_conversionPath.length >= 2, "Watcher: _conversionPath must contain at least 2 tokens");
 
     IERC20 sourceToken = _conversionPath[0];
@@ -107,16 +114,72 @@ contract Watcher is AccessControl {
     bytes32 loanId,
     address receiver,
     uint256 closeAmount // denominated in loanToken
-  ) external payable returns (
-    uint256 loanCloseAmount,
-    uint256 seizedAmount,
-    address seizedToken
-  ) {
+  )
+    external
+    payable
+    returns (
+      uint256 loanCloseAmount,
+      uint256 seizedAmount,
+      address seizedToken
+    )
+  {
     // This is just a dumb proxy by now
     ISovrynProtocol.LoanReturnData memory loan = sovrynProtocol.getLoan(loanId);
     IERC20(loan.loanToken).transferFrom(msg.sender, address(this), closeAmount);
     IERC20(loan.loanToken).approve(address(sovrynProtocol), closeAmount);
     return sovrynProtocol.liquidate{ value: msg.value }(loanId, receiver, closeAmount);
+  }
+
+  function withdrawTokens(
+    IERC20 _token,
+    uint256 _amount,
+    address payable _receiver
+  )
+  external
+  onlyRole(ROLE_OWNER)
+  {
+    if (_receiver == address(0)) {
+      _receiver = payable(msg.sender);
+    }
+
+    if (address(_token) == RBTC_ADDRESS) {
+      wrbtcToken.withdraw(_amount);
+      _receiver.transfer(_amount);
+    } else {
+      _token.transfer(_receiver, _amount);
+    }
+  }
+
+  function depositTokens(
+    IERC20 _token,
+    uint256 _amount
+  )
+  external
+  payable
+  onlyRole(ROLE_OWNER)
+  {
+    if (msg.value != 0) {
+      require(address(_token) == RBTC_ADDRESS, "Watcher: msg.value can only be given for RBTC deposits");
+      require(msg.value == _amount, "Watcher: _amount and msg.value must match for RBTC deposits");
+      wrbtcToken.deposit{ value: _amount }();
+    } else {
+      _token.transferFrom(msg.sender, address(this), _amount);
+    }
+  }
+
+  // @dev withdraw excess RBTC, if for some reason there is unwrapped RBTC in the contract
+  function withdrawRbtc(
+    uint256 _amount,
+    address payable _receiver
+  )
+  external
+  onlyRole(ROLE_OWNER)
+  {
+    if (_receiver == address(0)) {
+      _receiver = payable(msg.sender);
+    }
+
+    _receiver.transfer(_amount);
   }
 
   function checkArbitrage(
@@ -151,52 +214,5 @@ contract Watcher is AccessControl {
     }
 
     return (0, 0, new IERC20[](0));
-  }
-
-  function withdrawTokens(
-    IERC20 _token,
-    uint256 _amount,
-    address payable _receiver
-  ) external onlyRole(ROLE_OWNER) {
-    if (_receiver == address(0)) {
-      _receiver = payable(msg.sender);
-    }
-
-    if (address(_token) == RBTC_ADDRESS) {
-      wrbtcToken.withdraw(_amount);
-      _receiver.transfer(_amount);
-    } else {
-      _token.transfer(_receiver, _amount);
-    }
-  }
-
-  function depositTokens(
-    IERC20 _token,
-    uint256 _amount
-  ) external onlyRole(ROLE_OWNER) payable {
-    if (msg.value != 0) {
-      require(address(_token) == RBTC_ADDRESS, "Watcher: msg.value can only be given for RBTC deposits");
-      require(msg.value == _amount, "Watcher: _amount and msg.value must match for RBTC deposits");
-      wrbtcToken.deposit{ value: _amount }();
-    } else {
-      _token.transferFrom(msg.sender, address(this), _amount);
-    }
-  }
-
-  // withdraw excess RBTC, if for some reason there is unwrapped RBTC in the contract
-  function withdrawRbtc(
-    uint256 _amount,
-    address payable _receiver
-  ) external onlyRole(ROLE_OWNER) {
-    if (_receiver == address(0)) {
-      _receiver = payable(msg.sender);
-    }
-
-    _receiver.transfer(_amount);
-  }
-
-  receive() external payable {
-    // TODO: subject to change
-    require(msg.sender == address(wrbtcToken), "Watcher: only WRBTC token can transfer RBTC");
   }
 }
