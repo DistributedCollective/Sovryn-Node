@@ -302,6 +302,12 @@ describe("Watcher", function() {
           [watcher, ownerAccount],
           [amount, 0]
       );
+
+      // test withdrawal here too, for laziness
+      await expect(
+          () => watcher.withdrawTokens(RBTC_ADDRESS, amount, ownerAddress),
+      ).to.changeEtherBalance(ownerAccount, amount);
+      expect(await wrbtcToken.balanceOf(watcher.address)).to.equal(0);
     });
   });
 });
