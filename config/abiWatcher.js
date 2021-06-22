@@ -7,6 +7,11 @@ export default [
                 "type": "address"
             },
             {
+                "internalType": "contract ISovryn",
+                "name": "_sovrynProtocol",
+                "type": "address"
+            },
+            {
                 "internalType": "contract IPriceFeeds",
                 "name": "_priceFeeds",
                 "type": "address"
@@ -146,6 +151,45 @@ export default [
         "type": "function"
     },
     {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "loanId",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "address",
+                "name": "receiver",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "closeAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "liquidate",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "loanCloseAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "seizedAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "seizedToken",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
         "inputs": [],
         "name": "owner",
         "outputs": [
@@ -176,6 +220,19 @@ export default [
         "name": "renounceOwnership",
         "outputs": [],
         "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "sovrynProtocol",
+        "outputs": [
+            {
+                "internalType": "contract ISovryn",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -221,4 +278,4 @@ export default [
         "stateMutability": "payable",
         "type": "receive"
     }
-]
+];
