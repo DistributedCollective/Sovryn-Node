@@ -158,7 +158,7 @@ class Liquidator {
 
         let tx;
         try {
-            tx = await C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString()).send({
+            tx = await C.contractWatcher.methods.liquidate(loanId, wallet, amount.toString()).send({
                 from: wallet,
                 gas: conf.gasLimit,
                 gasPrice: gasPrice,

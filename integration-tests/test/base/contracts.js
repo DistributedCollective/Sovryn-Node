@@ -186,7 +186,12 @@ export async function initSovrynContracts() {
     const loanTokenEths = await deployLoanToken(await deployLoanTokenLogic(), accountOwner, sovrynProtocol, wrbtcToken, ethsToken);
 
     // V2 stuff
-    const watcher = await Watcher.new(sovrynSwapNetwork.address, priceFeeds.address, wrbtcToken.address);
+    const watcher = await Watcher.new(
+        sovrynSwapNetwork.address,
+        sovrynProtocol.address,
+        priceFeeds.address,
+        wrbtcToken.address
+    );
 
     return {
         accounts,
