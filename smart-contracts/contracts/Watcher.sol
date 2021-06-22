@@ -135,8 +135,8 @@ contract Watcher is AccessControl {
     uint256 _amount,
     address payable _receiver
   )
-  external
-  onlyRole(ROLE_OWNER)
+    external
+    onlyRole(ROLE_OWNER)
   {
     if (_receiver == address(0)) {
       _receiver = payable(msg.sender);
@@ -154,9 +154,9 @@ contract Watcher is AccessControl {
     IERC20 _token,
     uint256 _amount
   )
-  external
-  payable
-  onlyRole(ROLE_OWNER)
+    external
+    payable
+    onlyRole(ROLE_OWNER)
   {
     if (msg.value != 0) {
       require(address(_token) == RBTC_ADDRESS, "Watcher: msg.value can only be given for RBTC deposits");
@@ -172,8 +172,8 @@ contract Watcher is AccessControl {
     uint256 _amount,
     address payable _receiver
   )
-  external
-  onlyRole(ROLE_OWNER)
+    external
+    onlyRole(ROLE_OWNER)
   {
     if (_receiver == address(0)) {
       _receiver = payable(msg.sender);
@@ -185,7 +185,15 @@ contract Watcher is AccessControl {
   function checkArbitrage(
     IERC20 _tokenA,
     IERC20 _tokenB
-  ) public view returns (uint256, uint256, IERC20[] memory) {
+  )
+    public
+    view
+    returns (
+      uint256,
+      uint256,
+      IERC20[] memory
+    )
+  {
     uint256 arbitrageAmount = 1 ether;
 
     // TODO: cannot figure out how to easily cast address[] to IERC20[]
