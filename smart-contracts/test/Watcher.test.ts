@@ -257,8 +257,6 @@ describe("Watcher", function() {
           watcherWithAnotherSigner.withdrawTokens(docToken.address, parseEther('1'), await anotherAccount.getAddress()),
       ).to.be.reverted;
     });
-
-    // TODO: test RBTC deposit
   });
 
   describe('#depositTokens', () => {
