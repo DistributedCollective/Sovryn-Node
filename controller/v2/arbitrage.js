@@ -1,5 +1,5 @@
 /**
- * Arbitrage V2 with watcher contract.
+ * Arbitrage V2 with Watcher contract.
  *
  * Quick and dirty implementation extending the existing Arbitrage controller
  */

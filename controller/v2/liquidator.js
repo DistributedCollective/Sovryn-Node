@@ -1,103 +1,31 @@
 /**
- * Liquidation handler
- * If liquidation is successful removes position from liquidation list
- * If it fails, check if the liquidation criteria are still met.
- * If no, delete it from the liquidation list. If yes, send an error notification to a telegram group for manual processing.
+ * Liquidator V2 with Watcher contract.
+ *
+ * Quick and dirty implementation extending the existing Liquidator controller
  */
 
 import C from '../contract';
 import U from '../../util/helper';
 import Wallet from '../wallet';
-import Arbitrage from '../../controller/arbitrage';
 import conf from '../../config/config';
 import common from '../common'
-import abiDecoder from 'abi-decoder';
-import abiComplete from "../../config/abiComplete";
 import Extra from 'telegraf/extra';
-import dbCtrl from '../db';
+import {Liquidator} from "../liquidator";
 
 
-class Liquidator {
-    constructor() {
-        this.liquidationErrorList=[];
-        abiDecoder.addABI(abiComplete);
+class LiquidatorV2 extends Liquidator {
+    // return [wallet so send liquidation from, balance available for liquidation]
+    async getWallet(pos, token) {
+        const requiredExecutorBalance = 0; // executor doesn't need any balance
+        const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, token, C.web3.utils.toBN);
+
+        // return the watcher contract balance for checking
+        const tokenContract = C.getTokenInstance(pos.loanToken);
+        const watcherBalance = C.web3.utils.toBN(await tokenContract.methods.balanceOf(C.contractWatcher._address).call());
+        return [wallet, watcherBalance]
     }
 
-    start(liquidations) {
-        this.liquidations = liquidations;
-        this.checkPositionsForLiquidations();
-    }
-
-    isLiquidatable(position) {
-        return (
-            position.maxLiquidatable > 0 &&
-            position.currentMargin < this.getBufferedMaintenanceMargin(position)
-        );
-    }
-
-    getBufferedMaintenanceMargin(position) {
-        const maintenanceMarginBuffer = conf.maintenanceMarginBuffer || 0.95;
-        return position.maintenanceMargin * maintenanceMarginBuffer;
-    }
-
-    /**
-     * Wrapper for liquidations
-     * 1. Get a wallet with enough funds in required tokens and which is not busy at the moment, then
-     * 2. Try to liquidate position
-     */
-    async checkPositionsForLiquidations() {
-        while (true) {
-            try {
-                await this.handleLiquidationRound();
-                console.log("Completed liquidation round");
-            } catch (e) {
-                console.error("Error processing a liquidation round:", e);
-            }
-            await U.wasteTime(conf.liquidatorScanInterval);
-        }
-    }
-
-    async handleLiquidationRound() {
-        console.log("started liquidation round");
-        console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
-
-        for (let p in this.liquidations) {
-            // It's possible that something has changed in between of finding the position by the Scanner and calling
-            // this method. Thus, we fetch the loan again here.
-            const pos = await C.contractSovryn.methods.getLoan(p).call();
-            if(!this.isLiquidatable(pos)) {
-                console.log(`Position no longer liquidatable: ${p}`);
-                continue;
-            }
-
-            const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
-
-            //Position already in liquidation wallet-queue
-            if (Wallet.checkIfPositionExists(p)) continue;
-            //failed too often -> have to check manually
-            if(this.liquidationErrorList[p]>=5) continue;
-
-            const requiredExecutorBalance = 0; // executor doesn't need any balance
-            const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, token, C.web3.utils.toBN);
-            if (!wallet) {
-                this.handleNoWalletError(p).catch(e => {
-                    console.error('Error handling noWalletError:', e);
-                });
-                continue;
-            }
-
-            const tokenContract = C.getTokenInstance(pos.loanToken);
-            const watcherBalance = C.web3.utils.toBN(await tokenContract.methods.balanceOf(C.contractWatcher._address).call());
-            const liquidateAmount = await this.calculateLiquidateAmount(watcherBalance, pos, token, wallet);
-            if (!liquidateAmount || liquidateAmount.isZero()) continue;
-
-            const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
-
-            await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce);
-            await U.wasteTime(30); //30 seconds break to avoid rejection from node
-        }
-    }
-
+    // this is a silly fork to not mess up with gas costs
     async calculateLiquidateAmount(wBalance, pos, token, wallet) {
         const toBN = C.web3.utils.toBN;
         const BN = C.web3.utils.BN;
@@ -125,10 +53,7 @@ class Liquidator {
         return liquidateAmount;
     }
 
-    /*
-    * Tries to liquidate a position
-    * wallet = sender and receiver address
-    */
+    // also mostly a fork, but handle liquidation using Watcher V2 contract
     async liquidate(loanId, wallet, amount, token, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
@@ -177,115 +102,9 @@ class Liquidator {
         await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
         await p.addLiqLog(tx.transactionHash, pos);
         // remove swapback for now since it doesn't work too well
+        // TODO: this could be handled in the smartcontract!
         //if (!isRbtcToken) await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
-    }
-
-    async handleLiqSuccess(wallet, loanId, txHash, amount, token) {
-        Wallet.removeFromQueue("liquidator", wallet, loanId);
-        this.liquidationErrorList[loanId]=null;
-        const formattedAmount = C.web3.utils.fromWei(amount.toString(), 'Ether');
-        let tokenSymbol;
-        if (token.toLowerCase() === 'rbtc') {
-            tokenSymbol = token;
-        } else {
-            tokenSymbol = C.getTokenSymbol(token).toUpperCase();
-        }
-        const msg = `<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} of ${formattedAmount} ${tokenSymbol} successful. 
-            \n${conf.blockExplorer}tx/${txHash}`;
-        common.telegramBot.sendMessage(msg, Extra.HTML());
-    }
-
-    /**
-     * Possible errors:
-     * 1. Another user was faster -> position is already liquidated
-     * 2. Btc price moved in opposite direction and the amount cannot be liquidated anymore
-     */
-    async handleLiqError(wallet, loanId, amount, pos) {
-        Wallet.removeFromQueue("liquidator", wallet, loanId);
-        if(!this.liquidationErrorList[loanId]) this.liquidationErrorList[loanId]=1;
-        else this.liquidationErrorList[loanId]++;
-
-        console.log('Storing failed transaction into DB');
-        // store failed transaction in DB
-        await dbCtrl.addLiquidate({
-            liquidatorAdr: wallet,
-            amount,
-            loanId,
-            status: 'failed',
-            pos
-        });
-        const updatedLoan = await C.getPositionStatus(loanId)
-        if (updatedLoan.maxLiquidatable > 0) {
-            console.log("loan " + loanId + " should still be liquidated. Please check manually");
-            common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed.`, Extra.HTML());
-        }
-    }
-
-    async handleNoWalletError(loanId) {
-        console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        await common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed because no wallet with enough funds was found.`, Extra.HTML());
-    }
-
-    async calculateLiqProfit(liqEvent) {
-        console.log("Calculate profit for liquidation", liqEvent.loanId);
-        // To calculate the profit from a liquidation we need to get the difference between the amount we deposit in the contract, repayAmount,
-        // and the amount we get back, collateralWithdrawAmount. But to do this we need to convert both to the same currency
-        // Convert spent amount to collateral token 
-        const convertedPaidAmount = await Arbitrage.getPriceFromPriceFeed(C.contractPriceFeed, liqEvent.loanToken, liqEvent.collateralToken, liqEvent.repayAmount);
-        if (convertedPaidAmount) {
-            const liqProfit = Number(C.web3.utils.fromWei(
-                C.web3.utils.toBN(liqEvent.collateralWithdrawAmount).sub(C.web3.utils.toBN(convertedPaidAmount))
-            , "Ether")).toFixed(6);
-            console.log(`You made ${liqProfit} ${C.getTokenSymbol(liqEvent.collateralToken).toUpperCase()} with this liquidation`);
-            return liqProfit+" "+C.getTokenSymbol(liqEvent.collateralToken).toUpperCase();
-        }
-        else {
-            console.log("Couldn't calculate the profit for the given liquidation");
-        }
-    }
-
-    async addLiqLog(txHash, pos) {
-        console.log("Add liquidation "+txHash+" to db");
-        try {
-            const receipt = await C.web3.eth.getTransactionReceipt(txHash);
-            
-            if (receipt && receipt.logs) {
-                const logs = abiDecoder.decodeLogs(receipt.logs) || [];
-                const liqEvent = logs.find(log => log && log.name === 'Liquidate');
-                console.log(liqEvent)
-                const {
-                    user, liquidator, loanId, loanToken, collateralWithdrawAmount
-                } = U.parseEventParams(liqEvent && liqEvent.events);
-
-                console.log(U.parseEventParams(liqEvent && liqEvent.events))
-
-                if (user && liquidator && loanId) {
-                    console.log("user found");
-                    console.log(user);
-                    console.log(liquidator);
-                    console.log(loanId);
-
-                    const profit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events))
-
-                    const addedLog = await dbCtrl.addLiquidate({
-                        liquidatorAdr: liquidator,
-                        liquidatedAdr: user,
-                        amount: collateralWithdrawAmount,
-                        loanId: loanId,
-                        profit: profit,
-                        txHash: txHash,
-                        status: 'successful',
-                        pos
-                    });
-
-                    return addedLog;
-                }
-            }
-
-        } catch (e) {
-            console.error(e);
-        }
     }
 }
 
-export default new Liquidator();
+export default new LiquidatorV2();
