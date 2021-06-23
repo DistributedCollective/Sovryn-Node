@@ -23,6 +23,7 @@ export default {
     docToken: "0xe700691da7b9851f2f35f8b8182c69c53ccad9db", //former susd
     USDTToken: "0xef213441a85df4d7acbdae0cf78004e1e486bb96",
     BProToken: "0x440cd83c160de5c96ddb20246815ea44c7abbca8",
+    XUSDToken: "0xb5999795be0ebb5bab23144aa5fd6a02d080299f",
     ethsToken: "0x1d931bf8656d795e50ef6d639562c5bd8ac2b78f",
     sovrynProtocolAdr: "0x5a0d867e0d70fcc6ade25c3f1b89d618b5b4eaa7",
     swapsImpl: "0x98ace08d2b759a265ae326f010496bcd63c15afc", //get price from amm/old execute swaps
@@ -40,6 +41,7 @@ export default {
     dynamicArbitrageMaxAmounts: {
         rbtc: '0.1',
         default: '1000',
+        xusd: '5000',
     },
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,

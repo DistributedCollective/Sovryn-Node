@@ -39,7 +39,8 @@ class MonitorController {
             accountInfoArb: await this.getAccountInfo(A.arbitrage),
             positionInfo: await this.getOpenPositions(),
             liqInfo: await this.getOpenLiquidations(),
-            arbitrageDeals: await this.getArbitrageDeals()
+            arbitrageDeals: await this.getArbitrageDeals(),
+            tokenDetails: await this.getTokenDetails(),
         }
         if (typeof cb === "function") cb(resp);
         else return resp;
@@ -211,6 +212,45 @@ class MonitorController {
 
     async getArbitrageDeals(cb) {
         if (typeof cb === "function") cb(this.arbitrageDeals);
+    }
+
+    getTokenDetails() {
+        if(!this.liquidations) {
+            return null;
+        }
+
+        const totalMaxLiquidatableByTokenAddress = {};
+        const totalMaxSeizableByTokenAddress = {};
+        // TODO: this.liquidations or this.positions?
+        const loans = Object.values(this.liquidations);
+        for(let loan of loans) {
+            const loanTokenAddress = loan.loanToken.toLowerCase();
+            const collateralTokenAddress = loan.collateralToken.toLowerCase();
+            const maxLiquidatable = C.web3.utils.toBN(loan.maxLiquidatable);
+            const maxSeizable = C.web3.utils.toBN(loan.maxSeizable);
+
+            let totalMaxLiquidatable = totalMaxLiquidatableByTokenAddress[loanTokenAddress] || C.web3.utils.toBN('0');
+            totalMaxLiquidatable = totalMaxLiquidatable.add(maxLiquidatable);
+            totalMaxLiquidatableByTokenAddress[loanTokenAddress] = totalMaxLiquidatable;
+
+            let totalMaxSeizable = totalMaxSeizableByTokenAddress[collateralTokenAddress] || C.web3.utils.toBN('0');
+            totalMaxSeizable = totalMaxSeizable.add(maxSeizable);
+            totalMaxSeizableByTokenAddress[loanTokenAddress] = totalMaxSeizable;
+        }
+
+        const ret = [];
+        for (let tokenAddress of C.getAllTokenAddresses()) {
+            tokenAddress = tokenAddress.toLowerCase();
+            const totalMaxLiquidatable = totalMaxLiquidatableByTokenAddress[tokenAddress] || '0';
+            const totalMaxSeizable = totalMaxSeizableByTokenAddress[tokenAddress] || '0';
+            ret.push({
+                tokenAddress: tokenAddress,
+                tokenSymbol: C.getTokenSymbol(tokenAddress),
+                totalMaxLiquidatable: parseFloat(C.web3.utils.fromWei(totalMaxLiquidatable)).toFixed(5),
+                totalMaxSeizable: parseFloat(C.web3.utils.fromWei(totalMaxSeizable)).toFixed(5),
+            });
+        }
+        return ret;
     }
 }
 
