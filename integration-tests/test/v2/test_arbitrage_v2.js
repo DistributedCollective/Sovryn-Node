@@ -12,7 +12,7 @@ import {initSovrynContracts, ConverterHelper} from "../base/contracts";
 
 
 describe("Arbitrage controller V2", () => {
-    let arbitragerAddress;
+    let executorAddress;
     let contractOwnerAddress;
 
     let sovrynContracts;
@@ -20,9 +20,9 @@ describe("Arbitrage controller V2", () => {
     let usdtToken;
     let wrbtcToken;
     let priceFeeds;
+    let watcher;
 
     let initialRBTCBalance;
-    // TODO: we don't actually need a WRBTC balance -- at least not after the bug in the arbitrage code is fixed
     const initialWRBTCBalance = ether('10000000');
     const initialUSDTBalance =  ether('10000000');
 
@@ -36,22 +36,25 @@ describe("Arbitrage controller V2", () => {
         converters = new ConverterHelper(sovrynContracts);
 
         contractOwnerAddress = sovrynContracts.accountOwner;
-        arbitragerAddress = A.arbitrage[0].adr;
+        executorAddress = A.arbitrage[0].adr;
         usdtToken = sovrynContracts.usdtToken;
         wrbtcToken = sovrynContracts.wrbtcToken;
         priceFeeds = sovrynContracts.priceFeeds;
+        watcher = sovrynContracts.watcher;
 
-        await wrbtcToken.transfer(arbitragerAddress, initialWRBTCBalance);
-        await usdtToken.transfer(arbitragerAddress, initialUSDTBalance);
-
-        await wrbtcToken.approve(sovrynContracts.watcher.address, MAX_UINT256, {from: arbitragerAddress});
-        await usdtToken.approve(sovrynContracts.watcher.address, MAX_UINT256, {from: arbitragerAddress});
+        // Watcher setup
+        await watcher.grantRole(await watcher.ROLE_EXECUTOR(), executorAddress);
+        await wrbtcToken.approve(watcher.address, MAX_UINT256);
+        await usdtToken.approve(watcher.address, MAX_UINT256);
+        await watcher.depositTokens(wrbtcToken.address, initialWRBTCBalance);
+        await watcher.depositTokens(usdtToken.address, initialUSDTBalance);
 
         // sanity check
-        expect(await wrbtcToken.balanceOf(arbitragerAddress)).to.be.bignumber.equal(initialWRBTCBalance);
-        expect(await usdtToken.balanceOf(arbitragerAddress)).to.be.bignumber.equal(initialUSDTBalance);
-        // this is affected by gas costs, so store it this way
-        initialRBTCBalance = new BN(await web3.eth.getBalance(arbitragerAddress));
+        expect(await wrbtcToken.balanceOf(watcher.address)).to.be.bignumber.equal(initialWRBTCBalance);
+        expect(await usdtToken.balanceOf(watcher.address)).to.be.bignumber.equal(initialUSDTBalance);
+
+        // This should be 0
+        initialRBTCBalance = new BN(await web3.eth.getBalance(watcher.address));
     });
 
     it("should not detect arbitrage for a pool with no balance deltas", async () => {
@@ -77,9 +80,9 @@ describe("Arbitrage controller V2", () => {
         await Arbitrage.handleDynamicArbitrageForToken('USDT', usdtToken.address);
 
         // no balances should have changed
-        const balanceRBTC = await web3.eth.getBalance(arbitragerAddress);
-        const balanceWRBTC = await wrbtcToken.balanceOf(arbitragerAddress);
-        const balanceUSDT = await usdtToken.balanceOf(arbitragerAddress);
+        const balanceRBTC = await web3.eth.getBalance(watcher.address);
+        const balanceWRBTC = await wrbtcToken.balanceOf(watcher.address);
+        const balanceUSDT = await usdtToken.balanceOf(watcher.address);
         expect(balanceRBTC).to.be.bignumber.equal(initialRBTCBalance);
         expect(balanceWRBTC).to.be.bignumber.equal(initialWRBTCBalance);
         expect(balanceUSDT).to.be.bignumber.equal(initialUSDTBalance);
@@ -170,34 +173,36 @@ describe("Arbitrage controller V2", () => {
         const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
         expect(result).to.exists();
 
-        const usdtBalance = await usdtToken.balanceOf(arbitragerAddress);
+        const usdtBalance = await usdtToken.balanceOf(watcher.address);
         const usdtEarned = usdtBalance.sub(initialUSDTBalance);
 
-        const rbtcBalance = new BN(await web3.eth.getBalance(arbitragerAddress));
-        const rbtcEarned = rbtcBalance.sub(initialRBTCBalance);
+        const wrbtcBalance = await wrbtcToken.balanceOf(watcher.address);
+        const wrbtcEarned = wrbtcBalance.sub(initialWRBTCBalance);
 
         expect(usdtEarned).to.be.bignumber.equal(usdtDelta.neg());
-        expect(rbtcEarned).to.be.bignumber.above(wrbtcDelta.neg().sub(ether('0.001')));
-        expect(rbtcEarned).to.be.bignumber.below(wrbtcDelta.neg().add(ether('0.02')));
+        //expect(wrbtcEarned).to.be.bignumber.above(wrbtcDelta.neg().sub(ether('0.001')));
+        //expect(wrbtcEarned).to.be.bignumber.below(wrbtcDelta.neg().add(ether('0.001')));
+        expect(wrbtcEarned).to.be.bignumber.closeTo(wrbtcDelta.neg(), ether('0.02'));
 
         // test that the DB looks ok
         const arbitrageRows = await getArbitragesFromDB();
         expect(arbitrageRows.length).to.equal(1);
         const row = arbitrageRows[0];
 
-        expect(row.adr.toLowerCase()).to.equal(arbitragerAddress.toLowerCase());
+        expect(row.adr.toLowerCase()).to.equal(executorAddress.toLowerCase());
+
         expect(row.trade).to.equal('buy btc');
         expect(row.fromToken.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
         expect(row.toToken.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
         expect(row.fromAmount).to.be.closeTo(parseFloat(web3.utils.fromWei(usdtEarned.neg()).toString()), 0.000001);
-        expect(row.toAmount).to.be.closeTo(parseFloat(web3.utils.fromWei(rbtcEarned).toString()), 0.02);
+        expect(row.toAmount).to.be.closeTo(parseFloat(web3.utils.fromWei(wrbtcEarned).toString()), 0.000001);
         const priceFeedAmount = await sovrynContracts.priceFeeds.queryReturn(
             usdtToken.address,
             wrbtcToken.address,
             usdtDelta,
         );
-        const profitOverPriceFeed = rbtcEarned.sub(priceFeedAmount);
-        expect(row.profit).to.be.closeTo(parseFloat(web3.utils.fromWei(profitOverPriceFeed).toString()), 0.02);
+        const profitOverPriceFeed = wrbtcEarned.sub(priceFeedAmount);
+        expect(row.profit).to.be.closeTo(parseFloat(web3.utils.fromWei(profitOverPriceFeed).toString()), 0.000001);
         expect(row.profit).to.be.greaterThan(0);
 
         // test that the pool is balanced
@@ -273,13 +278,13 @@ describe("Arbitrage controller V2", () => {
         const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
         expect(result).to.exists();
 
-        const usdtBalance = await usdtToken.balanceOf(arbitragerAddress);
+        const usdtBalance = await usdtToken.balanceOf(watcher.address);
         const usdtEarned = usdtBalance.sub(initialUSDTBalance);
 
-        const rbtcBalance = new BN(await web3.eth.getBalance(arbitragerAddress));
-        const rbtcEarned = rbtcBalance.sub(initialRBTCBalance);
+        const wrbtcBalance = await wrbtcToken.balanceOf(watcher.address);
+        const wrbtcEarned = wrbtcBalance.sub(initialWRBTCBalance);
 
-        expect(rbtcEarned).to.be.bignumber.closeTo(wrbtcDelta.neg(), ether('0.02'));
+        expect(wrbtcEarned).to.be.bignumber.closeTo(wrbtcDelta.neg(), ether('0.02'));
         expect(usdtEarned).to.be.bignumber.closeTo(usdtDelta.neg(), ether('0.02'));
 
         // test that the DB looks ok
@@ -287,7 +292,7 @@ describe("Arbitrage controller V2", () => {
         expect(arbitrageRows.length).to.equal(1);
         const row = arbitrageRows[0];
 
-        expect(row.adr.toLowerCase()).to.equal(arbitragerAddress.toLowerCase());
+        expect(row.adr.toLowerCase()).to.equal(executorAddress.toLowerCase());
 
         expect(row.trade).to.equal('sell btc');
         expect(row.fromToken.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
@@ -312,51 +317,6 @@ describe("Arbitrage controller V2", () => {
 
         // USDT delta should be *close to* 0, but not quite
         expect(newUsdtDelta).to.be.bignumber.closeTo(new BN(0), ether('0.02'));
-    });
-
-    it('checks RBTC balance instead of WRBTC balance when checking user balance', async () => {
-        // this is just the USDT->RBTC opportunity found on mainnet, but with the token balances, weights and
-        // oracle prices reversed
-        const converterOpts = {
-            primaryReserveToken: wrbtcToken,
-            secondaryReserveToken: usdtToken,
-            initialPrimaryReserveLiquidity: ether('10'),
-            initialSecondaryReserveLiquidity: ether('10'),
-            finalPrimaryReserveBalance: ether('1'),
-            finalSecondaryReserveBalance: ether('19'),
-            // 1 RBTC = 1 USDT
-            primaryPriceOracleAnswer: ether('1'),
-            secondaryPriceOracleAnswer: ether('1'),
-        };
-        await converters.initConverter(converterOpts);
-
-        // transfer all WRBTC away from arbitrager address
-        // RBTC balance should be enough
-        if(initialWRBTCBalance.gt(new BN(0))) {
-            await wrbtcToken.transfer(contractOwnerAddress, initialWRBTCBalance, { from: arbitragerAddress });
-        }
-
-        const wrbtcDelta = converterOpts.initialPrimaryReserveLiquidity.sub(converterOpts.finalPrimaryReserveBalance);
-        const usdtDelta = converterOpts.initialSecondaryReserveLiquidity.sub(converterOpts.finalSecondaryReserveBalance);
-
-        const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', usdtToken.address);
-        expect(opportunity).to.not.equal(null)
-        expect(opportunity.amount).to.be.bignumber.equal(ether('9'));
-        expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
-        expect(opportunity.destTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
-
-        const result = await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
-        expect(result).to.exists();
-
-        const usdtBalance = await usdtToken.balanceOf(arbitragerAddress);
-        const usdtEarned = usdtBalance.sub(initialUSDTBalance);
-
-        const rbtcBalance = new BN(await web3.eth.getBalance(arbitragerAddress));
-        const rbtcEarned = rbtcBalance.sub(initialRBTCBalance);
-
-        expect(rbtcEarned).to.be.bignumber.closeTo(wrbtcDelta.neg(), ether('0.02'));
-        expect(usdtEarned).to.be.bignumber.above(usdtDelta.neg().sub(ether('0.02')));
-        expect(usdtEarned).to.be.bignumber.below(usdtDelta.neg().add(ether('0.5')));
     });
 
     it('limits the max amount if specified in config', async () => {
@@ -387,7 +347,7 @@ describe("Arbitrage controller V2", () => {
         expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
 
         await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
-        const usdtBalance = await usdtToken.balanceOf(arbitragerAddress);
+        const usdtBalance = await usdtToken.balanceOf(watcher.address);
         const usdtEarned = usdtBalance.sub(initialUSDTBalance);
 
         expect(usdtEarned).to.be.bignumber.equal(usdtMaxAmountWei.neg());
@@ -438,8 +398,9 @@ describe("Arbitrage controller V2", () => {
 
         const usdtMaxAmountWei = ether('100');
         expect(usdtMaxAmountWei).to.be.bignumber.below(initialUSDTBalance);
-        await usdtToken.transfer(contractOwnerAddress, initialUSDTBalance.sub(usdtMaxAmountWei), {from: arbitragerAddress});
-        expect(await usdtToken.balanceOf(arbitragerAddress)).to.be.bignumber.equal(usdtMaxAmountWei);
+
+        await watcher.withdrawTokens(usdtToken.address, initialUSDTBalance.sub(usdtMaxAmountWei), contractOwnerAddress);
+        expect(await usdtToken.balanceOf(watcher.address)).to.be.bignumber.equal(usdtMaxAmountWei);
 
         const usdtDelta = converterOpts.initialSecondaryReserveLiquidity.sub(converterOpts.finalSecondaryReserveBalance);
         expect(usdtDelta).to.be.bignumber.above(usdtMaxAmountWei);  // sanity check
@@ -449,7 +410,7 @@ describe("Arbitrage controller V2", () => {
         expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(usdtToken.address.toLowerCase());
 
         await Arbitrage.handleDynamicArbitrageForToken('usdt', usdtToken.address);
-        const usdtBalance = await usdtToken.balanceOf(arbitragerAddress);
+        const usdtBalance = await usdtToken.balanceOf(watcher.address);
         expect(usdtBalance).to.be.bignumber.equal(new BN(0)); // all sent
 
         const arbitrageRows = await getArbitragesFromDB();
@@ -459,7 +420,7 @@ describe("Arbitrage controller V2", () => {
         expect(row.fromAmount).to.be.closeTo(parseFloat(web3.utils.fromWei(usdtMaxAmountWei).toString()), 0.0001);
     });
 
-    it('limits the max rbtc amount to rbtc held in wallet', async () => {
+    it('limits the max rbtc amount to WRBTC held in the watcher contract', async () => {
         // this situation was actually found on mainnet
         const converterOpts = {
             primaryReserveToken: wrbtcToken,
@@ -474,33 +435,22 @@ describe("Arbitrage controller V2", () => {
         };
         await converters.initConverter(converterOpts);
 
-        const rbtcMaxAmountWei = ether('0.1');
-        expect(rbtcMaxAmountWei).to.be.bignumber.below(initialRBTCBalance);
+        const wrbtcMaxAmountWei = ether('0.1');
+        expect(wrbtcMaxAmountWei).to.be.bignumber.below(initialWRBTCBalance);
 
-        const rbtcToSendAway = initialRBTCBalance.sub(rbtcMaxAmountWei);
-        await web3.eth.sendTransaction({
-            to: contractOwnerAddress,
-            value: rbtcToSendAway,
-            from: arbitragerAddress
-        });
+        const wrbtcToSendAway = initialWRBTCBalance.sub(wrbtcMaxAmountWei);
+        await watcher.withdrawTokens(wrbtcToken.address, wrbtcToSendAway, contractOwnerAddress);
 
         // account for gas costs
-        expect(await web3.eth.getBalance(arbitragerAddress)).to.be.bignumber.closeTo(rbtcMaxAmountWei, ether('0.001'));
+        expect(await wrbtcToken.balanceOf(watcher.address)).to.be.bignumber.equal(wrbtcMaxAmountWei);
 
-        const rbtcDelta = converterOpts.initialPrimaryReserveLiquidity.sub(converterOpts.finalPrimaryReserveBalance);
-        expect(rbtcDelta).to.be.bignumber.above(rbtcMaxAmountWei);  // sanity check
+        const wrbtcDelta = converterOpts.initialPrimaryReserveLiquidity.sub(converterOpts.finalPrimaryReserveBalance);
+        expect(wrbtcDelta).to.be.bignumber.above(wrbtcMaxAmountWei);  // sanity check
 
         const opportunity = await Arbitrage.findArbitrageOpportunityForToken('usdt', wrbtcToken.address);
-        expect(opportunity.amount).to.be.bignumber.below(rbtcMaxAmountWei);
-        expect(opportunity.amount).to.be.bignumber.above(rbtcMaxAmountWei.sub(ether('0.001'))); // gas costs
+        expect(opportunity.amount).to.be.bignumber.equal(wrbtcMaxAmountWei);
+        //expect(opportunity.amount).to.be.bignumber.above(wrbtcMaxAmountWei.sub(ether('0.001'))); // gas costs
         expect(opportunity.sourceTokenAddress.toLowerCase()).to.equal(wrbtcToken.address.toLowerCase());
-
-        // NOTE: if the above assertions fail, this will also not get executed and following tests might fail
-        await web3.eth.sendTransaction({
-            to: arbitragerAddress,
-            value: rbtcToSendAway,
-            from: contractOwnerAddress
-        });
     });
 
     it("doesn't limit max amount if opportunity amount is smaller", async () => {

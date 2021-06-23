@@ -250,18 +250,20 @@ class Arbitrage {
 
         if(opportunity) {
             // limit amount according to balance and/or config
-            let arbitragerBalance;
-            const fromAddress = A.arbitrage[0].adr;
+            const executorAddress = A.arbitrage[0].adr;
+            const fromAddress = C.contractWatcher._address;
             const sourceContract = C.getTokenInstance(opportunity.sourceTokenAddress);
 
-            if(sourceContract._address === C.contractTokenRBTC._address) {
-                // because of the RBTC wrapper proxy, we only care about RBTC balance and not WRBTC balance
-                arbitragerBalance = this.BN(await C.web3.eth.getBalance(fromAddress));
-                // Add some buffer for gas. Exact amount is up for debate...
-                arbitragerBalance = arbitragerBalance.sub(this.BN(C.web3.utils.toWei('0.0001')));
-            } else {
-                arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
+            const executorRbtcBalance = this.BN(await C.web3.eth.getBalance(executorAddress))
+            if(executorRbtcBalance.lt(C.web3.utils.toWei('0.0001'))) {
+                console.log(
+                    'not executing arbitrage because executor RBTC balance %s is low - might not be able to pay gas costs',
+                    C.web3.utils.fromWei(executorRbtcBalance)
+                )
+                return null;
             }
+
+            const arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
             if(arbitragerBalance.isZero() || arbitragerBalance.isNeg()) {
                 console.log('no balance held in wallet -- cannot do anything')
                 return null;
@@ -433,7 +435,6 @@ class Arbitrage {
 
         const minProfit = 0; // no profit enforced yet
         const fromAddress = A.arbitrage[0].adr;
-        const val = sourceCurrency === "rbtc" ? amount : 0;
         const numberOfHops = destCurrency === "rbtc" || sourceCurrency === "rbtc" ? 3 : 5;
 
         const conversionPath = await C.contractSwaps.methods.conversionPath(sourceToken, destToken).call();
@@ -455,7 +456,6 @@ class Arbitrage {
                 from: fromAddress,
                 gas: conf.gasLimit,
                 gasPrice: gasPrice,
-                value: val,
             });
         } catch (err) {
             console.error("Error on arbitrage tx ");
