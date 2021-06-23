@@ -158,9 +158,19 @@ task('fund-watcher', 'withdraw/deposit/check token status')
         const decimals = await token.decimals();
         console.log(`Token ${symbol} (${token.address}) with ${decimals} decimals`);
 
-        const currentWatcherBalanceWei = await token.balanceOf(watcher.address);
+        let currentWatcherBalanceWei;
+        let watcherBalanceTokenSymbol;
+        if (token.address === rbtcAddress) {
+            // watcher doesn't store RBTC, get WRBTC balance instead
+            const wrbtcToken = await ethers.getContractAt(erc20Abi, await watcher.wrbtcToken(), owner);
+            currentWatcherBalanceWei = await wrbtcToken.balanceOf(watcher.address);
+            watcherBalanceTokenSymbol = await wrbtcToken.symbol();
+        } else {
+            currentWatcherBalanceWei = await token.balanceOf(watcher.address);
+            watcherBalanceTokenSymbol = symbol;
+        }
         const currentWatcherBalance = hre.ethers.utils.formatUnits(currentWatcherBalanceWei, decimals)
-        console.log(`Current watcher (${watcher.address}) balance: ${currentWatcherBalance} ${symbol} (${currentWatcherBalanceWei} Wei)`);
+        console.log(`Current watcher (${watcher.address}) balance: ${currentWatcherBalance} ${watcherBalanceTokenSymbol} (${currentWatcherBalanceWei} Wei)`);
 
         const currentAccountBalanceWei = await token.balanceOf(owner.address);
         const currentAccountBalance = hre.ethers.utils.formatUnits(currentAccountBalanceWei, decimals)
@@ -178,12 +188,24 @@ task('fund-watcher', 'withdraw/deposit/check token status')
 
         let tx;
         if (action === 'withdraw') {
+            if (amountWei.gt(currentWatcherBalanceWei)) {
+                throw new Error(
+                    `withdraw amount ${args.amount} is greater than watcher balance ${currentWatcherBalance}, ` +
+                    `cannot withdraw`
+                )
+            }
             const recipient = args.recipient || owner.address;
             console.log(`Withdrawing tokens to ${recipient}`);
             // for some reason, it underestimates the gas for RBTC withdrawal...
             const opts = (token.address === rbtcAddress) ? {gasLimit: 100000} : {};
             tx = await watcher.withdrawTokens(token.address, amountWei, recipient, opts);
         } else if (action === 'deposit') {
+            if (amountWei.gt(currentAccountBalanceWei)) {
+                throw new Error(
+                    `deposit amount ${args.amount} is greater than account balance ${currentAccountBalance}, ` +
+                    `cannot deposit`
+                )
+            }
             const currentAllowanceWei = await token.allowance(owner.address, watcher.address);
             if (currentAllowanceWei.lt(amountWei)) {
                 console.log(`Approving watcher to spend ${args.amount} ${symbol}...`)
