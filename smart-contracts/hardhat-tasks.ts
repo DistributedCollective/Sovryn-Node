@@ -184,21 +184,17 @@ task('fund-watcher', 'withdraw/deposit/check token status')
             const opts = (token.address === rbtcAddress) ? {gasLimit: 100000} : {};
             tx = await watcher.withdrawTokens(token.address, amountWei, recipient, opts);
         } else if (action === 'deposit') {
-            if (token.address === rbtcAddress) {
-                console.log('Depositing RBTC...');
-                tx = await watcher.depositTokens(token.address, amountWei, { value: amountWei });
-            } else {
-                const currentAllowanceWei = await token.allowance(owner.address, watcher.address);
-                if (currentAllowanceWei.lt(amountWei)) {
-                    console.log(`Approving watcher to spend ${args.amount} ${symbol}...`)
-                    const approvalTx = await token.approve(watcher.address, amountWei);
-                    console.log(`Approval tx hash: ${approvalTx.hash}, waiting for confirmation...`);
-                    await approvalTx.wait();
-                    console.log('Approval done.')
-                }
-                console.log('Depositing tokens...');
-                tx = await watcher.depositTokens(token.address, amountWei);
+            const currentAllowanceWei = await token.allowance(owner.address, watcher.address);
+            if (currentAllowanceWei.lt(amountWei)) {
+                console.log(`Approving watcher to spend ${args.amount} ${symbol}...`)
+                const approvalTx = await token.approve(watcher.address, amountWei);
+                console.log(`Approval tx hash: ${approvalTx.hash}, waiting for confirmation...`);
+                await approvalTx.wait();
+                console.log('Approval done.')
             }
+            console.log('Depositing tokens...');
+            const opts = (token.address === rbtcAddress) ? { value: amountWei } : {};
+            tx = await watcher.depositTokens(token.address, amountWei, opts);
         } else {
             throw new Error('should not get here');
         }
