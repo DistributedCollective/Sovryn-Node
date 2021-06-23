@@ -1,436 +1,82 @@
 /**
- * The arbitrage controller tries to capitalize on changes in market price between alle the enabled token pairs and RBtc on the Sovryn amm.
+ * Arbitrage V2 with watcher contract.
  *
- * The amount for which we seek arbitrage is defined in the config (amountArbitrage).
- * It start an endless loop:
- * 1. Get the price from the amm. This returns the expected return form the Sovryn network.
- * 2. Get the price from the price feed contract. This returns the oracle price.
- * 3. Compare the prices. If the difference is >= threshold (config/thresholdArbitrage) then sell arbitrage amount of liquidity of the respective currency to the amm,
- * Inform the telegram group about a successful arbitrage trade and save statistic in db
- *
- * The swap network contract (conf.swapsImpl) need to be approved by the arbitrage wallet to spend tokens on his behalf
+ * Quick and dirty implementation extending the existing Arbitrage controller
  */
-
 import C from '../contract';
-import U from '../../util/helper';
 import A from '../../secrets/accounts';
-import Web3 from 'web3';
 import Extra from 'telegraf/extra';
 import conf from '../../config/config';
-import  common from './../common';
-import abiDecoder from 'abi-decoder';
-import abiSwap from "../../config/abiSovrynSwapNetwork";
-import db from "../db";
+import common from './../common';
+import { Arbitrage } from "../arbitrage";
 
-const BN = Web3.utils.BN;
+class ArbitrageV2 extends Arbitrage {
+    // silly fork. because our calculations are different
+    async calculateLimitedAmount(amount, sourceTokenAddress, sourceTokenSymbol) {
+        const executorAddress = A.arbitrage[0].adr;
+        const fromAddress = C.contractWatcher._address;
+        const sourceContract = C.getTokenInstance(sourceTokenAddress);
 
-export class ArbitrageOpportunity {
-    /**
-     * Construct an arbitrage opportunity DTO.
-     *
-     * @param {string} sourceTokenAddress The token to sell
-     * @param {string} destTokenAddress The token to get in exchange
-     * @param {BN} amount Amount of sourceTokenAddress to sell
-     * @param {string} sourceTokenSymbol Symbol of the token to sell
-     * @param {string} destTokenSymbol Symbol of the token to get in exchnage
-     */
-    constructor(sourceTokenAddress, destTokenAddress, amount, sourceTokenSymbol, destTokenSymbol) {
-        this.sourceTokenAddress = sourceTokenAddress;
-        this.destTokenAddress = destTokenAddress;
-        this.amount = amount;
-        this.sourceTokenSymbol = sourceTokenSymbol;
-        this.destTokenSymbol = destTokenSymbol;
-    }
+        const executorRbtcBalance = this.BN(await C.web3.eth.getBalance(executorAddress))
+        if(executorRbtcBalance.lt(C.web3.utils.toWei('0.0001'))) {
+            console.log(
+                'not executing arbitrage because executor RBTC balance %s is low - might not be able to pay gas costs',
+                C.web3.utils.fromWei(executorRbtcBalance)
+            )
+            return this.BN('0');
+        }
 
-    toString() {
-        return (
-            `<ArbitrageOpportunity(` +
-            `source=${this.sourceTokenSymbol}(${this.sourceTokenAddress}), ` +
-            `dest=${this.destTokenSymbol}(${this.destTokenAddress}), ` +
-            `amount=${C.web3.utils.fromWei(this.amount)} (${this.amount.toString()} wei)` +
-            `)>`
-        )
-    }
-}
+        const arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
+        if(arbitragerBalance.isZero() || arbitragerBalance.isNeg()) {
+            console.log('no balance held in watcher contract -- cannot do anything')
+            return this.BN('0');
+        }
 
-/**
- * Calculate the arbitrage opportunity for a token pair, given both actual contract balance and staked balance
- * in the liquidity pool for both.
- *
- * The calculation is based on the principles outlined in this article:
- * https://blog.bancor.network/calculating-dynamic-reserve-weights-in-bancorv2-538b901bcac4
- *
- * In summary, whenever the staked balance of a token exceeds the balance actually owned by the liquidity pool,
- * there exists an arbitrage opportunity to sell the token, and the optimal amount to sell is:
- *
- *     stakedBalance - contractBalance
- *
- * In case this is negative, we calculate the amount using the balances of the other token and sell it instead.
- * No complicated math should be required.
- *
- * Note that this calculation doesn't mean the opportunity is worth our time when all fees are considered.
- *
- * @param {string} token1Address Address of first token
- * @param {BN} token1ContractBalance Amount of first token actually owned by the liquidity pool
- * @param {BN} token1StakedBalance Amount of first token staked in the liquidity pool
- * @param {string} token1Symbol Symbol of first token
- * @param {string} token2Address Address of second token
- * @param {BN} token2ContractBalance Amount of second token actually owned by the liquidity pool
- * @param {BN} token2StakedBalance Amount of second token staked in the liquidity pool
- * @param {string} token2Symbol Symbol of second token token
- * @param {object} opts Extra options
- * @returns {(ArbitrageOpportunity|null)} DTO representing the opportunity, or null if none found
- */
-export function calculateArbitrageOpportunity(
-    token1Address,
-    token1ContractBalance,
-    token1StakedBalance,
-    token1Symbol,
-    token2Address,
-    token2ContractBalance,
-    token2StakedBalance,
-    token2Symbol,
-    opts = {},
-) {
-    const token1Delta = token1StakedBalance.sub(token1ContractBalance);
-    const token2Delta = token2StakedBalance.sub(token2ContractBalance);
-    if(opts || opts.log) {
-        console.log(
-            `${token1Symbol} amm balances:`,
-            C.web3.utils.fromWei(token1StakedBalance),
-            C.web3.utils.fromWei(token1ContractBalance),
-            C.web3.utils.fromWei(token1Delta)
-        );
-        console.log(
-            `${token2Symbol} amm balances:`,
-            C.web3.utils.fromWei(token2StakedBalance),
-            C.web3.utils.fromWei(token2ContractBalance),
-            C.web3.utils.fromWei(token2Delta)
-        );
-    }
-
-    if(token1Delta.isZero() && token2Delta.isZero()) {
-        // perfect equilibrium - no arbitrage
-        return null;
-    }
-
-    // TODO: figure out the best way to handle the following edge cases:
-    // - It's possible for stakedBalance - contractBalance to be negative for one token and 0 for the other
-    // - It's possible for stakedBalance - contractBalance to be negative for both tokens
-    // - It's possible for stakedBalance - contractBalance to be positive for both tokens
-    if((token1Delta.isNeg() || token1Delta.isZero()) && (token2Delta.isNeg() || token2Delta.isZero())) {
-        return null;
-    }
-
-    let sourceTokenAddress, destTokenAddress, amount, sourceTokenSymbol, destTokenSymbol;
-    if(token1Delta.isNeg()) {
-        sourceTokenAddress = token2Address;
-        destTokenAddress = token1Address;
-        amount = token2Delta;
-        sourceTokenSymbol = token2Symbol;
-        destTokenSymbol = token1Symbol;
-    } else {
-        sourceTokenAddress = token1Address;
-        destTokenAddress = token2Address;
-        amount = token1Delta;
-        sourceTokenSymbol = token1Symbol;
-        destTokenSymbol = token2Symbol;
-    }
-
-    if(amount.isZero()) {
-        // no opportunity here
-        return null;
-    }
-    return new ArbitrageOpportunity(
-        sourceTokenAddress,
-        destTokenAddress,
-        amount,
-        sourceTokenSymbol,
-        destTokenSymbol,
-    )
-}
-
-
-/**
- * Main arbitrage controller
- */
-class Arbitrage {
-    constructor() {
-        abiDecoder.addABI(abiSwap);
-        this.BN = C.web3.utils.toBN;
-    }
-
-    /**
-     * Wrapper checking arbitrage opportunities
-     * 1. Compare RBtc prices from Amm with the oracle
-     * 2. If arbitrage opportunity is found: buy the tokens which are too many:
-     * Token x if price(Amm) < price(PriceFeed), RBtc otherwise
-     */
-
-    async start(arbitrageDeals) {
-        await this.startDynamicAmount(arbitrageDeals);
-    }
-
-    async startDynamicAmount(arbitrageDeals = null) {
-        const tokens = [
-            ['usdt', conf.USDTToken],
-            ['doc', conf.docToken],
-        ];
-        while(true) {
-            console.log("started checking prices (dynamic)");
-
-            for(const [tokenSymbol, tokenAddress] of tokens) {
-                try {
-                    await this.handleDynamicArbitrageForToken(tokenSymbol, tokenAddress, arbitrageDeals);
-                } catch(e) {
-                    console.error(`Error handling arbitrage for token ${tokenSymbol}`, e);
-                }
+        let configMaxAmountWei = null;
+        if(conf.dynamicArbitrageMaxAmounts) {
+            const configMaxAmountStr = conf.dynamicArbitrageMaxAmounts[sourceTokenSymbol] || conf.dynamicArbitrageMaxAmounts.default;
+            if(configMaxAmountStr) {
+                configMaxAmountWei = this.BN(C.web3.utils.toWei(configMaxAmountStr));
             }
-
-            console.log("Completed checking prices");
-            await U.wasteTime(conf.arbitrageScanInterval);
-        }
-    }
-
-    async handleDynamicArbitrageForToken(tokenSymbol, tokenAddress, arbitrageDeals) {
-        console.log(`checking token ${tokenSymbol}`);
-        const arbitrageOpportunity = await this.findArbitrageOpportunityForToken(tokenSymbol, tokenAddress);
-        if(!arbitrageOpportunity) {
-            console.log(`no arbitrage opportunity found for ${tokenSymbol}`)
-            return;
-        }
-        console.log(
-            `Found arbitrage opportunity: ${C.web3.utils.fromWei(arbitrageOpportunity.amount)} ` +
-            `${arbitrageOpportunity.sourceTokenSymbol} -> ${arbitrageOpportunity.destTokenSymbol}`
-        );
-
-        const [priceAmm, pricePriceFeed] = await this.getAmmAndPriceFeedPrices(arbitrageOpportunity);
-        console.log('prices: amm: ', priceAmm.toFixed(5), ' pricefeed: ', pricePriceFeed.toFixed(5));
-
-        const arbitragePercentage = await this.calculateArbitragePercentage(priceAmm, pricePriceFeed);
-        console.log('arbitrage%', arbitragePercentage.toFixed(5));
-        if(arbitragePercentage < conf.thresholdArbitrage) {
-            console.log(`arbitrage too low for threshold ${conf.thresholdArbitrage}`);
-            return;
         }
 
-        const arbitrageTx = await this.executeArbitrage(arbitrageOpportunity, tokenSymbol, tokenAddress);
-        if(arbitrageTx) {
-            await this.handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, pricePriceFeed, arbitrageDeals);
-        } else {
-            console.warn('Arbitrage not executed.')
-        }
-        return arbitrageTx;
-    }
-
-    async findArbitrageOpportunityForToken(tokenSymbol, tokenAddress) {
-        const rbtcAddress = conf.testTokenRBTC;
-        const rbtcContract = C.contractTokenRBTC;
-        const liquidityPool = await C.getLiquidityPoolByTokens(rbtcAddress, tokenAddress);
-        const tokenContract = C.getTokenInstance(tokenAddress);
-
-        const rbtcContractBalance = this.BN(await rbtcContract.methods.balanceOf(liquidityPool._address).call());
-        const rbtcStakedBalance = this.BN(await liquidityPool.methods.reserveStakedBalance(rbtcAddress).call());
-        const tokenContractBalance = this.BN(await tokenContract.methods.balanceOf(liquidityPool._address).call());
-        const tokenStakedBalance = this.BN(await liquidityPool.methods.reserveStakedBalance(tokenAddress).call());
-
-        const opportunity = calculateArbitrageOpportunity(
-            rbtcAddress,
-            rbtcContractBalance,
-            rbtcStakedBalance,
-            'rbtc',
-            tokenAddress,
-            tokenContractBalance,
-            tokenStakedBalance,
-            tokenSymbol,
-            {
-                log: true,
-            }
-        );
-
-        if(opportunity) {
-            // limit amount according to balance and/or config
-            const executorAddress = A.arbitrage[0].adr;
-            const fromAddress = C.contractWatcher._address;
-            const sourceContract = C.getTokenInstance(opportunity.sourceTokenAddress);
-
-            const executorRbtcBalance = this.BN(await C.web3.eth.getBalance(executorAddress))
-            if(executorRbtcBalance.lt(C.web3.utils.toWei('0.0001'))) {
+        if(!configMaxAmountWei || arbitragerBalance.lt(configMaxAmountWei)) {
+            // config max not specified or balance < config max
+            if(amount.gt(arbitragerBalance)) {
                 console.log(
-                    'not executing arbitrage because executor RBTC balance %s is low - might not be able to pay gas costs',
-                    C.web3.utils.fromWei(executorRbtcBalance)
-                )
-                return null;
-            }
-
-            const arbitragerBalance = this.BN(await sourceContract.methods.balanceOf(fromAddress).call());
-            if(arbitragerBalance.isZero() || arbitragerBalance.isNeg()) {
-                console.log('no balance held in wallet -- cannot do anything')
-                return null;
-            }
-
-            let configMaxAmountWei = null;
-            if(conf.dynamicArbitrageMaxAmounts) {
-                const configMaxAmountStr = conf.dynamicArbitrageMaxAmounts[opportunity.sourceTokenSymbol] || conf.dynamicArbitrageMaxAmounts.default;
-                if(configMaxAmountStr) {
-                    configMaxAmountWei = this.BN(C.web3.utils.toWei(configMaxAmountStr));
-                }
-            }
-
-            if(!configMaxAmountWei || arbitragerBalance.lt(configMaxAmountWei)) {
-                // config max not specified or balance < config max
-                if(opportunity.amount.gt(arbitragerBalance)) {
-                    console.log(
-                        `Limiting amount to held balance ${C.web3.utils.fromWei(arbitragerBalance)} ${opportunity.sourceTokenSymbol} ` +
-                        `instead of ${C.web3.utils.fromWei(opportunity.amount)} ${opportunity.sourceTokenSymbol} `
-                    );
-                    opportunity.amount = arbitragerBalance;
-                }
-            } else if(opportunity.amount.gt(configMaxAmountWei)) {
-                // config max amount specified and less than amount
-                console.log(
-                    `Limiting amount to max amount specified in config: ${C.web3.utils.fromWei(configMaxAmountWei)} ${opportunity.sourceTokenSymbol} ` +
-                    `instead of ${C.web3.utils.fromWei(opportunity.amount)} ${opportunity.sourceTokenSymbol}`
+                    `Limiting amount to held balance ${C.web3.utils.fromWei(arbitragerBalance)} ${sourceTokenSymbol} ` +
+                    `instead of ${C.web3.utils.fromWei(amount)} ${sourceTokenSymbol} `
                 );
-                opportunity.amount = configMaxAmountWei;
+                amount = arbitragerBalance;
             }
+        } else if(amount.gt(configMaxAmountWei)) {
+            // config max amount specified and less than amount
+            console.log(
+                `Limiting amount to max amount specified in config: ${C.web3.utils.fromWei(configMaxAmountWei)} ${sourceTokenSymbol} ` +
+                `instead of ${C.web3.utils.fromWei(amount)} ${sourceTokenSymbol}`
+            );
+            amount = configMaxAmountWei;
         }
-
-        return opportunity;
+        return amount;
     }
 
-    async getAmmAndPriceFeedPrices(arbitrageOpportunity) {
-        const priceAmmWei = await this.getPriceFromAmm(
-            C.contractSwaps,
-            arbitrageOpportunity.sourceTokenAddress,
-            arbitrageOpportunity.destTokenAddress,
-            arbitrageOpportunity.amount
-        );
-        const pricePriceFeedWei = await this.getPriceFromPriceFeed(
-            C.contractPriceFeed,
-            arbitrageOpportunity.sourceTokenAddress,
-            arbitrageOpportunity.destTokenAddress,
-            arbitrageOpportunity.amount
-        );
-        if(priceAmmWei.isZero() || priceAmmWei.isNeg()) {
-            throw new Error("Invalid AMM price: " + priceAmmWei.toString());
-        }
-        if(pricePriceFeedWei.isZero() || pricePriceFeedWei.isNeg()) {
-            throw new Error("Invalid price feed price: " + pricePriceFeedWei.toString());
-        }
-        const priceAmm = parseFloat(C.web3.utils.fromWei(priceAmmWei, 'Ether'));
-        const pricePriceFeed = parseFloat(C.web3.utils.fromWei(pricePriceFeedWei, 'Ether'));
-        return [priceAmm, pricePriceFeed];
-    }
-
-    async calculateArbitragePercentage(priceAmm, pricePriceFeed) {
-        // since we always calculate the price of the token we are selling, we must
-        // always require that the amm price is higher than the price feed price
-        return priceAmm / pricePriceFeed * 100 - 100;
-    }
-
-    async executeArbitrage(arbitrageOpportunity) {
-        const fromAddress = A.arbitrage[0].adr;
-
-        const sourceSymbol = arbitrageOpportunity.sourceTokenSymbol;
-        const destSymbol = arbitrageOpportunity.destTokenSymbol;
-
-        const amount = arbitrageOpportunity.amount;
-        console.log(`EXECUTING ARBITRAGE! SELL ${C.web3.utils.fromWei(amount)} ${sourceSymbol}, BUY ${destSymbol}!`)
-
-        // TODO: this should include minAmount to avoid race conditions
-        return await this.arbitrageSwap(amount, sourceSymbol, destSymbol);
-    }
-
-    async handleSuccessfulArbitrage(arbitrageTx, arbitrageOpportunity, pricePriceFeed, arbitrageDeals) {
-        if(arbitrageDeals) {
-            arbitrageDeals.push({from: arbitrageOpportunity.sourceTokenSymbol, to: arbitrageOpportunity.destTokenSymbol});
-        }
-
-        let rbtcPrice, rbtcAmount;
-        if(arbitrageOpportunity.sourceTokenAddress.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
-            rbtcPrice = pricePriceFeed;
-            rbtcAmount = parseFloat(C.web3.utils.fromWei(arbitrageOpportunity.amount));
-        } else {
-            // when selling tokenAmount TOKEN, pricePriceFeed is the amount of RBTC you get for tokenAmount TOKEN.
-            // hence, rbtcPrice = tokenAmount and rbtcAmount = price feed price.
-            rbtcPrice = parseFloat(C.web3.utils.fromWei(arbitrageOpportunity.amount));
-            rbtcAmount = pricePriceFeed;
-        }
-        await this.calculateProfit(arbitrageTx, rbtcPrice, rbtcAmount);
-    }
-
-    /**
-    * Amount is based in sourceToken
-    * Returns price in wei (BN)
-    */
-    getPriceFromPriceFeed(contract, sourceToken, destToken, amount) {
-        return new Promise(async (resolve) => {
-            try {
-                contract.methods["queryReturn"](sourceToken, destToken, amount).call((error, result) => {
-                    if (error) {
-                        console.error("error loading price from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
-                        console.error(error);
-                        return resolve(this.BN('0'));
-                    }
-                    resolve(this.BN(result));
-                });
-            }
-            catch (e) {
-                console.error("error loading price from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
-                console.error(e);
-                resolve(this.BN('0'))
-            }
-        });
-    }
-
-    /**
-     * Amount is based in sourceToken
-     * Price need to be retrieven in 2 steps
-     * 1. Call function conversionPath on to get the conversion path
-     * 2. Call rateByPath assigning the conversion path and amount to get the actual price
-     * Returns price in wei (BN)
-     */
-    getPriceFromAmm(contract, sourceToken, destToken, amount) {
-        return new Promise(async (resolve) => {
-            try {
-                contract.methods["conversionPath"](sourceToken, destToken).call((error, result) => {
-                    if (error) {
-                        console.error("error loading conversion path 1 from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
-                        console.error(error);
-                        return resolve(this.BN('0'));
-                    }
-
-                    contract.methods["rateByPath"](result, amount).call((err, res) => {
-                        if (err) {
-                            console.error("error loading rate path from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
-                            console.error(err);
-                            return resolve(this.BN('0'));
-                        }
-                        resolve(this.BN(res));
-                    });
-                });
-            }
-            catch (e) {
-                console.error("error loading price from " + contract._address + " for src " + sourceToken + ", dest " + destToken + " and amount: " + amount);
-                console.error(e);
-                resolve(this.BN('0'))
-            }
-        });
-    }
-
-    async arbitrageSwap(amount, sourceCurrency, destCurrency) {
+    // most of this is also forked, could write it better
+    async swap(amount, sourceCurrency, destCurrency) {
         console.log("Send " + amount + " src " + sourceCurrency + " dest " + destCurrency + " to the amm");
         let sourceToken, destToken;
 
-        if (sourceCurrency === "doc") sourceToken = conf.docToken;
-        else if (sourceCurrency === "usdt") sourceToken = conf.USDTToken;
-        else if (sourceCurrency === "bpro") sourceToken = conf.BProToken;
+        if(sourceCurrency === "doc") sourceToken = conf.docToken;
+        else if(sourceCurrency === "usdt") sourceToken = conf.USDTToken;
+        else if(sourceCurrency === "bpro") sourceToken = conf.BProToken;
+        else if(sourceCurrency === "xusd") sourceToken = conf.XUSDToken;
+        else if(sourceCurrency === "eths") sourceToken = conf.ethsToken;
         else sourceToken = conf.testTokenRBTC;
 
-        if (destCurrency === "doc") destToken = conf.docToken;
-        else if (destCurrency === "usdt") destToken = conf.USDTToken;
-        else if (destCurrency === "bpro") destToken = conf.BProToken;
+        if(destCurrency === "doc") destToken = conf.docToken;
+        else if(destCurrency === "usdt") destToken = conf.USDTToken;
+        else if(destCurrency === "bpro") destToken = conf.BProToken;
+        else if(destCurrency === "xusd") destToken = conf.XUSDToken;
+        else if(destCurrency === "eths") destToken = conf.ethsToken;
         else destToken = conf.testTokenRBTC;
 
         const minProfit = 0; // no profit enforced yet
@@ -480,65 +126,6 @@ class Arbitrage {
         await common.telegramBot.sendMessage(`<b><u>A</u></b>\t\t\t\t ${conf.network}-${msg}`, Extra.HTML())
         return tx;
     }
-
-    async calculateProfit(tx, btcPriceFeed, amount){
-        try {
-            if(!amount) {
-                amount = conf.amountArbitrage;
-            }
-            console.log("Calculate profit from arbitrage");
-            const receipt = await C.web3.eth.getTransactionReceipt(tx.transactionHash);
-            console.log(receipt);
-
-            if (receipt && receipt.logs) {
-                const logs = abiDecoder.decodeLogs(receipt.logs);
-                const conversionEvent = (logs || []).find(log => log && log.name === "Conversion");
-                console.log(JSON.stringify(logs, null, 2));
-
-                if (conversionEvent && conversionEvent.events) {
-                    const priceFeed = Number(btcPriceFeed)/amount;
-                    console.log(priceFeed)
-                    let {fromToken, toToken, fromAmount, toAmount} = U.parseEventParams(conversionEvent.events);
-                    let toAmountWithPFeed, trade;
-
-                    fromAmount = Number(C.web3.utils.fromWei(fromAmount.toString(), 'ether'));
-                    toAmount = Number(C.web3.utils.fromWei(toAmount.toString(), 'ether'));
-
-                    console.log(fromAmount); console.log(toAmount);
-
-                    if (fromToken.toLowerCase() === conf.testTokenRBTC.toLowerCase()) {
-                        toAmountWithPFeed = Number(fromAmount) * priceFeed;
-                        trade = 'sell btc';
-                    } else {
-                        toAmountWithPFeed = Number(fromAmount) / priceFeed;
-                        trade = 'buy btc';
-                    }
-                    const profit = toAmount - toAmountWithPFeed;
-                    console.log(profit)
-
-                    console.log({
-                        trader: receipt.from,
-                        fromToken, toToken,
-                        fromAmount, toAmount,
-                        profit,
-                        trade
-                    })
-
-                    await db.addArbitrage({
-                        adr: receipt.from,
-                        fromToken, toToken,
-                        fromAmount, toAmount,
-                        profit, trade,
-                        txHash: tx.transactionHash,
-                        status: 'successful'
-                    })
-                }
-            }
-
-        } catch (e) {
-            console.error("Error when calculate arbitrage profit", e);
-        }
-    }
 }
 
-export default new Arbitrage();
+export default new ArbitrageV2();
