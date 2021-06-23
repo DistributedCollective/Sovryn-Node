@@ -50,8 +50,16 @@ class MonitorController {
         const resp = {
             liquidator: await Promise.all(accounts.liquidator.map(async (account) => await this.getAccountInfoForFrontend(account, "liquidator"))),
             rollover: await this.getAccountInfoForFrontend(accounts.rollover[0], "rollover"),
-            arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0], "arbitrage")
+            arbitrage: await this.getAccountInfoForFrontend(accounts.arbitrage[0], "arbitrage"),
         };
+        if (conf.watcherContract) {
+            resp.watcher = await this.getAccountInfoForFrontend(
+                {
+                    adr: conf.watcherContract,
+                },
+                "watcher contract"
+            );
+        }
         if (typeof cb === "function") cb(resp);
         else return resp;
     }
