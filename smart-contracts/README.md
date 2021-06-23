@@ -74,7 +74,7 @@ npx hardhat watcher-role \
     --watcher WATCHER_ADDRESS \
     --role executor \
     --account ACCOUNT_ADDRESS \
-    --private-key ./secrets/deployer.pkey
+    --private-key ./secrets/privatekey.pkey
 ```
 
 `ACTION` can be `add`, `remove` or `check`. `NETWORK` is `rsk` or `rsk-testnet`.
@@ -96,7 +96,7 @@ npx hardhat fund-watcher \
     --watcher WATCHER_ADDRESS \
     --token TOKEN_ADDRESS \
     --amount 123.45 \
-    --private-key ./secrets/deployer.pkey 
+    --private-key ./secrets/privatekey.pkey 
 ```
 
 `amount` is given in human-readable decimal units, and converted to Wei on deposit. To deposit RBTC directly from
@@ -112,7 +112,7 @@ npx hardhat fund-watcher \
     --token TOKEN_ADDRESS \
     --amount 123.45 \
     --recipient RECIPIENT_ADDRESS \
-    --private-key ./secrets/deployer.pkey 
+    --private-key ./secrets/privatekey.pkey 
 ```
 
 `recipient` is optional and defaults to the account.
