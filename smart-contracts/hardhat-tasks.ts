@@ -1,5 +1,6 @@
 import {task} from "hardhat/config";
-import {addressType, loadAccountFromKeystoreOrPrivateKeyPath} from './hardhat-utils';
+import {addressType, FauxRBTC, loadAccountFromKeystoreOrPrivateKeyPath, sleep} from './hardhat-utils';
+import erc20Abi from "./misc/erc20Abi.json";
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
     const accounts = await hre.ethers.getSigners();
@@ -43,7 +44,7 @@ task("deploy-watcher", "Deploys the Watcher contract")
             priceFeeds,
             wrbtcToken,
         });
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await sleep(5000);
 
         console.log('Deploying!')
         const watcher = await Watcher.deploy(sovrynProtocol, sovrynSwapNetwork, priceFeeds, wrbtcToken);
@@ -119,4 +120,89 @@ task('watcher-role', 'Adds roles to accounts on watcher')
         console.log('waiting for tx...')
         await tx.wait();
         console.log('all done');
+    });
+
+
+task('fund-watcher', 'withdraw/deposit/check token status')
+    .addPositionalParam('action', 'withdraw/deposit/check')
+    .addParam('watcher', 'Watcher contract address', undefined, addressType)
+    .addParam('token', 'Token address', undefined, addressType)
+    .addOptionalParam('recipient', 'recipient of withdrawn funds (default sender)', undefined, addressType)
+    .addOptionalParam('amount', 'decimal amount in human-readable units (ie 1.2 RBTC)')
+    .addOptionalParam('keystore', 'Path to keystore file for owner')
+    .addOptionalParam('privateKey', 'Path to private key file for owner')
+    .setAction(async (args, hre) => {
+        const { action } = args;
+        const { ethers } = hre;
+        if (['withdraw', 'deposit', 'check'].indexOf(action) === -1) {
+            throw new Error(`invalid action: ${action}`)
+        }
+
+        if (!args.amount && action !== 'check') {
+            throw new Error('amount must be given if action is not "check"');
+        }
+
+        const owner = await loadAccountFromKeystoreOrPrivateKeyPath(args.keystore, args.privateKey, ethers.provider);
+        const watcher = await ethers.getContractAt('Watcher', args.watcher, owner);
+        const rbtcAddress = await watcher.RBTC_ADDRESS();
+
+        let token;
+        if (args.token === rbtcAddress) {
+            console.log('Token is RBTC, special logic applies')
+            token = new FauxRBTC(rbtcAddress, ethers.provider);
+        } else {
+            token = await ethers.getContractAt(erc20Abi, args.token, owner);
+        }
+
+        const symbol = await token.symbol();
+        const decimals = await token.decimals();
+        console.log(`Token ${symbol} (${token.address}) with ${decimals} decimals`);
+
+        const currentWatcherBalanceWei = await token.balanceOf(watcher.address);
+        const currentWatcherBalance = hre.ethers.utils.formatUnits(currentWatcherBalanceWei, decimals)
+        console.log(`Current watcher (${watcher.address}) balance: ${currentWatcherBalance} ${symbol} (${currentWatcherBalanceWei} Wei)`);
+
+        const currentAccountBalanceWei = await token.balanceOf(owner.address);
+        const currentAccountBalance = hre.ethers.utils.formatUnits(currentAccountBalanceWei, decimals)
+        console.log(`Current account (${owner.address}) balance: ${currentAccountBalance} ${symbol} (${currentAccountBalanceWei} Wei)`);
+
+        if (action === 'check') {
+            return;
+        }
+
+        const amountWei = hre.ethers.utils.parseUnits(args.amount, decimals);
+        console.log(`${action} ${args.amount} ${symbol} (${amountWei} Wei)`);
+
+        // allow panicked users to Ctrl-C here
+        await sleep(2000);
+
+        let tx;
+        if (action === 'withdraw') {
+            const recipient = args.recipient || owner.address;
+            console.log(`Withdrawing tokens to ${recipient}`);
+            tx = await watcher.withdrawTokens(token.address, amountWei, recipient);
+        } else if (action === 'deposit') {
+            if (token.address === rbtcAddress) {
+                console.log('Depositing RBTC...');
+                tx = await watcher.depositTokens(token.address, amountWei, { value: amountWei });
+            } else {
+                const currentAllowanceWei = await token.allowance(owner.address, watcher.address);
+                if (currentAllowanceWei.lt(amountWei)) {
+                    console.log(`Approving watcher to spend ${args.amount} ${symbol}...`)
+                    const approvalTx = await token.approve(watcher.address, amountWei);
+                    console.log(`Approval tx hash: ${approvalTx.hash}, waiting for confirmation...`);
+                    await approvalTx.wait();
+                    console.log('Approval done.')
+                }
+                console.log('Depositing tokens...');
+                tx = await watcher.depositTokens(token.address, amountWei);
+            }
+        } else {
+            throw new Error('should not get here');
+        }
+
+        console.log(`${action} tx hash:`, tx.hash);
+        console.log('Waiting for confirmation...')
+        await tx.wait();
+        console.log('All done.');
     });

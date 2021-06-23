@@ -2,7 +2,7 @@ import readline from 'readline';
 import fs from 'fs';
 
 import { Provider } from "@ethersproject/abstract-provider";
-import { Wallet, utils as ethersUtils } from 'ethers';
+import { Wallet, utils as ethersUtils, BigNumber, BigNumberish } from 'ethers';
 
 export const addressType: any = {
     name: 'address',
@@ -68,3 +68,35 @@ export async function loadAccountFromKeystoreOrPrivateKeyPath(
     }
     throw new Error('should not get here');
 }
+
+export async function sleep(ms: number): Promise<void> {
+    return await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * A class that behaves like token but it's really RBTC
+ */
+export class FauxRBTC {
+    constructor(public address: string, private provider: Provider) {}
+
+    decimals(): number {
+        return 18;
+    }
+
+    symbol(): string {
+        return 'RBTC';
+    }
+
+    async balanceOf(address: string): Promise<BigNumber> {
+        return this.provider.getBalance(address);
+    }
+
+    async allowance(owner: string, spender: string): Promise<BigNumber> {
+        return BigNumber.from(2).pow(256).sub(1);
+    }
+
+    async approve(spender: string, amount: BigNumberish) {
+        // no-op
+    }
+}
+
