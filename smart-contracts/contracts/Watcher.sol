@@ -2,7 +2,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-//import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "hardhat/console.sol";
 
@@ -13,14 +12,12 @@ import "./interfaces/IWRBTCToken.sol";
 
 
 contract Watcher is AccessControl {
-  //using SafeERC20 for IERC20; // TODO: is this needed?
-
   address public immutable RBTC_ADDRESS = address(0);
   bytes32 public constant ROLE_EXECUTOR = keccak256("EXECUTOR");
-  bytes32 public constant ROLE_OWNER = DEFAULT_ADMIN_ROLE; // just alias this
+  bytes32 public constant ROLE_OWNER = DEFAULT_ADMIN_ROLE;
 
-  ISovrynSwapNetwork public sovrynSwapNetwork;
   ISovrynProtocol public sovrynProtocol;
+  ISovrynSwapNetwork public sovrynSwapNetwork;
   IPriceFeeds public priceFeeds;
   IWRBTCToken public wrbtcToken;
 
@@ -44,16 +41,17 @@ contract Watcher is AccessControl {
   );
 
   constructor(
-    ISovrynSwapNetwork _sovrynSwapNetwork,
     ISovrynProtocol _sovrynProtocol,
+    ISovrynSwapNetwork _sovrynSwapNetwork,
     IPriceFeeds _priceFeeds,
     IWRBTCToken _wrbtcToken
   ) {
-    sovrynSwapNetwork = _sovrynSwapNetwork;
     sovrynProtocol = _sovrynProtocol;
+    sovrynSwapNetwork = _sovrynSwapNetwork;
     priceFeeds = _priceFeeds;
     wrbtcToken = _wrbtcToken;
 
+    // ROLE_OWNER is also the default admin role
     _setupRole(ROLE_OWNER, msg.sender);
   }
 

@@ -187,8 +187,8 @@ export async function initSovrynContracts() {
 
     // V2 stuff
     const watcher = await Watcher.new(
-        sovrynSwapNetwork.address,
         sovrynProtocol.address,
+        sovrynSwapNetwork.address,
         priceFeeds.address,
         wrbtcToken.address
     );

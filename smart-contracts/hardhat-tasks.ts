@@ -88,8 +88,6 @@ task('watcher-role', 'Adds roles to accounts on watcher')
             throw new Error('cannot remove the owner role from myself!');
         }
 
-        //const Watcher = await hre.ethers.getContractFactory('Watcher', owner);
-        //const watcher = Watcher.attach(args.watcher);
         const watcher = await hre.ethers.getContractAt('Watcher', args.watcher, owner);
 
         console.log(`${action} role ${role} for ${account}`);
