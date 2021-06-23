@@ -15,20 +15,20 @@ export const addressType: any = {
 }
 
 export  async function promptPassword(prompt: string): Promise<string> {
-  const rl = readline.createInterface({
-      input: process.stdin,
-      //no output, don't show password
-      //output: fs.createWriteStream('/dev/null'),
-      terminal: true,
-  });
-  console.log(`${prompt} (output is silenced)`);
-  const it = rl[Symbol.asyncIterator]();
-  const ret = await it.next();
-  await rl.close();
-  if (ret.value === undefined) {
-      throw new Error('password prompt cancelled');
-  }
-  return ret.value;
+    const rl = readline.createInterface({
+        input: process.stdin,
+        //no output, don't show password
+        //output: fs.createWriteStream('/dev/null'),
+        terminal: true,
+    });
+    console.log(`${prompt} (output is silenced)`);
+    const it = rl[Symbol.asyncIterator]();
+    const ret = await it.next();
+    await rl.close();
+    if (ret.value === undefined) {
+        throw new Error('password prompt cancelled');
+    }
+    return ret.value;
 }
 
 export async function loadAccountFromKeystorePath(path: string, provider?: Provider): Promise<Wallet> {
