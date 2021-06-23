@@ -49,7 +49,6 @@ task("deploy-watcher", "Deploys the Watcher contract")
         console.log('Deploying!')
         const watcher = await Watcher.deploy(sovrynProtocol, sovrynSwapNetwork, priceFeeds, wrbtcToken);
 
-        console.log(watcher);
         console.log('Deployed! Address:', watcher.address);
 
         if (verify) {
