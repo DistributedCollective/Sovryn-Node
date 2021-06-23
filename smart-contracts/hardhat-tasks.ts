@@ -180,7 +180,9 @@ task('fund-watcher', 'withdraw/deposit/check token status')
         if (action === 'withdraw') {
             const recipient = args.recipient || owner.address;
             console.log(`Withdrawing tokens to ${recipient}`);
-            tx = await watcher.withdrawTokens(token.address, amountWei, recipient);
+            // for some reason, it underestimates the gas for RBTC withdrawal...
+            const opts = (token.address === rbtcAddress) ? {gasLimit: 100000} : {};
+            tx = await watcher.withdrawTokens(token.address, amountWei, recipient, opts);
         } else if (action === 'deposit') {
             if (token.address === rbtcAddress) {
                 console.log('Depositing RBTC...');
