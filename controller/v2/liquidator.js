@@ -87,7 +87,7 @@ class Liquidator {
             }
 
             const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet);
-            if (!liquidateAmount || liquidateAmount.isZero()) return;
+            if (!liquidateAmount || liquidateAmount.isZero()) continue;
 
             const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
