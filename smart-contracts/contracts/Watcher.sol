@@ -197,6 +197,20 @@ contract Watcher is AccessControl {
         _receiver.transfer(_amount);
     }
 
+    // maintenance functions for updating the protocol addresses, in case of error/etc
+    function setSovrynProtocol(ISovrynProtocol _sovrynProtocol) external onlyRole(ROLE_OWNER) {
+        sovrynProtocol = _sovrynProtocol;
+    }
+    function setSovrynSwapNetwork(ISovrynSwapNetwork _sovrynSwapNetwork) external onlyRole(ROLE_OWNER) {
+        sovrynSwapNetwork = _sovrynSwapNetwork;
+    }
+    function setPriceFeeds(IPriceFeeds _priceFeeds) external onlyRole(ROLE_OWNER) {
+        priceFeeds = _priceFeeds;
+    }
+    function setWRBTCToken(IWRBTCToken _wrbtcToken) external onlyRole(ROLE_OWNER) {
+        wrbtcToken = _wrbtcToken;
+    }
+
     function checkArbitrage(
         IERC20 _tokenA,
         IERC20 _tokenB
