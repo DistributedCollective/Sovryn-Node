@@ -58,7 +58,12 @@ contract Watcher is AccessControl {
   }
 
   receive() external payable {
-    require(msg.sender == address(wrbtcToken), "Watcher: only WRBTC token can transfer RBTC");
+    require(
+      msg.sender == address(wrbtcToken) ||
+        msg.sender == address(sovrynProtocol) ||
+        msg.sender == address(sovrynSwapNetwork),
+      "Watcher: only known contracts can transfer RBTC"
+    );
   }
 
   // TODO: non-reentrant?
@@ -124,6 +129,11 @@ contract Watcher is AccessControl {
 
     loanToken.approve(address(sovrynProtocol), closeAmount);
     (loanCloseAmount, seizedAmount, seizedToken) = sovrynProtocol.liquidate(loanId, address(this), closeAmount);
+
+    // LoanClosings wants to send us RBTC, deposit to wrbtcToken to keep things simpler
+    if (seizedToken == address(wrbtcToken)) {
+      wrbtcToken.deposit{ value: seizedAmount }();
+    }
 
     // TODO: we could swapback here
 
