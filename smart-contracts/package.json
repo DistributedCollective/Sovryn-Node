@@ -10,7 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "@openzeppelin/contracts": "^4.1",
-    "hardhat": "^2.3.3"
+    "hardhat": "^2.4.1"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
