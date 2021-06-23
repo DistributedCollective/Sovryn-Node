@@ -77,8 +77,8 @@ class Liquidator {
             //failed too often -> have to check manually
             if(this.liquidationErrorList[p]>=5) continue;
 
-            // get wallet balance as bignumber
-            const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token, C.web3.utils.toBN);
+            const requiredExecutorBalance = 0; // executor doesn't need any balance
+            const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, token, C.web3.utils.toBN);
             if (!wallet) {
                 this.handleNoWalletError(p).catch(e => {
                     console.error('Error handling noWalletError:', e);
@@ -86,7 +86,9 @@ class Liquidator {
                 continue;
             }
 
-            const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet);
+            const tokenContract = C.getTokenInstance(pos.loanToken);
+            const watcherBalance = C.web3.utils.toBN(await tokenContract.methods.balanceOf(C.contractWatcher._address).call());
+            const liquidateAmount = await this.calculateLiquidateAmount(watcherBalance, pos, token, wallet);
             if (!liquidateAmount || liquidateAmount.isZero()) continue;
 
             const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
@@ -102,11 +104,11 @@ class Liquidator {
         const maxLiquidatable = toBN(pos.maxLiquidatable);
         let liquidateAmount = BN.min(maxLiquidatable, wBalance);
         const gasPrice = await C.getGasPrice();
-        const rbtcBalance = toBN(await C.web3.eth.getBalance(wallet.adr));
+        const executorRbtcBalance = toBN(await C.web3.eth.getBalance(wallet.adr));
         const txFees = toBN(conf.gasLimit).mul(toBN(gasPrice));
 
-        if (txFees.gt(rbtcBalance)) {
-            console.log("not enough RBTC balance on wallet to pay fees");
+        if (txFees.gt(executorRbtcBalance)) {
+            console.log("executor does not have enough RBTC balance on wallet to pay fees");
             return;
         } else if (maxLiquidatable.lt(wBalance)) {
             console.log("enough balance on wallet");
@@ -114,10 +116,6 @@ class Liquidator {
             console.log("not enough balance on wallet");
             return;
         } else {
-            if (token === "rBtc") {
-                // TODO: this doesn't seem right -- why do we need to subtract txfees?
-                liquidateAmount = toBN(wBalance).sub(txFees);
-            }
             if (liquidateAmount.lte(toBN('0'))) {
                 console.log("not enough balance on wallet");
                 return;
@@ -127,23 +125,14 @@ class Liquidator {
         return liquidateAmount;
     }
 
-    /**
-    * swaps back to collateral currency after liquidation is completed
-    * @param value should be sent in Wei format as String
-    * @param sourceCurrency should be that hash of the contract
-    * @param destCurrency is defaulting for now to 'rbtc'
-    */
     /*
     * Tries to liquidate a position
-    * If Loan token == WRBTC -> pass value
     * wallet = sender and receiver address
     */
     async liquidate(loanId, wallet, amount, token, nonce) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
         const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());
-        const val = isRbtcToken ? amount : 0;
-        console.log("Sending val: " + val);
         console.log("Nonce: " + nonce);
 
         if (this.liquidations && Object.keys(this.liquidations).length > 0) {
@@ -158,12 +147,11 @@ class Liquidator {
 
         let tx;
         try {
-            tx = await C.contractWatcher.methods.liquidate(loanId, wallet, amount.toString()).send({
+            tx = await C.contractWatcher.methods.liquidate(loanId, amount.toString()).send({
                 from: wallet,
                 gas: conf.gasLimit,
                 gasPrice: gasPrice,
                 nonce: nonce,
-                value: val
             });
         } catch (err) {
             console.error("Error on liquidating loan " + loanId);
