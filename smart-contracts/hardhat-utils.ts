@@ -1,7 +1,7 @@
 import readline from 'readline';
 import fs from 'fs';
 
-import { types } from "hardhat/config";
+import { Provider } from "@ethersproject/abstract-provider";
 import { Wallet, utils as ethersUtils } from 'ethers';
 
 export const addressType: any = {
@@ -31,12 +31,40 @@ export  async function promptPassword(prompt: string): Promise<string> {
   return ret.value;
 }
 
-export async function loadAccountFromKeystorePath(path: string): Promise<Wallet> {
+export async function loadAccountFromKeystorePath(path: string, provider?: Provider): Promise<Wallet> {
     if (!fs.existsSync(path)) {
         throw new Error(`Keystore path ${path} doesn't exist`);
     }
     const keystoreRaw = fs.readFileSync(path, 'utf-8');
     const password = await promptPassword('Enter keystore password');
     console.log('Decrypting keystore file...');
-    return Wallet.fromEncryptedJson(keystoreRaw, password);
+    let wallet = await Wallet.fromEncryptedJson(keystoreRaw, password);
+    if (provider) {
+        wallet = wallet.connect(provider);
+    }
+    return wallet;
+}
+
+export async function loadAccountFromKeystoreOrPrivateKeyPath(
+    keyStorePath?: string | null,
+    privateKeyPath?: string | null,
+    provider?: Provider
+): Promise<Wallet> {
+    if(keyStorePath && privateKeyPath) {
+        throw new Error('provide either keystore path or private key path, not both');
+    }
+    if(!keyStorePath && !privateKeyPath) {
+        throw new Error('provide either keystore path or private key path');
+    }
+    if (keyStorePath) {
+        return await loadAccountFromKeystorePath(keyStorePath, provider);
+    }
+    if (privateKeyPath) {
+        if (!fs.existsSync(privateKeyPath)) {
+            throw new Error(`Private key path ${privateKeyPath} doesn't exist`);
+        }
+        const privateKey = fs.readFileSync(privateKeyPath, 'utf-8').trim();
+        return new Wallet(privateKey, provider);
+    }
+    throw new Error('should not get here');
 }
