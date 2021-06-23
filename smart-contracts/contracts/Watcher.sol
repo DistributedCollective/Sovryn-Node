@@ -25,13 +25,22 @@ contract Watcher is AccessControl {
   IWRBTCToken public wrbtcToken;
 
   event Arbitrage(
-    address indexed _beneficiary,
     address indexed _sourceToken,
     address indexed _targetToken,
     uint256 _sourceTokenAmount,
     uint256 _targetTokenAmount,
     uint256 _priceFeedAmount,
-    uint256 _profit
+    uint256 _profit,
+    address _sender
+  );
+
+  event Liquidation(
+    bytes32 _loanId,
+    address indexed _loanToken,
+    address indexed _seizedToken,
+    uint256 _closeAmount,
+    uint256 _seizedAmount,
+    address _sender
   );
 
   constructor(
@@ -59,7 +68,7 @@ contract Watcher is AccessControl {
     uint256 _minProfit
   )
     external
-    payable
+    onlyRole(ROLE_EXECUTOR)
   {
     require(_conversionPath.length >= 2, "Watcher: _conversionPath must contain at least 2 tokens");
 
@@ -67,25 +76,14 @@ contract Watcher is AccessControl {
     IERC20 targetToken = _conversionPath[_conversionPath.length - 1];
     require(sourceToken != targetToken, "Watcher: sourceToken and targetToken cannot be the same");
 
-    // handle WRBTC wrapping if value is given
-    if (msg.value != 0) {
-      require(sourceToken == wrbtcToken, "Watcher: value may only be given for WRBTC transfers");
-      require(msg.value == _amount, "Watcher: value must equal amount");
-
-      wrbtcToken.deposit{ value: _amount }();
-    } else {
-      require(sourceToken.transferFrom(msg.sender, address(this), _amount), "Watcher: error transferring token");
-    }
-
     require(sourceToken.approve(address(sovrynSwapNetwork), _amount), "Watcher: error approving token");
 
     // For now, we just directly send everything back to the user
-    address beneficiary = targetToken == wrbtcToken ? address(this) : msg.sender;
     uint256 targetTokenAmount = sovrynSwapNetwork.convertByPath(
       _conversionPath,
       _amount,
       1, // minReturn
-      beneficiary,
+      address(this), // beneficiary
       address(0), // affiliateAccount
       0 // affiliateFee
     );
@@ -94,40 +92,51 @@ contract Watcher is AccessControl {
     uint256 profit = targetTokenAmount - priceFeedReturn;
     require(profit >= _minProfit, "Watcher: minimum profit not met");
 
-    if (targetToken == wrbtcToken) {
-      wrbtcToken.withdraw(targetTokenAmount);
-      payable(msg.sender).transfer(targetTokenAmount);
-    }
-
     emit Arbitrage(
-      msg.sender,
       address(sourceToken),
       address(targetToken),
       _amount,
       targetTokenAmount,
       priceFeedReturn,
-      profit
+      profit,
+      msg.sender
     );
   }
 
   function liquidate(
     bytes32 loanId,
-    address receiver,
     uint256 closeAmount // denominated in loanToken
   )
     external
-    payable
+    onlyRole(ROLE_EXECUTOR)
     returns (
       uint256 loanCloseAmount,
       uint256 seizedAmount,
       address seizedToken
     )
   {
-    // This is just a dumb proxy by now
+    // NOTE: to save gas, we might be able to use sovrynProtocol.loans[loanId],
+    // but then it doesn't have max liquidation amounts
     ISovrynProtocol.LoanReturnData memory loan = sovrynProtocol.getLoan(loanId);
-    IERC20(loan.loanToken).transferFrom(msg.sender, address(this), closeAmount);
-    IERC20(loan.loanToken).approve(address(sovrynProtocol), closeAmount);
-    return sovrynProtocol.liquidate{ value: msg.value }(loanId, receiver, closeAmount);
+    IERC20 loanToken = IERC20(loan.loanToken);
+    //closeAmount = loan.maxLiquidatable;
+    //require(closeAmount > 0, "loan not liquidatable");
+
+    loanToken.approve(address(sovrynProtocol), closeAmount);
+    (loanCloseAmount, seizedAmount, seizedToken) = sovrynProtocol.liquidate(loanId, address(this), closeAmount);
+
+    // TODO: we could swapback here
+
+    emit Liquidation(
+      loanId,
+      address(loanToken),
+      seizedToken,
+      loanCloseAmount,
+      seizedAmount,
+      msg.sender
+    );
+
+    return (loanCloseAmount, seizedAmount, seizedToken);
   }
 
   function withdrawTokens(

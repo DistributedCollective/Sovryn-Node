@@ -3,15 +3,17 @@ import { describe, it, beforeEach } from 'mocha';
 import { ethers } from 'hardhat';
 import { Signer, Contract, BigNumber } from 'ethers';
 import doc = Mocha.reporters.doc;
+import exp from 'constants';
 const { parseEther } = ethers.utils;
 
 const ZERO = BigNumber.from(0);
 
 describe("Watcher", function() {
   let accounts: Signer[];
-  let ownerAddress: string;
   let ownerAccount: Signer;
-  let adminAccount: Signer;
+  let ownerAddress: string;
+  let executorAccount: Signer;
+  let executorAddress: string;
   let anotherAccount: Signer;
 
   let sovrynSwapSimulator: Contract;
@@ -24,9 +26,10 @@ describe("Watcher", function() {
   beforeEach(async () => {
     accounts = await ethers.getSigners();
     ownerAccount = accounts[0];
-    adminAccount = accounts[1];
+    executorAccount = accounts[1];
     anotherAccount = accounts[2];
     ownerAddress = await ownerAccount.getAddress();
+    executorAddress = await executorAccount.getAddress();
 
     const PriceFeedsLocal  = await ethers.getContractFactory("PriceFeedsLocal");
     const SovrynSwapSimulator = await ethers.getContractFactory("TestSovrynSwap");
@@ -61,6 +64,8 @@ describe("Watcher", function() {
         wrbtcToken.address
     );
     await watcher.deployed();
+
+    await watcher.grantRole(await watcher.ROLE_EXECUTOR(), executorAddress);
   });
 
   describe("#checkArbitrage", () => {
@@ -105,12 +110,20 @@ describe("Watcher", function() {
     let initialDocBalance: BigNumber;
 
     beforeEach(async () => {
-      await wrbtcToken.deposit({ value: parseEther('10') })
-      await wrbtcToken.approve(watcher.address, parseEther('10000'));
-      await docToken.approve(watcher.address, parseEther('10000'));
+      const amount = parseEther('1000');
 
-      initialWrbtcBalance = await wrbtcToken.balanceOf(ownerAddress);
-      initialDocBalance = await docToken.balanceOf(ownerAddress);
+      await wrbtcToken.deposit({ value: amount })
+      await wrbtcToken.approve(watcher.address, amount);
+      await watcher.depositTokens(wrbtcToken.address, amount);
+
+      await docToken.approve(watcher.address, amount);
+      await watcher.depositTokens(docToken.address, amount);
+
+      initialWrbtcBalance = await wrbtcToken.balanceOf(watcher.address);
+      initialDocBalance = await docToken.balanceOf(watcher.address);
+
+      // just connect to executor here, as we mostly test the executor account
+      watcher = watcher.connect(executorAccount);
     })
 
     it("should fail if minReturn is not met 1", async () => {
@@ -149,16 +162,16 @@ describe("Watcher", function() {
           expectedProfit
       );
       await expect(result).to.emit(watcher, 'Arbitrage').withArgs(
-        ownerAddress,
         wrbtcToken.address,
         docToken.address,
         amount,
         expectedTargetAmount,
         parseEther("2000"),
         expectedProfit,
+        executorAddress,
       );
-      const wrbtcBalance = await wrbtcToken.balanceOf(ownerAddress);
-      const docBalance = await docToken.balanceOf(ownerAddress);
+      const wrbtcBalance = await wrbtcToken.balanceOf(watcher.address);
+      const docBalance = await docToken.balanceOf(watcher.address);
 
       expect(wrbtcBalance).to.equal(initialWrbtcBalance.sub(amount));
       expect(docBalance).to.equal(initialDocBalance.add(expectedTargetAmount));
@@ -181,53 +194,38 @@ describe("Watcher", function() {
           expectedProfit
       );
       await expect(result).to.emit(watcher, 'Arbitrage').withArgs(
-          ownerAddress,
           docToken.address,
           wrbtcToken.address,
           amount,
           expectedTargetAmount,
           parseEther("0.0005"),
           expectedProfit,
+          executorAddress,
       );
-      await expect(result).to.changeEtherBalance(ownerAccount, expectedTargetAmount);
-
-      const wrbtcBalance = await wrbtcToken.balanceOf(ownerAddress);
-      const docBalance = await docToken.balanceOf(ownerAddress);
-      expect(wrbtcBalance).to.equal(initialWrbtcBalance);
+      const wrbtcBalance = await wrbtcToken.balanceOf(watcher.address);
+      const docBalance = await docToken.balanceOf(watcher.address);
+      expect(wrbtcBalance).to.equal(initialWrbtcBalance.add(expectedTargetAmount));
       expect(docBalance).to.equal(initialDocBalance.sub(amount));
     });
 
-    it("should handle arbitrage with WRBTC given in RBTC", async () => {
+    it("only executor should be able to call should handle arbitrage", async () => {
       await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
       await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("3000"));
-      await wrbtcToken.withdraw(initialWrbtcBalance);
 
-      const amount = parseEther('1');
-      const expectedTargetAmount = parseEther('3000');
-      const expectedProfit = parseEther('1000');
+      await expect(
+          watcher.connect(ownerAccount).arbitrage(
+            [wrbtcToken.address, docToken.address],
+            parseEther('1'),
+            parseEther('1000')
+        )
+      ).to.be.reverted;
 
-      const result = await watcher.arbitrage(
+      // sanity check, make sure this doesn't revert
+      await watcher.connect(executorAccount).arbitrage(
           [wrbtcToken.address, docToken.address],
-          amount,
-          expectedProfit,
-          {
-            value: amount,
-            gasPrice: Math.round(0.06 * 1000000000)
-          }
+          parseEther('1'),
+          parseEther('1000')
       );
-      await expect(result).to.emit(watcher, 'Arbitrage').withArgs(
-        ownerAddress,
-        wrbtcToken.address,
-        docToken.address,
-        amount,
-        expectedTargetAmount,
-        parseEther("2000"),
-        expectedProfit,
-      );
-      await expect(result).to.changeEtherBalance(ownerAccount, amount.mul(-1));
-      const docBalance = await docToken.balanceOf(ownerAddress);
-
-      expect(docBalance).to.equal(initialDocBalance.add(expectedTargetAmount));
     });
   });
 
