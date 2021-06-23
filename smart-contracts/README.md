@@ -118,6 +118,8 @@ npx hardhat fund-watcher \
 `recipient` is optional and defaults to the account.
 `0x0000000000000000000000000000000000000000` can again be used as the token to directly receive RBTC instead of WRBTC.
 
+To just check current balances without making any transactions, pass `check` in place of `deposit`/`withdraw`.
+
 
 Enabling Watcher V2 in Sovryn Node
 ----------------------------------
