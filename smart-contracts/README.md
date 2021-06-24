@@ -125,7 +125,7 @@ Enabling Watcher V2 in Sovryn Node
 ----------------------------------
 
 Watcher V2 is enabled in Sovryn Node with the following configuration options:
-```json
+```javascript
 {
   enableV2: {
     arbitrage: true,
