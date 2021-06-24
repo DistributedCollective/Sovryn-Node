@@ -32,6 +32,7 @@ class MainController {
 
         if(conf.enableLiquidator) {
             if (v2Services.liquidator) {
+                console.log('Using Watcher V2 for liquidator');
                 LiquidatorV2.start(this.liquidations);
             } else {
                 Liquidator.start(this.liquidations);
@@ -42,6 +43,7 @@ class MainController {
         }
         if(conf.enableArbitrage) {
             if (v2Services.arbitrage) {
+                console.log('Using Watcher V2 for arbitrage');
                 ArbitrageV2.start(this.arbitrageDeals);
             } else {
                 Arbitrage.start(this.arbitrageDeals);
