@@ -74,6 +74,7 @@ contract Watcher is AccessControl {
     onlyRole(ROLE_EXECUTOR)
     {
         require(_conversionPath.length >= 2, "Watcher: _conversionPath must contain at least 2 tokens");
+        require(_amount > 0, "Watcher: amount was 0");
 
         IERC20 sourceToken = _conversionPath[0];
         IERC20 targetToken = _conversionPath[_conversionPath.length - 1];
