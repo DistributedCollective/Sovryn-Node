@@ -369,7 +369,7 @@ contract Watcher is AccessControl {
                 }
 
                 //console.log("Bisect: Profit %s, delta %s", newProfit, profitDelta);
-                if (profitDelta < _acceptableProfitDelta) {
+                if (profitDelta <= _acceptableProfitDelta) {
                     //console.log("Bisect: Profit delta is good enough");
                     break;
                 }
