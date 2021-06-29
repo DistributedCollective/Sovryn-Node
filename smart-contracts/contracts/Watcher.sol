@@ -236,12 +236,14 @@ contract Watcher is AccessControl {
         require(_sellAmountBMin > 0, "Watcher: token B min sell amount must be greater than 0");
 
         uint256 amountMax;
-        uint256 priceFeedTargetAmount;
+        uint256 priceFeedRate;
+        uint256 priceFeedPrecision;
         (
             amount,
             amountMax,
             targetAmount,
-            priceFeedTargetAmount,
+            priceFeedRate,
+            priceFeedPrecision,
             conversionPath
         ) = determineArbitrageDirection(
             _tokenA,
@@ -252,6 +254,7 @@ contract Watcher is AccessControl {
             _sellAmountBMax
         );
 
+        uint256 priceFeedTargetAmount = amount * priceFeedRate / priceFeedPrecision;
         console.log("amount %s, swaps %s, feeds", amount, targetAmount, priceFeedTargetAmount);
 
         if (targetAmount <= priceFeedTargetAmount) {
@@ -263,7 +266,8 @@ contract Watcher is AccessControl {
             amount,
             amountMax,
             targetAmount,
-            priceFeedTargetAmount,
+            priceFeedRate,
+            priceFeedPrecision,
             _acceptableProfitDelta
         );
 
@@ -284,7 +288,8 @@ contract Watcher is AccessControl {
         uint256 amountMin,
         uint256 amountMax,
         uint256 targetTokenAmount,
-        uint256 priceFeedTargetTokenAmount,
+        uint256 priceFeedRate,
+        uint256 priceFeedPrecision,
         IERC20[] memory conversionPath
     ) {
         {
@@ -300,7 +305,8 @@ contract Watcher is AccessControl {
         amountMax = _sellAmountAMax;
         targetTokenAmount = sovrynSwapNetwork.rateByPath(conversionPath, amountMin);
         // TODO: we could just get the rate from priceFeeds and use it, instead of querying it every time
-        priceFeedTargetTokenAmount = priceFeeds.queryReturn(address(_tokenA), address(_tokenB), amountMin);
+        (priceFeedRate, priceFeedPrecision) = priceFeeds.queryRate(address(_tokenA), address(_tokenB));
+        uint256 priceFeedTargetTokenAmount = amountMin * priceFeedRate / priceFeedPrecision;
 
         console.log("%s -> %s", address(conversionPath[0]), address(conversionPath[conversionPath.length - 1]));
         console.log("min %s", amountMin);
@@ -326,10 +332,10 @@ contract Watcher is AccessControl {
             console.log("feed  %s", priceFeedTargetTokenAmount);
 
             targetTokenAmount = sovrynSwapNetwork.rateByPath(conversionPath, amountMin);
-            priceFeedTargetTokenAmount = priceFeeds.queryReturn(address(_tokenB), address(_tokenA), amountMin);
+            (priceFeedRate, priceFeedPrecision) = priceFeeds.queryRate(address(_tokenB), address(_tokenA));
         }
 
-        return (amountMin, amountMax, targetTokenAmount, priceFeedTargetTokenAmount, conversionPath);
+        return (amountMin, amountMax, targetTokenAmount, priceFeedRate, priceFeedPrecision, conversionPath);
     }
 
     function bisectOptimalArbitrageAmount(
@@ -337,7 +343,8 @@ contract Watcher is AccessControl {
         uint256 _amountMin,
         uint256 _amountMax,
         uint256 _targetTokenAmount,
-        uint256 _priceFeedTargetTokenAmount,
+        uint256 _priceFeedRate,
+        uint256 _priceFeedPrecision,
         uint256 _acceptableProfitDelta  // "percentages" in "ether", 100% = 1 ether = 10**18
     )
     internal
@@ -347,19 +354,22 @@ contract Watcher is AccessControl {
         uint256,
         uint256
     ) {
+        uint256 _priceFeedTargetTokenAmount = _amountMin * _priceFeedRate / _priceFeedPrecision;
         uint256 profit = _targetTokenAmount - _priceFeedTargetTokenAmount;
-        address sourceToken = address(conversionPath[0]);
-        address targetToken = address(conversionPath[conversionPath.length - 1]);
+        //address sourceToken = address(conversionPath[0]);
+        //address targetToken = address(conversionPath[conversionPath.length - 1]);
         console.log("Bisect: start amount %s, swap %s, feed %s", _amountMin, _targetTokenAmount, _priceFeedTargetTokenAmount);
         console.log("Bisect: Profit %s", profit);
 
         while (_amountMin < _amountMax) {
             uint256 newAmount = (_amountMin + _amountMax) / 2;
             uint256 newSwapReturn = sovrynSwapNetwork.rateByPath(conversionPath, newAmount);
-            uint256 newPriceFeedReturn = priceFeeds.queryReturn(sourceToken, targetToken, newAmount);
+            //uint256 newPriceFeedReturn = priceFeeds.queryReturn(sourceToken, targetToken, newAmount);
+            uint256 newPriceFeedReturn = newAmount * _priceFeedRate / _priceFeedPrecision;
 
             console.log("Bisect: amount %s, swap %s, feed %s", newAmount, newSwapReturn, newPriceFeedReturn);
 
+            // TODO: bug here!
             if (_targetTokenAmount <= _priceFeedTargetTokenAmount) {
                 _amountMax = newAmount;
             } else {
