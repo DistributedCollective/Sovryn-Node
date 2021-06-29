@@ -2,8 +2,6 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { ethers } from 'hardhat';
 import { Signer, Contract, BigNumber } from 'ethers';
-import doc = Mocha.reporters.doc;
-import exp from 'constants';
 const { parseEther } = ethers.utils;
 
 const ZERO = BigNumber.from(0);
