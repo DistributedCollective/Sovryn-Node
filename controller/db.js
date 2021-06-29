@@ -105,7 +105,16 @@ class DbCtrl {
                 `SELECT * FROM ${repo}`;
             const allRows = await table.all(sqlQuery, (err, rows) => { return rows });
             allRows.forEach((row) => {
-                profit = profit + Number(row.profit);
+                if (repo === 'liquidator') {
+                    // TODO: should convert to a single currency based on symbols
+                    const [profitValue, symbol] = row.profit.split(' ');
+                    profit += Number(profitValue);
+                } else if (repo === 'rollover') {
+                    // TODO: is amount even the same as profit?
+                    profit += Number(row.amount);
+                } else {
+                    profit += Number(row.profit);
+                }
                 return row;
             })
             return { totalActionsNumber: allRows.length, profit };
