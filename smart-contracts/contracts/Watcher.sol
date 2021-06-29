@@ -92,6 +92,8 @@ contract Watcher is AccessControl {
         );
 
         uint256 priceFeedReturn = priceFeeds.queryReturn(address(sourceToken), address(targetToken), _amount);
+        require(priceFeedReturn > 0, "Watcher: priceFeedReturn 0, possibly paused");
+
         uint256 profit = targetTokenAmount - priceFeedReturn;
         require(profit >= _minProfit, "Watcher: minimum profit not met");
 
