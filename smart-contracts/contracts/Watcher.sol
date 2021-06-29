@@ -220,7 +220,7 @@ contract Watcher is AccessControl {
         uint256 _sellAmountAMax,
         uint256 _sellAmountBMin,
         uint256 _sellAmountBMax,
-        uint256 _acceptableProfitDelta  // percentages in "ether", 1% = 1 ether = 10**18
+        uint256 _acceptableProfitDelta  // "percentages" in "ether", 100% = 1 ether = 10**18
     )
     public
     view
@@ -251,6 +251,8 @@ contract Watcher is AccessControl {
             _sellAmountBMin,
             _sellAmountBMax
         );
+
+        console.log("amount %s, swaps %s, feeds", amount, targetAmount, priceFeedTargetAmount);
 
         if (targetAmount <= priceFeedTargetAmount) {
             return (0, 0, 0, new IERC20[](0));
@@ -297,7 +299,14 @@ contract Watcher is AccessControl {
         amountMin = _sellAmountAMin;
         amountMax = _sellAmountAMax;
         targetTokenAmount = sovrynSwapNetwork.rateByPath(conversionPath, amountMin);
-        priceFeedTargetTokenAmount = priceFeeds.queryReturn(address(_tokenA), address(_tokenB), amountMax);
+        // TODO: we could just get the rate from priceFeeds and use it, instead of querying it every time
+        priceFeedTargetTokenAmount = priceFeeds.queryReturn(address(_tokenA), address(_tokenB), amountMin);
+
+        console.log("%s -> %s", address(conversionPath[0]), address(conversionPath[conversionPath.length - 1]));
+        console.log("min %s", amountMin);
+        console.log("max %s", amountMax);
+        console.log("swaps %s", targetTokenAmount);
+        console.log("feed  %s", priceFeedTargetTokenAmount);
 
         if (targetTokenAmount <= priceFeedTargetTokenAmount) {
             // reverse conversionPath
@@ -308,6 +317,14 @@ contract Watcher is AccessControl {
             }
             amountMin = _sellAmountBMin;
             amountMax = _sellAmountBMax;
+
+            console.log("swap it");
+            console.log("%s -> %s", address(conversionPath[0]), address(conversionPath[conversionPath.length - 1]));
+            console.log("min %s", amountMin);
+            console.log("max %s", amountMax);
+            console.log("swaps %s", targetTokenAmount);
+            console.log("feed  %s", priceFeedTargetTokenAmount);
+
             targetTokenAmount = sovrynSwapNetwork.rateByPath(conversionPath, amountMin);
             priceFeedTargetTokenAmount = priceFeeds.queryReturn(address(_tokenB), address(_tokenA), amountMin);
         }
@@ -321,7 +338,7 @@ contract Watcher is AccessControl {
         uint256 _amountMax,
         uint256 _targetTokenAmount,
         uint256 _priceFeedTargetTokenAmount,
-        uint256 _acceptableProfitDelta  // percentages in "ether", 1% = 1 ether = 10**18
+        uint256 _acceptableProfitDelta  // "percentages" in "ether", 100% = 1 ether = 10**18
     )
     internal
     view
@@ -333,11 +350,16 @@ contract Watcher is AccessControl {
         uint256 profit = _targetTokenAmount - _priceFeedTargetTokenAmount;
         address sourceToken = address(conversionPath[0]);
         address targetToken = address(conversionPath[conversionPath.length - 1]);
+        console.log("Bisect: start amount %s, swap %s, feed %s", _amountMin, _targetTokenAmount, _priceFeedTargetTokenAmount);
+        console.log("Bisect: Profit %s", profit);
+
         while (_amountMin < _amountMax) {
             uint256 newAmount = (_amountMin + _amountMax) / 2;
             uint256 newSwapReturn = sovrynSwapNetwork.rateByPath(conversionPath, newAmount);
             uint256 newPriceFeedReturn = priceFeeds.queryReturn(sourceToken, targetToken, newAmount);
-            console.log("amount %s, swap %s, feed %s", newAmount, newSwapReturn, newPriceFeedReturn);
+
+            console.log("Bisect: amount %s, swap %s, feed %s", newAmount, newSwapReturn, newPriceFeedReturn);
+
             if (_targetTokenAmount <= _priceFeedTargetTokenAmount) {
                 _amountMax = newAmount;
             } else {
@@ -353,8 +375,9 @@ contract Watcher is AccessControl {
                     _amountMax = newAmount;
                 }
 
-                console.log("Profit delta %s is good enough", profitDelta);
+                console.log("Bisect: Profit %s, delta %s", newProfit, profitDelta);
                 if (profitDelta < _acceptableProfitDelta) {
+                    console.log("Bisect: Profit delta is good enough");
                     break;
                 }
             }

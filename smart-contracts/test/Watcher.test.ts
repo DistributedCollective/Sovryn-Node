@@ -130,6 +130,117 @@ describe("Watcher", function() {
             expect(conversionPath[0]).to.equal(docToken.address);
             expect(conversionPath[conversionPath.length - 1]).to.equal(wrbtcToken.address);
         });
+
+        const bisectedAmount = (amountMin: BigNumber, amountMax: BigNumber, steps: number): BigNumber => {
+            // helper to calculate bisected prices, with the assumption that price feeds always returns the same rate
+            for(let i = 0; i < steps; i++ && amountMin.lt(amountMax)) {
+                amountMin = amountMin.add(amountMax).div(2);
+            }
+            return amountMin;
+        }
+
+        it("should return NO arbitrage if swap rate = price feed rate with bisecting", async () => {
+            await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+            await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+
+            const [amount, targetAmount, expectedProfit, conversionPath] = await watcher.checkArbitrage(
+                wrbtcToken.address,
+                docToken.address,
+                parseEther('1'),
+                parseEther('1000'),
+                parseEther('1'),
+                parseEther('1000'),
+                0,
+            );
+            expect(amount).to.equal(ZERO);
+            expect(targetAmount).to.equal(ZERO);
+            expect(expectedProfit).to.equal(ZERO);
+            expect(conversionPath).to.deep.equal([]);
+        });
+
+        it("should return an arbitrage if swap rate > price feed rate with bisecting", async () => {
+            await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+            await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("3000"));
+
+            const [amount, targetAmount, profit, conversionPath] = await watcher.checkArbitrage(
+                wrbtcToken.address,
+                docToken.address,
+                parseEther('1'),
+                parseEther('1000'),
+                parseEther('1'),
+                parseEther('2000'),
+                parseEther('0.01'),
+            );
+            // for acceptable delta of 1%, it should converge in this many steps
+            const expectedAmount = bisectedAmount(parseEther('1'), parseEther('1000'), 7);
+            const expectedTargetAmount = expectedAmount.mul(3000);
+            //const expectedPriceFeedTargetAmount = expectedAmount.mul(2000);
+            //const expectedProfit = expectedTargetAmount.sub(expectedPriceFeedTargetAmount);
+            const expectedProfit = expectedAmount.mul(1000);
+
+            expect(amount).to.equal(expectedAmount);
+            expect(targetAmount).to.equal(expectedTargetAmount);
+            expect(profit).to.equal(expectedProfit);
+            expect(conversionPath[0]).to.equal(wrbtcToken.address);
+            expect(conversionPath[conversionPath.length - 1]).to.equal(docToken.address);
+        });
+
+        it("should return an arbitrage if swap rate < price feed rate with bisecting", async () => {
+            // Price feed: 1 USD = 1/2000 BTC
+            // Swaps: 1 USD = 1/1000 BTC = 2/2000 BTC
+            // Profit over price feed: 1/2000 BTC = 0.0005 BTC
+            await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+            await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("1000"));
+
+            const [amount, targetAmount, profit, conversionPath] = await watcher.checkArbitrage(
+                wrbtcToken.address,
+                docToken.address,
+                parseEther('1'),
+                parseEther('1000'),
+                parseEther('1'),
+                parseEther('2000'),
+                parseEther('0.01'),
+            );
+            // for acceptable delta of 1%, it should converge in this many steps
+            const expectedAmount = bisectedAmount(parseEther('1'), parseEther('2000'), 7);
+            const expectedTargetAmount = expectedAmount.div(1000);
+            //const expectedPriceFeedTargetAmount = expectedAmount.div(2000);
+            //const expectedProfit = expectedTargetAmount.sub(expectedPriceFeedTargetAmount);
+            const expectedProfit = expectedAmount.div(2000);
+
+            expect(amount).to.equal(expectedAmount);
+            expect(targetAmount).to.equal(expectedTargetAmount);
+            expect(profit).to.equal(expectedProfit);
+            expect(conversionPath[0]).to.equal(docToken.address);
+            expect(conversionPath[conversionPath.length - 1]).to.equal(wrbtcToken.address);
+        });
+
+        it("should return an arbitrage if swap rate > price feed rate with different acceptable delta", async () => {
+            await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
+            await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("3000"));
+
+            const [amount, targetAmount, profit, conversionPath] = await watcher.checkArbitrage(
+                wrbtcToken.address,
+                docToken.address,
+                parseEther('1'),
+                parseEther('1000'),
+                parseEther('1'),
+                parseEther('2000'),
+                parseEther('0.50'),
+            );
+            // for acceptable delta of 50%, it should converge in this many steps
+            const expectedAmount = bisectedAmount(parseEther('1'), parseEther('1000'), 2);
+            const expectedTargetAmount = expectedAmount.mul(3000);
+            //const expectedPriceFeedTargetAmount = expectedAmount.mul(2000);
+            //const expectedProfit = expectedTargetAmount.sub(expectedPriceFeedTargetAmount);
+            const expectedProfit = expectedAmount.mul(1000);
+
+            expect(amount).to.equal(expectedAmount);
+            expect(targetAmount).to.equal(expectedTargetAmount);
+            expect(profit).to.equal(expectedProfit);
+            expect(conversionPath[0]).to.equal(wrbtcToken.address);
+            expect(conversionPath[conversionPath.length - 1]).to.equal(docToken.address);
+        });
     });
 
     describe("#arbitrage", () => {
