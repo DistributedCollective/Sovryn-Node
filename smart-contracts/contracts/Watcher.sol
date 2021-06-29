@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "hardhat/console.sol";
+
 import "./interfaces/ISovrynSwapNetwork.sol";
 import "./interfaces/ISovrynProtocol.sol";
 import "./interfaces/IPriceFeeds.sol";
@@ -213,43 +215,150 @@ contract Watcher is AccessControl {
 
     function checkArbitrage(
         IERC20 _tokenA,
-        IERC20 _tokenB
+        IERC20 _tokenB,
+        uint256 _sellAmountAMin,
+        uint256 _sellAmountAMax,
+        uint256 _sellAmountBMin,
+        uint256 _sellAmountBMax,
+        uint256 _acceptableProfitDelta  // percentages in "ether", 1% = 1 ether = 10**18
     )
     public
     view
     returns (
-        uint256,
-        uint256,
-        IERC20[] memory
-    )
-    {
-        uint256 arbitrageAmount = 1 ether;
+        uint256 amount,
+        uint256 targetAmount,
+        uint256 profit,
+        IERC20[] memory conversionPath
+    ) {
+        require(_sellAmountAMax >= _sellAmountAMin, "Watcher: token A max sell amount lower than min sell amount");
+        require(_sellAmountBMax >= _sellAmountBMin, "Watcher: token B max sell amount lower than min sell amount");
+        require(_sellAmountAMin > 0, "Watcher: token A min sell amount must be greater than 0");
+        require(_sellAmountBMin > 0, "Watcher: token B min sell amount must be greater than 0");
 
-        // TODO: cannot figure out how to easily cast address[] to IERC20[]
-        address[] memory _conversionPath = sovrynSwapNetwork.conversionPath(_tokenA, _tokenB);
-        IERC20[] memory conversionPath = new IERC20[](_conversionPath.length);
-        for(uint i = 0; i < _conversionPath.length; i++) {
-            conversionPath[i] = IERC20(_conversionPath[i]);
+        uint256 amountMax;
+        uint256 priceFeedTargetAmount;
+        (
+            amount,
+            amountMax,
+            targetAmount,
+            priceFeedTargetAmount,
+            conversionPath
+        ) = determineArbitrageDirection(
+            _tokenA,
+            _tokenB,
+            _sellAmountAMin,
+            _sellAmountAMax,
+            _sellAmountBMin,
+            _sellAmountBMax
+        );
+
+        if (targetAmount <= priceFeedTargetAmount) {
+            return (0, 0, 0, new IERC20[](0));
         }
 
-        uint256 swapReturn = sovrynSwapNetwork.rateByPath(conversionPath, arbitrageAmount);
-        uint256 priceFeedReturn = priceFeeds.queryReturn(address(_tokenA), address(_tokenB), arbitrageAmount);
-        if (swapReturn > priceFeedReturn) {
-            return (arbitrageAmount, swapReturn - priceFeedReturn, conversionPath);
-        } else {
+        (amount, targetAmount, profit) = bisectOptimalArbitrageAmount(
+            conversionPath,
+            amount,
+            amountMax,
+            targetAmount,
+            priceFeedTargetAmount,
+            _acceptableProfitDelta
+        );
+
+        return (amount, targetAmount, profit, conversionPath);
+    }
+
+    function determineArbitrageDirection(
+        IERC20 _tokenA,
+        IERC20 _tokenB,
+        uint256 _sellAmountAMin,
+        uint256 _sellAmountAMax,
+        uint256 _sellAmountBMin,
+        uint256 _sellAmountBMax
+    )
+    internal
+    view
+    returns (
+        uint256 amountMin,
+        uint256 amountMax,
+        uint256 targetTokenAmount,
+        uint256 priceFeedTargetTokenAmount,
+        IERC20[] memory conversionPath
+    ) {
+        {
+            // TODO: cannot figure out how to easily cast address[] to IERC20[]
+            address[] memory _conversionPath = sovrynSwapNetwork.conversionPath(_tokenA, _tokenB);
+            conversionPath = new IERC20[](_conversionPath.length);
+            for(uint i = 0; i < _conversionPath.length; i++) {
+                conversionPath[i] = IERC20(_conversionPath[i]);
+            }
+        }
+
+        amountMin = _sellAmountAMin;
+        amountMax = _sellAmountAMax;
+        targetTokenAmount = sovrynSwapNetwork.rateByPath(conversionPath, amountMin);
+        priceFeedTargetTokenAmount = priceFeeds.queryReturn(address(_tokenA), address(_tokenB), amountMax);
+
+        if (targetTokenAmount <= priceFeedTargetTokenAmount) {
             // reverse conversionPath
             for(uint i = 0; i < conversionPath.length / 2; i++) {
                 IERC20 tmp = conversionPath[i];
-                conversionPath[i] = conversionPath[_conversionPath.length - i - 1];
-                conversionPath[_conversionPath.length - i - 1] = tmp;
+                conversionPath[i] = conversionPath[conversionPath.length - i - 1];
+                conversionPath[conversionPath.length - i - 1] = tmp;
             }
-            swapReturn = sovrynSwapNetwork.rateByPath(conversionPath, arbitrageAmount);
-            priceFeedReturn = priceFeeds.queryReturn(address(_tokenB), address(_tokenA), arbitrageAmount);
-            if (swapReturn > priceFeedReturn) {
-                return (arbitrageAmount, swapReturn - priceFeedReturn, conversionPath);
-            }
+            amountMin = _sellAmountBMin;
+            amountMax = _sellAmountBMax;
+            targetTokenAmount = sovrynSwapNetwork.rateByPath(conversionPath, amountMin);
+            priceFeedTargetTokenAmount = priceFeeds.queryReturn(address(_tokenB), address(_tokenA), amountMin);
         }
 
-        return (0, 0, new IERC20[](0));
+        return (amountMin, amountMax, targetTokenAmount, priceFeedTargetTokenAmount, conversionPath);
+    }
+
+    function bisectOptimalArbitrageAmount(
+        IERC20[] memory conversionPath,
+        uint256 _amountMin,
+        uint256 _amountMax,
+        uint256 _targetTokenAmount,
+        uint256 _priceFeedTargetTokenAmount,
+        uint256 _acceptableProfitDelta  // percentages in "ether", 1% = 1 ether = 10**18
+    )
+    internal
+    view
+    returns (
+        uint256,
+        uint256,
+        uint256
+    ) {
+        uint256 profit = _targetTokenAmount - _priceFeedTargetTokenAmount;
+        address sourceToken = address(conversionPath[0]);
+        address targetToken = address(conversionPath[conversionPath.length - 1]);
+        while (_amountMin < _amountMax) {
+            uint256 newAmount = (_amountMin + _amountMax) / 2;
+            uint256 newSwapReturn = sovrynSwapNetwork.rateByPath(conversionPath, newAmount);
+            uint256 newPriceFeedReturn = priceFeeds.queryReturn(sourceToken, targetToken, newAmount);
+            console.log("amount %s, swap %s, feed %s", newAmount, newSwapReturn, newPriceFeedReturn);
+            if (_targetTokenAmount <= _priceFeedTargetTokenAmount) {
+                _amountMax = newAmount;
+            } else {
+                uint256 newProfit = newSwapReturn - newPriceFeedReturn;
+                uint256 profitDelta;
+                if (newProfit >= profit) {
+                    profitDelta = (newProfit - profit) * 1 ether / profit;
+                    _amountMin = newAmount;
+                    _targetTokenAmount = newSwapReturn;
+                    profit = newProfit;
+                } else {
+                    profitDelta = (profit - newProfit) * 1 ether / profit;
+                    _amountMax = newAmount;
+                }
+
+                console.log("Profit delta %s is good enough", profitDelta);
+                if (profitDelta < _acceptableProfitDelta) {
+                    break;
+                }
+            }
+        }
+        return (_amountMin, _targetTokenAmount, profit);
     }
 }

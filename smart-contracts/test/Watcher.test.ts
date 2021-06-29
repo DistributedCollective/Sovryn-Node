@@ -73,9 +73,18 @@ describe("Watcher", function() {
             await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
             await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
 
-            const [amount, expectedReturn, conversionPath] = await watcher.checkArbitrage(wrbtcToken.address, docToken.address);
+            const [amount, targetAmount, expectedProfit, conversionPath] = await watcher.checkArbitrage(
+                wrbtcToken.address,
+                docToken.address,
+                parseEther('1'),
+                parseEther('1'),
+                parseEther('1'),
+                parseEther('1'),
+                0,
+            );
             expect(amount).to.equal(ZERO);
-            expect(expectedReturn).to.equal(ZERO);
+            expect(targetAmount).to.equal(ZERO);
+            expect(expectedProfit).to.equal(ZERO);
             expect(conversionPath).to.deep.equal([]);
         });
 
@@ -83,9 +92,18 @@ describe("Watcher", function() {
             await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
             await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("3000"));
 
-            const [amount, expectedReturn, conversionPath] = await watcher.checkArbitrage(wrbtcToken.address, docToken.address);
+            const [amount, targetAmount, expectedProfit, conversionPath] = await watcher.checkArbitrage(
+                wrbtcToken.address,
+                docToken.address,
+                parseEther('1'),
+                parseEther('1'),
+                parseEther('1'),
+                parseEther('1'),
+                0,
+            );
             expect(amount).to.equal(parseEther('1'));
-            expect(expectedReturn).to.equal(parseEther('1000'));
+            expect(targetAmount).to.equal(parseEther('3000'));
+            expect(expectedProfit).to.equal(parseEther('1000'));
             expect(conversionPath[0]).to.equal(wrbtcToken.address);
             expect(conversionPath[conversionPath.length - 1]).to.equal(docToken.address);
         });
@@ -97,9 +115,18 @@ describe("Watcher", function() {
             await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
             await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("1000"));
 
-            const [amount, expectedReturn, conversionPath] = await watcher.checkArbitrage(wrbtcToken.address, docToken.address);
+            const [amount, targetAmount, expectedProfit, conversionPath] = await watcher.checkArbitrage(
+                wrbtcToken.address,
+                docToken.address,
+                parseEther('1'),
+                parseEther('1'),
+                parseEther('1'),
+                parseEther('1'),
+                0,
+            );
             expect(amount).to.equal(parseEther('1'));
-            expect(expectedReturn).to.equal(parseEther('0.0005'));
+            expect(targetAmount).to.equal(parseEther('0.001'));
+            expect(expectedProfit).to.equal(parseEther('0.0005'));
             expect(conversionPath[0]).to.equal(docToken.address);
             expect(conversionPath[conversionPath.length - 1]).to.equal(wrbtcToken.address);
         });
