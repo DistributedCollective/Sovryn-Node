@@ -271,40 +271,6 @@ export default [
         "inputs": [
             {
                 "internalType": "contract IERC20",
-                "name": "_tokenA",
-                "type": "address"
-            },
-            {
-                "internalType": "contract IERC20",
-                "name": "_tokenB",
-                "type": "address"
-            }
-        ],
-        "name": "checkArbitrage",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            },
-            {
-                "internalType": "contract IERC20[]",
-                "name": "",
-                "type": "address[]"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "contract IERC20",
                 "name": "_token",
                 "type": "address"
             },
