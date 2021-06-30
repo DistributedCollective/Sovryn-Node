@@ -62,7 +62,6 @@ contract Watcher is AccessControl {
         );
     }
 
-    // TODO: non-reentrant?
     function arbitrage(
         IERC20[] calldata _conversionPath,
         uint256 _amount,
@@ -141,8 +140,6 @@ contract Watcher is AccessControl {
             seizedAmount,
             msg.sender
         );
-
-        return (loanCloseAmount, seizedAmount, seizedToken);
     }
 
     function withdrawTokens(
