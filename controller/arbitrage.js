@@ -410,7 +410,7 @@ class Arbitrage {
 
         let configMaxAmountWei = null;
         if(conf.dynamicArbitrageMaxAmounts) {
-            const configMaxAmountStr = conf.dynamicArbitrageMaxAmounts[sourceTokenSymbol] || conf.dynamicArbitrageMaxAmounts.default;
+            const configMaxAmountStr = (conf.dynamicArbitrageMaxAmounts[sourceTokenSymbol] || conf.dynamicArbitrageMaxAmounts.default).toString();
             if(configMaxAmountStr) {
                 configMaxAmountWei = this.BN(C.web3.utils.toWei(configMaxAmountStr));
             }
