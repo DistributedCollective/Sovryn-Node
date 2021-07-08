@@ -3,6 +3,7 @@ import telegramBot from '../secrets/telegram.js';
 export default {
     serverPort: 3000,
     nodeProvider: 'https://mainnet.sovryn.app/rpc',
+    //nodeProvider: 'https://public-node.rsk.co',
     publicNodeProvider: 'https://public-node.rsk.co',
     blockExplorer: 'https://explorer.rsk.co/',
     network: "main",
@@ -12,14 +13,14 @@ export default {
     rolloverScanInterval: 30, //sec
     liquidatorScanInterval: 30, //sec
     arbitrageScanInterval: 60,
-    enableLiquidator: true,
-    enableRollover: true,
-    enableArbitrage: true,
+    enableLiquidator: false,
+    enableRollover: false,
+    enableArbitrage: false,
     enableV2: {
         arbitrage: false,
         liquidator: false,
     },
-    watcherContract: null,
+    watcherContract: '0x86ADeF2b18B19017B36C51a4826644736C9d566a',
     loanTokenSUSD: "0xd8d25f03ebba94e15df2ed4d6d38276b595593c1", //underlying token = doc
     loanTokenRBTC: "0xa9dcdc63eabb8a2b6f39d7ff9429d88340044a7a",
     loanTokenUSDT: "0x849c47f9c259e9d62f289bf1b2729039698d8387",
@@ -44,12 +45,11 @@ export default {
     amountArbitrage: 0.01, //in rbtc
     enableDynamicArbitrageAmount: true,
     dynamicArbitrageMaxAmounts: {
-        rbtc: '0.1',
-        default: '1000',
-        xusd: '5000',
+        rbtc: '0.001',
+        default: '10',
     },
     errorBotTelegram: telegramBot,
-    sovrynInternalTelegramId: -1001308978723,
+    sovrynInternalTelegramId: -386620635,  // RainerSovrynTest
     healthMonitorPort: 10, //results in 3010
     gasPriceBuffer: 10, //in %
     gasLimit: 2500000,

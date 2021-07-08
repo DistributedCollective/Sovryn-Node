@@ -17,7 +17,8 @@ export default {
         hardhat: {},
         // NOTE: hardhat-tenderly wants the networks like this for verification to work (it's a bit silly)
         "rsk": {
-            url: "https://mainnet2.sovryn.app/rpc",
+            //url: "https://mainnet2.sovryn.app/rpc",
+            url: "https://public-node.rsk.co",
             network_id: 30,
             confirmations: 4,
             gasMultiplier: 1.25,

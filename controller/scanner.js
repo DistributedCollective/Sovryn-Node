@@ -108,10 +108,10 @@ class PositionScanner {
 
             this.positionsTmp[l.loanId] = l;
 
-            if(l.currentMargin<l.maintenanceMargin*1.02) {
-                console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
-                console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
-            }
+            //if(l.currentMargin<l.maintenanceMargin*1.02) {
+            //    console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
+            //    console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
+            //}
 
             //If liquidating at the very edge we often get errors if the price bounces back
             if(Liquidator.isLiquidatable(l)) {
