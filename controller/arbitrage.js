@@ -254,12 +254,12 @@ class Arbitrage {
         const referenceUsdTokenSymbol = tokenSymbol;
 
         let tokenAmount = this.BN(C.web3.utils.toWei(
-            conf.dynamicArbitrageMaxAmounts[tokenSymbol] || conf.dynamicArbitrageMaxAmounts.default || '0.1'
+            (conf.dynamicArbitrageMaxAmounts[tokenSymbol] || conf.dynamicArbitrageMaxAmounts.default || '0.1').toString()
         ));
         tokenAmount = await this.calculateLimitedAmount(tokenAmount, tokenAddress, tokenSymbol);
 
         let rbtcAmount = this.BN(C.web3.utils.toWei(
-            conf.dynamicArbitrageMaxAmounts['rbtc'] || conf.dynamicArbitrageMaxAmounts.default || '5000'
+            (conf.dynamicArbitrageMaxAmounts['rbtc'] || conf.dynamicArbitrageMaxAmounts.default || '5000').toString()
         ));
         rbtcAmount = await this.calculateLimitedAmount(rbtcAmount, rbtcAddress, 'rbtc');
 
