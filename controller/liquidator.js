@@ -16,7 +16,7 @@ import abiComplete from "../config/abiComplete";
 import Extra from 'telegraf/extra';
 import dbCtrl from './db';
 
-class Liquidator {
+export class Liquidator {
     constructor() {
         this.liquidationErrorList=[];
         abiDecoder.addABI(abiComplete);
@@ -76,8 +76,7 @@ class Liquidator {
             //failed too often -> have to check manually
             if(this.liquidationErrorList[p]>=5) continue;
 
-            // get wallet balance as bignumber
-            const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token, C.web3.utils.toBN);
+            const [wallet, wBalance] = await this.getWallet(pos, token);
             if (!wallet) {
                 this.handleNoWalletError(p).catch(e => {
                     console.error('Error handling noWalletError:', e);
@@ -90,9 +89,16 @@ class Liquidator {
 
             const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
-            await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce);
+            await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce, pos);
             await U.wasteTime(30); //30 seconds break to avoid rejection from node
         }
+    }
+
+    // return [wallet so send liquidation from, balance available for liquidation]
+    async getWallet(pos, token) {
+        // get wallet balance as bignumber
+        const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token, C.web3.utils.toBN);
+        return [wallet, wBalance]
     }
 
     async calculateLiquidateAmount(wBalance, pos, token, wallet) {
@@ -152,7 +158,7 @@ class Liquidator {
     * If Loan token == WRBTC -> pass value
     * wallet = sender and receiver address
     */
-    async liquidate(loanId, wallet, amount, token, nonce) {
+    async liquidate(loanId, wallet, amount, token, nonce, loan) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
         const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());

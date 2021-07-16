@@ -34,6 +34,8 @@ const PriceFeeds = artifacts.require("PriceFeeds");
 const TestToken = artifacts.require("TestToken");
 const TestWrbtc = artifacts.require("TestWrbtc");
 
+const Watcher = artifacts.require("Watcher");
+
 import {deployLoanToken, deployLoanTokenLogic, deployLoanTokenLogicWrbtc, deployLoanTokenWRBTC, deploySovrynProtocol} from "./loans";
 
 
@@ -183,6 +185,14 @@ export async function initSovrynContracts() {
     // TODO: should this be against dollar or btc?
     const loanTokenEths = await deployLoanToken(await deployLoanTokenLogic(), accountOwner, sovrynProtocol, wrbtcToken, ethsToken);
 
+    // V2 stuff
+    const watcher = await Watcher.new(
+        sovrynProtocol.address,
+        sovrynSwapNetwork.address,
+        priceFeeds.address,
+        wrbtcToken.address
+    );
+
     return {
         accounts,
         accountOwner,
@@ -210,6 +220,8 @@ export async function initSovrynContracts() {
         loanTokenEths,
 
         priceOraclesByTokenAddress,
+
+        watcher,
     };
 }
 

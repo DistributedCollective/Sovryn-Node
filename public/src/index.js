@@ -87,8 +87,10 @@ class AppCtrl {
             p.arbitrageWallet = res.arbitrage;
             p.rolloverWallet = res.rollover;
             p.tokens = res.arbitrage.tokenBalances.map(balance => balance.token);
-            res.liquidator.push(res.arbitrage, res.rollover);
-            p.accounts = res.liquidator;
+            p.accounts = [...res.liquidator, res.arbitrage, res.rollover];
+            if (res.watcher) {
+                p.accounts.push(res.watcher);
+            }
 
             p.$scope.$applyAsync();
         });

@@ -19,4 +19,9 @@ rm -f contracts/copied/rbtc/WRBTC.sol  # this comes from sovryn-smart-contracts
 # Sovryn-smart-contracts
 cp -vr sovryn-smart-contracts/contracts contracts/copied/sovryn
 
+# Sovryn-node
+mkdir -p contracts/copied/watcher
+cp -vr ../smart-contracts/contracts/interfaces contracts/copied/watcher/interfaces
+cp -vr ../smart-contracts/contracts/Watcher.sol contracts/copied/watcher
+
 echo "All contracts copied."
