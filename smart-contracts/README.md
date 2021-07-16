@@ -131,6 +131,7 @@ Watcher V2 is enabled in Sovryn Node with the following configuration options:
     arbitrage: true,
     liquidator: true
   },
-  watcherContract: "0x1234567890123456789012345678901234567890"
+  watcherContract: "0x1234567890123456789012345678901234567890",
+  enableSwapback: true, // optional, swap back to stablecoins after liquidation
 }
 ```

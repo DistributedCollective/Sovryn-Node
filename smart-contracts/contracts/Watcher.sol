@@ -38,6 +38,15 @@ contract Watcher is AccessControl {
         address _sender
     );
 
+    event Swapback(
+        bytes32 _loanId,
+        address indexed _sourceToken,
+        address indexed _targetToken,
+        uint256 _sourceTokenAmount,
+        uint256 _targetTokenAmount,
+        address _sender
+    );
+
     constructor(
         ISovrynProtocol _sovrynProtocol,
         ISovrynSwapNetwork _sovrynSwapNetwork,
@@ -70,22 +79,10 @@ contract Watcher is AccessControl {
     external
     onlyRole(ROLE_EXECUTOR)
     {
-        require(_conversionPath.length >= 2, "Watcher: _conversionPath must contain at least 2 tokens");
-
-        IERC20 sourceToken = _conversionPath[0];
-        IERC20 targetToken = _conversionPath[_conversionPath.length - 1];
-        require(sourceToken != targetToken, "Watcher: sourceToken and targetToken cannot be the same");
-
-        require(sourceToken.approve(address(sovrynSwapNetwork), _amount), "Watcher: error approving token");
-
-        // For now, we just directly send everything back to the user
-        uint256 targetTokenAmount = sovrynSwapNetwork.convertByPath(
+        (IERC20 sourceToken, IERC20 targetToken, uint256 targetTokenAmount) = swapInternal(
             _conversionPath,
             _amount,
-            1, // minReturn
-            address(this), // beneficiary
-            address(0), // affiliateAccount
-            0 // affiliateFee
+            1
         );
 
         uint256 priceFeedReturn = priceFeeds.queryReturn(address(sourceToken), address(targetToken), _amount);
@@ -104,8 +101,8 @@ contract Watcher is AccessControl {
     }
 
     function liquidate(
-        bytes32 loanId,
-        uint256 closeAmount // denominated in loanToken
+        bytes32 _loanId,
+        uint256 _closeAmount // denominated in loanToken
     )
     external
     onlyRole(ROLE_EXECUTOR)
@@ -115,30 +112,33 @@ contract Watcher is AccessControl {
         address seizedToken
     )
     {
-        // NOTE: to save gas, we might be able to use sovrynProtocol.loans[loanId],
-        // but then it doesn't have max liquidation amounts
-        ISovrynProtocol.LoanReturnData memory loan = sovrynProtocol.getLoan(loanId);
-        IERC20 loanToken = IERC20(loan.loanToken);
-        //closeAmount = loan.maxLiquidatable;
-        //require(closeAmount > 0, "loan not liquidatable");
+        (loanCloseAmount, seizedAmount, seizedToken) = liquidateInternal(_loanId, _closeAmount);
+    }
 
-        loanToken.approve(address(sovrynProtocol), closeAmount);
-        (loanCloseAmount, seizedAmount, seizedToken) = sovrynProtocol.liquidate(loanId, address(this), closeAmount);
-
-        // LoanClosings wants to send us RBTC, deposit to wrbtcToken to keep things simpler
-        if (seizedToken == address(wrbtcToken)) {
-            wrbtcToken.deposit{ value: seizedAmount }();
-        }
-
-        // TODO: we could swapback here
-
-        emit Liquidation(
-            loanId,
-            address(loanToken),
-            seizedToken,
+    function liquidateWithSwapback(
+        bytes32 _loanId,
+        uint256 _closeAmount, // denominated in loanToken
+        IERC20[] calldata _swapbackConversionPath,
+        uint256 _swapbackMinProfit,
+        bool _requireSwapback
+    )
+    external
+    onlyRole(ROLE_EXECUTOR)
+    returns (
+        uint256 loanCloseAmount,
+        uint256 seizedAmount,
+        address seizedToken
+    )
+    {
+        (loanCloseAmount, seizedAmount, seizedToken) = liquidateInternal(_loanId, _closeAmount);
+        swapbackInternal(
+            _loanId,
             loanCloseAmount,
+            IERC20(seizedToken),
             seizedAmount,
-            msg.sender
+            _swapbackConversionPath,
+            _swapbackMinProfit,
+            _requireSwapback
         );
     }
 
@@ -206,5 +206,108 @@ contract Watcher is AccessControl {
     }
     function setWRBTCToken(IWRBTCToken _wrbtcToken) external onlyRole(ROLE_OWNER) {
         wrbtcToken = _wrbtcToken;
+    }
+
+    // internal functions
+    function swapInternal(
+        IERC20[] calldata _conversionPath,
+        uint256 _amount,
+        uint256 _minReturn
+    )
+    internal
+    returns (
+        IERC20 sourceToken,
+        IERC20 targetToken,
+        uint256 targetTokenAmount
+    )
+    {
+        require(_conversionPath.length >= 2, "Watcher: _conversionPath must contain at least 2 tokens");
+
+        sourceToken = _conversionPath[0];
+        targetToken = _conversionPath[_conversionPath.length - 1];
+        require(sourceToken != targetToken, "Watcher: sourceToken and targetToken cannot be the same");
+
+        require(sourceToken.approve(address(sovrynSwapNetwork), _amount), "Watcher: error approving token");
+
+        targetTokenAmount = sovrynSwapNetwork.convertByPath(
+            _conversionPath,
+            _amount,
+            _minReturn, // minReturn
+            address(this), // beneficiary
+            address(0), // affiliateAccount
+            0 // affiliateFee
+        );
+    }
+
+    function liquidateInternal(
+        bytes32 _loanId,
+        uint256 _closeAmount // denominated in loanToken
+    )
+    internal
+    returns (
+        uint256 loanCloseAmount,
+        uint256 seizedAmount,
+        address seizedToken
+    )
+    {
+        // NOTE: to save gas, we might be able to use sovrynProtocol.loans[loanId],
+        // but then it doesn't have max liquidation amounts
+        ISovrynProtocol.LoanReturnData memory loan = sovrynProtocol.getLoan(_loanId);
+        IERC20 loanToken = IERC20(loan.loanToken);
+        //closeAmount = loan.maxLiquidatable;
+        //require(closeAmount > 0, "loan not liquidatable");
+
+        loanToken.approve(address(sovrynProtocol), _closeAmount);
+        (loanCloseAmount, seizedAmount, seizedToken) = sovrynProtocol.liquidate(_loanId, address(this), _closeAmount);
+
+        // LoanClosings wants to send us RBTC, deposit to wrbtcToken to keep things simpler
+        if (seizedToken == address(wrbtcToken)) {
+            wrbtcToken.deposit{ value: seizedAmount }();
+        }
+
+        emit Liquidation(
+            _loanId,
+            address(loanToken),
+            seizedToken,
+            loanCloseAmount,
+            seizedAmount,
+            msg.sender
+        );
+    }
+
+    function swapbackInternal(
+        bytes32 _loanId,
+        uint256 _loanCloseAmount,
+        IERC20 _seizedToken,
+        uint256 _seizedAmount,
+        IERC20[] calldata _swapbackConversionPath,
+        uint256 _swapbackMinProfit,
+        bool _requireSwapback
+    )
+    internal
+    {
+        require(
+            IERC20(_seizedToken) == _swapbackConversionPath[0],
+            "Watcher: _swapbackConversionPath must start with seizedToken"
+        );
+
+        uint256 swapbackReturn = sovrynSwapNetwork.rateByPath(_swapbackConversionPath, _seizedAmount);
+        if (swapbackReturn >= (_loanCloseAmount + _swapbackMinProfit)) {
+            (IERC20 sourceToken, IERC20 targetToken, uint256 targetTokenAmount) = swapInternal(
+                _swapbackConversionPath,
+                _seizedAmount,
+                1
+            );
+            emit Swapback(
+                _loanId,
+                address(sourceToken),
+                address(targetToken),
+                _seizedAmount,
+                targetTokenAmount,
+                msg.sender
+            );
+        } else {
+            require(!_requireSwapback, "Watcher: _requireSwapback = true but min swapback profit not met");
+        }
     }
 }

@@ -89,7 +89,7 @@ export class Liquidator {
 
             const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
 
-            await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce);
+            await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce, pos);
             await U.wasteTime(30); //30 seconds break to avoid rejection from node
         }
     }
@@ -158,7 +158,7 @@ export class Liquidator {
     * If Loan token == WRBTC -> pass value
     * wallet = sender and receiver address
     */
-    async liquidate(loanId, wallet, amount, token, nonce) {
+    async liquidate(loanId, wallet, amount, token, nonce, loan) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
         const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());
