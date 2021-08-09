@@ -3,14 +3,16 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/ISovrynSwapNetwork.sol";
 import "./interfaces/ISovrynProtocol.sol";
 import "./interfaces/IPriceFeeds.sol";
 import "./interfaces/IWRBTCToken.sol";
 
-
 contract Watcher is AccessControl {
+    using SafeERC20 for IERC20;
+
     address public immutable RBTC_ADDRESS = address(0);
     bytes32 public constant ROLE_EXECUTOR = keccak256("EXECUTOR");
     bytes32 public constant ROLE_OWNER = DEFAULT_ADMIN_ROLE;
@@ -161,7 +163,7 @@ contract Watcher is AccessControl {
             wrbtcToken.withdraw(_amount);
             _receiver.transfer(_amount);
         } else {
-            _token.transfer(_receiver, _amount);
+            _token.safeTransfer(_receiver, _amount);
         }
     }
 
@@ -178,7 +180,7 @@ contract Watcher is AccessControl {
             require(msg.value == _amount, "Watcher: _amount and msg.value must match for RBTC deposits");
             wrbtcToken.deposit{ value: _amount }();
         } else {
-            _token.transferFrom(msg.sender, address(this), _amount);
+            _token.safeTransferFrom(msg.sender, address(this), _amount);
         }
     }
 
@@ -238,10 +240,7 @@ contract Watcher is AccessControl {
         uint256 targetTokenAmount
     )
     {
-        require(
-            _conversionPath[0].approve(address(sovrynSwapNetwork), _amount),
-            "Watcher: error approving token"
-        );
+        _conversionPath[0].safeApprove(address(sovrynSwapNetwork), _amount);
 
         targetTokenAmount = sovrynSwapNetwork.convertByPath(
             _conversionPath,
@@ -271,7 +270,7 @@ contract Watcher is AccessControl {
         //closeAmount = loan.maxLiquidatable;
         //require(closeAmount > 0, "loan not liquidatable");
 
-        loanToken.approve(address(sovrynProtocol), _closeAmount);
+        loanToken.safeApprove(address(sovrynProtocol), _closeAmount);
         (loanCloseAmount, seizedAmount, seizedToken) = sovrynProtocol.liquidate(_loanId, address(this), _closeAmount);
 
         // LoanClosings wants to send us RBTC, deposit to wrbtcToken to keep things simpler
