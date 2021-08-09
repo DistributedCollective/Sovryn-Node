@@ -303,13 +303,24 @@ contract Watcher is AccessControl {
             IERC20(_seizedToken) == _swapbackConversionPath[0],
             "Watcher: _swapbackConversionPath must start with seizedToken"
         );
+        (IERC20 sourceToken, IERC20 targetToken) = getSourceAndTargetTokens(_swapbackConversionPath);
 
-        uint256 swapbackReturn = sovrynSwapNetwork.rateByPath(_swapbackConversionPath, _seizedAmount);
-        if (swapbackReturn >= (_loanCloseAmount + _swapbackMinProfit)) {
-            (IERC20 sourceToken, IERC20 targetToken, uint256 targetTokenAmount) = swapInternal(
+        if (!_requireSwapback) {
+            // if we don't require swapback, we check the price and only do the swapback only if we get a profit
+            // this wastes some gas however
+            uint256 swapbackReturn = sovrynSwapNetwork.rateByPath(_swapbackConversionPath, _seizedAmount);
+            if (swapbackReturn >= (_loanCloseAmount + _swapbackMinProfit)) {
+                _requireSwapback = true;
+            }
+        }
+
+        if (_requireSwapback) {
+            // either we require swapback from the get-go, or we have determined that we want swapback above
+            // either way, this transaction will only go through with the wanted profit
+            uint256 targetTokenAmount = swapInternal(
                 _swapbackConversionPath,
                 _seizedAmount,
-                1
+                _loanCloseAmount + _swapbackMinProfit  // it's safe to always set this
             );
             emit Swapback(
                 _loanId,
@@ -319,8 +330,6 @@ contract Watcher is AccessControl {
                 targetTokenAmount,
                 msg.sender
             );
-        } else {
-            require(!_requireSwapback, "Watcher: _requireSwapback = true but min swapback profit not met");
         }
     }
 }
