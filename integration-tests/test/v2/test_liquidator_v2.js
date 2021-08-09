@@ -603,7 +603,7 @@ describe("Liquidator controller V2", () => {
             expect(parseFloat(fromWei(docEarned))).to.be.closeTo(-13.422027849099017, 0.000001);
         });
 
-        it.only("should liquidate liquidatable long position when collateral token is sent", async () => {
+        it("should liquidate liquidatable long position when collateral token is sent", async () => {
             const { loanId } = await setupLiquidationTest({
                 loanToken: sovrynContracts.loanTokenWrbtc,
                 collateralToken: sovrynContracts.docToken,
@@ -629,7 +629,7 @@ describe("Liquidator controller V2", () => {
             expect(C.contractWatcher.methods.liquidateWithSwapback.callCount).to.equal(0);
         });
 
-        it.only("should handle liquidation error gracefully", async () => {
+        it("should handle liquidation error gracefully", async () => {
             const { loanId } = await setupLiquidationTest({
                 loanToken: sovrynContracts.loanTokenDoc,
             });
