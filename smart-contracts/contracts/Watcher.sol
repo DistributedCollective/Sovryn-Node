@@ -79,15 +79,17 @@ contract Watcher is AccessControl {
     external
     onlyRole(ROLE_EXECUTOR)
     {
-        (IERC20 sourceToken, IERC20 targetToken, uint256 targetTokenAmount) = swapInternal(
+        (IERC20 sourceToken, IERC20 targetToken) = getSourceAndTargetTokens(_conversionPath);
+        uint256 priceFeedReturn = priceFeeds.queryReturn(
+            address(sourceToken),
+            address(targetToken),
+            _amount
+        );
+        uint256 targetTokenAmount = swapInternal(
             _conversionPath,
             _amount,
-            1
+            priceFeedReturn + _minProfit
         );
-
-        uint256 priceFeedReturn = priceFeeds.queryReturn(address(sourceToken), address(targetToken), _amount);
-        uint256 profit = targetTokenAmount - priceFeedReturn;
-        require(profit >= _minProfit, "Watcher: minimum profit not met");
 
         emit Arbitrage(
             address(sourceToken),
@@ -95,7 +97,7 @@ contract Watcher is AccessControl {
             _amount,
             targetTokenAmount,
             priceFeedReturn,
-            profit,
+            targetTokenAmount - priceFeedReturn,
             msg.sender
         );
     }
@@ -209,6 +211,22 @@ contract Watcher is AccessControl {
     }
 
     // internal functions
+
+    function getSourceAndTargetTokens(
+        IERC20[] calldata _conversionPath
+    )
+    internal
+    pure
+    returns (
+        IERC20 sourceToken,
+        IERC20 targetToken
+    )
+    {
+        require(_conversionPath.length >= 2, "Watcher: _conversionPath must contain at least 2 tokens");
+        sourceToken = _conversionPath[0];
+        targetToken = _conversionPath[_conversionPath.length - 1];
+    }
+
     function swapInternal(
         IERC20[] calldata _conversionPath,
         uint256 _amount,
@@ -216,18 +234,13 @@ contract Watcher is AccessControl {
     )
     internal
     returns (
-        IERC20 sourceToken,
-        IERC20 targetToken,
         uint256 targetTokenAmount
     )
     {
-        require(_conversionPath.length >= 2, "Watcher: _conversionPath must contain at least 2 tokens");
-
-        sourceToken = _conversionPath[0];
-        targetToken = _conversionPath[_conversionPath.length - 1];
-        require(sourceToken != targetToken, "Watcher: sourceToken and targetToken cannot be the same");
-
-        require(sourceToken.approve(address(sovrynSwapNetwork), _amount), "Watcher: error approving token");
+        require(
+            _conversionPath[0].approve(address(sovrynSwapNetwork), _amount),
+            "Watcher: error approving token"
+        );
 
         targetTokenAmount = sovrynSwapNetwork.convertByPath(
             _conversionPath,

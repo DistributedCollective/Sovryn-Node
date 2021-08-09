@@ -87,16 +87,16 @@ describe("Watcher", function() {
             watcher = watcher.connect(executorAccount);
         })
 
-        it("should fail if minReturn is not met 1", async () => {
+        it("should fail if minProfit is not met 1", async () => {
             await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
             await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
 
             await expect(
                 watcher.arbitrage([wrbtcToken.address, docToken.address], parseEther('1'), 1)
-            ).to.be.revertedWith("Watcher: minimum profit not met");
+            ).to.be.revertedWith("insufficient source tokens provided");
         });
 
-        it("should fail if minReturn is not met 2", async () => {
+        it("should fail if minProfit is not met 2", async () => {
             await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
             await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("3000"));
 
@@ -106,7 +106,7 @@ describe("Watcher", function() {
                     parseEther('1'),
                     parseEther('1000').add(1)
                 )
-            ).to.be.revertedWith("Watcher: minimum profit not met");
+            ).to.be.revertedWith("insufficient source tokens provided");
         });
 
         it("should handle arbitrage", async () => {
