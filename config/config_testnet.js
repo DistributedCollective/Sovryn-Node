@@ -16,10 +16,10 @@ export default {
     enableRollover: true,
     enableArbitrage: true,
     enableV2: {
-        arbitrage: false,
-        liquidator: false,
+        arbitrage: true,
+        liquidator: true,
     },
-    watcherContract: null,
+    watcherContract: "0x3583155D5e87491dACDc15f7D0032C12D5D0ece0",
     rolloverMinThreshold: 0.000052*2, //Btc 0,000052 = failing tx cost
     loanTokenSUSD: "0x74e00a8ceddc752074aad367785bfae7034ed89f", //underlying token = doc
     loanTokenRBTC: "0xe67fe227e0504e8e96a34c3594795756dc26e14b",
@@ -29,7 +29,7 @@ export default {
     docToken: "0xcb46c0ddc60d18efeb0e586c17af6ea36452dae0", //former susd
     USDTToken: "0x4d5a316d23ebe168d8f887b4447bf8dbfa4901cc",
     BProToken: "0x4da7997a819bb46b6758b9102234c289dd2ad3bf",
-    XUSDToken: "0x849d38abd3962cb40d4887e4279ad0e4e5958e34",
+    XUSDToken: "0x74858FE37d391f81F89472e1D8BC8Ef9CF67B3b1",
     ethsToken: "0x499bb1355b36adeb93706b08a897ce6022de6ac9",
     sovrynProtocolAdr: "0x25380305f223b32fdb844152abd2e82bc5ad99c3",
     swapsImpl: "0x61172b53423e205a399640e5283e51fe60ec2256", //get price from amm/old execute swaps
