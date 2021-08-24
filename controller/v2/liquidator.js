@@ -54,7 +54,7 @@ class LiquidatorV2 extends Liquidator {
     }
 
     // also mostly a fork, but handle liquidation using Watcher V2 contract
-    async liquidate(loanId, wallet, amount, token, nonce) {
+    async liquidate(loanId, wallet, amount, token, nonce, loan) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
         Wallet.addToQueue("liquidator", wallet, loanId);
         const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());
@@ -65,6 +65,31 @@ class LiquidatorV2 extends Liquidator {
             delete this.liquidations[loanId];
         }
 
+        let enableSwapback = false;
+        let swapbackConversionPath = [];
+        if (conf.enableSwapback) {
+            const collateralToken = loan.collateralToken.toLowerCase();
+            // don't enable swapback if we're seizing stablecoins anyway
+            if (
+                collateralToken === conf.docToken.toLowerCase() ||
+                collateralToken === conf.USDTToken.toLowerCase() ||
+                collateralToken === conf.XUSDToken.toLowerCase()
+            ) {
+                console.log("swapback would be enabled in config but disabled because collateralToken is a stablecoin");
+                enableSwapback = false;
+            } else {
+                console.log("swapback is enabled");
+                enableSwapback = true;
+                try {
+                    swapbackConversionPath = await C.contractSwaps.methods.conversionPath(loan.collateralToken, loan.loanToken).call()
+                    console.log("swapback conversion path:", swapbackConversionPath);
+                } catch(e) {
+                    console.error("error getting swapback conversion path:", e, "swapback is disabled");
+                    enableSwapback = false;
+                }
+            }
+        }
+
         const p = this;
         const gasPrice = await C.getGasPrice();
 
@@ -72,12 +97,23 @@ class LiquidatorV2 extends Liquidator {
 
         let tx;
         try {
-            tx = await C.contractWatcher.methods.liquidate(loanId, amount.toString()).send({
+            const txOpts = {
                 from: wallet,
                 gas: conf.gasLimit,
                 gasPrice: gasPrice,
                 nonce: nonce,
-            });
+            };
+            if (enableSwapback) {
+                tx = await C.contractWatcher.methods.liquidateWithSwapback(
+                    loanId,
+                    amount.toString(),
+                    swapbackConversionPath,
+                    0, // min profit from swapback
+                    false,  // if true, revert if swapback doesn't happen
+                ).send(txOpts);
+            } else {
+                tx = await C.contractWatcher.methods.liquidate(loanId, amount.toString()).send(txOpts);
+            }
         } catch (err) {
             console.error("Error on liquidating loan " + loanId);
             console.error(err);

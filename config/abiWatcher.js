@@ -2,13 +2,13 @@ export default [
     {
         "inputs": [
             {
-                "internalType": "contract ISovrynSwapNetwork",
-                "name": "_sovrynSwapNetwork",
+                "internalType": "contract ISovrynProtocol",
+                "name": "_sovrynProtocol",
                 "type": "address"
             },
             {
-                "internalType": "contract ISovrynProtocol",
-                "name": "_sovrynProtocol",
+                "internalType": "contract ISovrynSwapNetwork",
+                "name": "_sovrynSwapNetwork",
                 "type": "address"
             },
             {
@@ -193,6 +193,49 @@ export default [
         "type": "event"
     },
     {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "bytes32",
+                "name": "_loanId",
+                "type": "bytes32"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "_sourceToken",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "_targetToken",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "_sourceTokenAmount",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "_targetTokenAmount",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "_sender",
+                "type": "address"
+            }
+        ],
+        "name": "Swapback",
+        "type": "event"
+    },
+    {
         "inputs": [],
         "name": "DEFAULT_ADMIN_ROLE",
         "outputs": [
@@ -350,16 +393,65 @@ export default [
         "inputs": [
             {
                 "internalType": "bytes32",
-                "name": "loanId",
+                "name": "_loanId",
                 "type": "bytes32"
             },
             {
                 "internalType": "uint256",
-                "name": "closeAmount",
+                "name": "_closeAmount",
                 "type": "uint256"
             }
         ],
         "name": "liquidate",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "loanCloseAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "seizedAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "seizedToken",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "_loanId",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_closeAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "contract IERC20[]",
+                "name": "_swapbackConversionPath",
+                "type": "address[]"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_swapbackMinProfit",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "_requireSwapback",
+                "type": "bool"
+            }
+        ],
+        "name": "liquidateWithSwapback",
         "outputs": [
             {
                 "internalType": "uint256",
@@ -425,6 +517,58 @@ export default [
             }
         ],
         "name": "revokeRole",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "contract IPriceFeeds",
+                "name": "_priceFeeds",
+                "type": "address"
+            }
+        ],
+        "name": "setPriceFeeds",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "contract ISovrynProtocol",
+                "name": "_sovrynProtocol",
+                "type": "address"
+            }
+        ],
+        "name": "setSovrynProtocol",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "contract ISovrynSwapNetwork",
+                "name": "_sovrynSwapNetwork",
+                "type": "address"
+            }
+        ],
+        "name": "setSovrynSwapNetwork",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "contract IWRBTCToken",
+                "name": "_wrbtcToken",
+                "type": "address"
+            }
+        ],
+        "name": "setWRBTCToken",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"

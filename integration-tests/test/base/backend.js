@@ -64,6 +64,9 @@ export async function initSovrynNodeForTesting({
     // V2
     conf.watcherContract = watcher ? watcher.address : null;
 
+    // Swapback disabled by default...
+    conf.enableSwapback = false;
+
     // also deal with accounts
     A.liquidator = [
         {adr: accounts[5]}
