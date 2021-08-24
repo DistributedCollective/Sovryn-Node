@@ -6,8 +6,8 @@
   "scripts": {
     "test-lx": "mocha -r esm ./tests/test_liquidations.js --timeout 2500000",
     "test-network": "node -r esm ./tests/network.js",
-    "start:test": "nodemon -r esm start.js testnet",
-    "start:main": "nodemon -r esm start.js mainnet",
+    "start:test": "pm2 start start.js testnet --node-arg='-r esm'",
+    "start:main": "pm2 start start.js testnet --node-arg='-r esm'",
     "dev": "npx webpack-dev-server --open --config ./public/webpack.config.ts",
     "build-client": "npx webpack --config ./public/webpack.config.ts",
     "approveWalletsMain": "node -r esm ./util/approval.js mainnet",
