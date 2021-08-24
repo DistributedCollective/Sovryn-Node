@@ -20,6 +20,7 @@ export default {
         liquidator: false,
     },
     watcherContract: null,
+    enableSwapback: true,  // v2 only: swap back to loan token after liquidation if profitable and collateral token is not a stablecoin
     loanTokenSUSD: "0xd8d25f03ebba94e15df2ed4d6d38276b595593c1", //underlying token = doc
     loanTokenRBTC: "0xa9dcdc63eabb8a2b6f39d7ff9429d88340044a7a",
     loanTokenUSDT: "0x849c47f9c259e9d62f289bf1b2729039698d8387",
