@@ -8,6 +8,8 @@
     "test-network": "node -r esm ./tests/network.js",
     "start:test": "pm2 start start.js --node-arg=\"-r esm\" -- testnet",
     "start:main": "pm2 start start.js --node-arg=\"-r esm\" -- mainnet",
+    "dev:test": "nodemon -r esm start.js testnet",
+    "dev:main": "nodemon -r esm start.js main",
     "dev": "npx webpack-dev-server --open --config ./public/webpack.config.ts",
     "build-client": "npx webpack --config ./public/webpack.config.ts",
     "approveWalletsMain": "node -r esm ./util/approval.js mainnet",

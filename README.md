@@ -72,16 +72,25 @@ export default ""; for no notifications
 
 ### Start
 
+#### Locally
+
+```sh
+npm run dev:[main || test] [wallet-password]
+```
+
+#### On servers / Production
+
 ```sh
 npm run start:[main || test] [wallet-password]
 ```
+
 Check  
 http://your-ip:3000/ to see some liquidation processing info
 
 
 ### Logging
-The Sovryn node uses pm2 for log handling.    
-To enable Log-rotation do "pm2 install pm2-logrotate" and afterwards "pm2 set pm2-logrotate:max_size 1000K"   
+The Sovryn node uses pm2 for log handling.
+To enable Log-rotation do "pm2 install pm2-logrotate" and afterwards "pm2 set pm2-logrotate:max_size 1000K"
 
 ### Developer
 To develop the frontend with Hot Reload run `npm run dev`
