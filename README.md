@@ -30,7 +30,7 @@ Earn $ through arbitrage: if the expected price from the amm deviates more than 
 ### Requirements
 
 NodeJs > 12.1  
-Nodemon  
+pm2  
 Webpack  
 
 
@@ -38,7 +38,7 @@ Webpack
 
 ```sh
 1. npm install
-2. npm install -g mocha nodemon
+2. npm install -g mocha pm2
 3. To build the client create an empty directory "public/dist" and run "npm run build-client"
 4. Create empty directories "logs" and "db" in the project root
 5. Create directory "secrets" and within a file accounts.js with the credentials of the liquidator/rollover/arbitrage wallets
@@ -72,16 +72,25 @@ export default ""; for no notifications
 
 ### Start
 
+#### Locally
+
+```sh
+npm run dev:[main || test] [wallet-password]
+```
+
+#### On servers / Production
+
 ```sh
 npm run start:[main || test] [wallet-password]
 ```
+
 Check  
 http://your-ip:3000/ to see some liquidation processing info
 
 
 ### Logging
-The Sovryn node uses pm2 for log handling.    
-To enable Log-rotationdo "pm2 install pm2-logrotate" and afterwards "pm2 set pm2-logrotate:max_size 1000K"   
+The Sovryn node uses pm2 for log handling.
+To enable Log-rotation do "pm2 install pm2-logrotate" and afterwards "pm2 set pm2-logrotate:max_size 1000K"
 
 ### Developer
 To develop the frontend with Hot Reload run `npm run dev`
