@@ -52,7 +52,7 @@ npx hardhat deploy-watcher \
 
 # Mainnet
 npx hardhat deploy-watcher \
-    --network rsk-testnet \
+    --network rsk \
     --sovryn-protocol 0x5a0d867e0d70fcc6ade25c3f1b89d618b5b4eaa7 \
     --sovryn-swap-network 0x98ace08d2b759a265ae326f010496bcd63c15afc \
     --price-feeds 0x437ac62769f386b2d238409b7f0a7596d36506e4 \
