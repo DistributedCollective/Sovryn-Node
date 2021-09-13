@@ -66,12 +66,8 @@ contract Watcher is AccessControl {
     }
 
     receive() external payable {
-        // Wrap to WRBTC if transfer doesn't come from a known sender
-        if (
-            msg.sender != address(wrbtcToken) &&
-            msg.sender != address(sovrynProtocol) &&
-            msg.sender != address(sovrynSwapNetwork)
-        ) {
+        // Wrap to all sent RBTC to WRBTC, but prevent an infinite loop
+        if (msg.sender != address(wrbtcToken)) {
             wrbtcToken.deposit{ value: msg.value }();
         }
     }
@@ -275,10 +271,8 @@ contract Watcher is AccessControl {
         loanToken.safeApprove(address(sovrynProtocol), _closeAmount);
         (loanCloseAmount, seizedAmount, seizedToken) = sovrynProtocol.liquidate(_loanId, address(this), _closeAmount);
 
-        // LoanClosings wants to send us RBTC, deposit to wrbtcToken to keep things simpler
-        if (seizedToken == address(wrbtcToken)) {
-            wrbtcToken.deposit{ value: seizedAmount }();
-        }
+        // LoanClosings will send us RBTC instead of WRBTC if seizedToken == wrbtcToken.
+        // We could wrap back to WRBTC here, but we don't need to, since we're wrapping in the receive() fallback.
 
         emit Liquidation(
             _loanId,
