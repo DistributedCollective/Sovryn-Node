@@ -66,12 +66,14 @@ contract Watcher is AccessControl {
     }
 
     receive() external payable {
-        require(
-            msg.sender == address(wrbtcToken) ||
-            msg.sender == address(sovrynProtocol) ||
-            msg.sender == address(sovrynSwapNetwork),
-            "Watcher: only known contracts can transfer RBTC"
-        );
+        // Wrap to WRBTC if transfer doesn't come from a known sender
+        if (
+            msg.sender != address(wrbtcToken) &&
+            msg.sender != address(sovrynProtocol) &&
+            msg.sender != address(sovrynSwapNetwork)
+        ) {
+            wrbtcToken.deposit{ value: msg.value }();
+        }
     }
 
     function arbitrage(

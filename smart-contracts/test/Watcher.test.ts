@@ -269,4 +269,38 @@ describe("Watcher", function() {
             expect(await wrbtcToken.balanceOf(watcher.address)).to.equal(0);
         });
     });
+
+    describe('#receive fallback', () => {
+        it('everyone should be able to just directly send RBTC', async () => {
+            const amount = parseEther('500');
+
+            // sanity checks #1
+            expect(await ethers.provider.getBalance(watcher.address)).to.equal(BigNumber.from(0));
+            expect(await wrbtcToken.balanceOf(watcher.address)).to.equal(BigNumber.from(0));
+
+            // transaction + check
+            await expect(
+                () => anotherAccount.sendTransaction({
+                    to: watcher.address,
+                    value: amount,
+                })
+            ).to.changeTokenBalances(
+                wrbtcToken,
+                [watcher, anotherAccount],
+                [amount, 0]
+            );
+
+            // sanity checks #2
+            expect(await ethers.provider.getBalance(watcher.address)).to.equal(BigNumber.from(0));
+            expect(await wrbtcToken.balanceOf(watcher.address)).to.equal(amount);
+
+            // test withdrawal here too, for laziness. not necessary
+            const anotherAccountAddress = await anotherAccount.getAddress();
+            const rbtcAddress = await watcher.RBTC_ADDRESS();
+            await expect(
+                () => watcher.withdrawTokens(rbtcAddress, amount, anotherAccountAddress),
+            ).to.changeEtherBalance(anotherAccount, amount);
+            expect(await wrbtcToken.balanceOf(watcher.address)).to.equal(0);
+        });
+    });
 });
