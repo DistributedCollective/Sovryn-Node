@@ -41,6 +41,7 @@ class Contract {
         this.contractTokenBPRO = new this.web3.eth.Contract(abiTestToken, conf.BProToken);
         this.contractTokenETHs = new this.web3.eth.Contract(abiTestToken, conf.ethsToken);
         this.contractTokenXUSD = new this.web3.eth.Contract(abiTestToken, conf.XUSDToken);
+        this.contractTokenSOV = new this.web3.eth.Contract(abiTestToken, conf.sovToken);
 
         this.tokenContractsByAddress = {}
         this.tokenContractsByAddress[conf.docToken.toLowerCase()] = this.contractTokenSUSD;
@@ -49,6 +50,7 @@ class Contract {
         this.tokenContractsByAddress[conf.BProToken.toLowerCase()] = this.contractTokenBPRO;
         this.tokenContractsByAddress[conf.ethsToken.toLowerCase()] = this.contractTokenETHs;
         this.tokenContractsByAddress[conf.XUSDToken.toLowerCase()] = this.contractTokenXUSD;
+        this.tokenContractsByAddress[conf.sovToken.toLowerCase()] = this.contractTokenSOV;
         this.tokenSymbolsByAddress = {}
         this.tokenSymbolsByAddress[conf.docToken.toLowerCase()] = "doc"
         this.tokenSymbolsByAddress[conf.testTokenRBTC.toLowerCase()] = "rbtc";
@@ -56,6 +58,7 @@ class Contract {
         this.tokenSymbolsByAddress[conf.BProToken.toLowerCase()] = "bpro";
         this.tokenSymbolsByAddress[conf.ethsToken.toLowerCase()] = "eths";
         this.tokenSymbolsByAddress[conf.XUSDToken.toLowerCase()] = "xusd";
+        this.tokenSymbolsByAddress[conf.sovToken.toLowerCase()] = "sov";
 
         this.contractSwaps = new this.web3.eth.Contract(abiSwaps, conf.swapsImpl);
         this.contractPriceFeed = new this.web3.eth.Contract(abiPriceFeed, conf.priceFeed);

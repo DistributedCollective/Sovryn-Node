@@ -19,6 +19,7 @@ export async function initSovrynNodeForTesting({
     bproToken,
     usdtToken,
     ethsToken,
+    sovToken,
     rbtcWrapperProxy,
     priceFeeds,
     accounts,
@@ -28,6 +29,7 @@ export async function initSovrynNodeForTesting({
     loanTokenBpro,
     loanTokenWrbtc,
     loanTokenEths,
+    loanTokenSov,
     watcher,
 }) {
     conf.network = 'test';
@@ -38,6 +40,7 @@ export async function initSovrynNodeForTesting({
     conf.BProToken = bproToken.address.toLowerCase();
     conf.testTokenRBTC = wrbtcToken.address.toLowerCase();
     conf.ethsToken = ethsToken.address.toLowerCase();
+    conf.sovToken = sovToken.address.toLowerCase();
 
     conf.wRbtcWrapper = rbtcWrapperProxy.address.toLowerCase();
     conf.priceFeed  = priceFeeds.address.toLowerCase();
@@ -60,6 +63,7 @@ export async function initSovrynNodeForTesting({
     conf.loanTokenBPRO = loanTokenBpro.address.toLowerCase();
     conf.loanTokenRBTC = loanTokenWrbtc.address.toLowerCase();
     conf.loanTokenETHs = loanTokenEths.address.toLowerCase();
+    conf.loanTokenSOV = loanTokenSov.address.toLowerCase();
 
     // V2
     conf.watcherContract = watcher ? watcher.address : null;
