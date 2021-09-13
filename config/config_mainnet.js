@@ -25,6 +25,7 @@ export default {
     BProToken: "0x440cd83c160de5c96ddb20246815ea44c7abbca8",
     XUSDToken: "0xb5999795be0ebb5bab23144aa5fd6a02d080299f",
     ethsToken: "0x1d931bf8656d795e50ef6d639562c5bd8ac2b78f",
+    sovToken: "0xefc78fc7d48b64958315949279ba181c2114abbd",
     sovrynProtocolAdr: "0x5a0d867e0d70fcc6ade25c3f1b89d618b5b4eaa7",
     swapsImpl: "0x98ace08d2b759a265ae326f010496bcd63c15afc", //get price from amm/old execute swaps
     priceFeed: "0x437ac62769f386b2d238409b7f0a7596d36506e4", //get oracle price
