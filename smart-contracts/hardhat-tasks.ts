@@ -1,6 +1,7 @@
 import {task} from "hardhat/config";
 import {addressType, FauxRBTC, loadAccountFromKeystoreOrPrivateKeyPath, sleep} from './hardhat-utils';
 import erc20Abi from "./misc/erc20Abi.json";
+import {BigNumber} from 'ethers';
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
     const accounts = await hre.ethers.getSigners();
@@ -222,4 +223,78 @@ task('fund-watcher', 'withdraw/deposit/check token status')
         console.log('Waiting for confirmation...')
         await tx.wait();
         console.log('All done.');
+    });
+
+
+task('encode-withdrawal', 'withdraw/deposit/check token status')
+    .addParam('watcher', 'Watcher contract address', undefined, addressType)
+    .addParam('token', 'Token address', undefined, addressType)
+    .addParam('recipient', 'recipient of withdrawn funds (default sender)', undefined, addressType)
+    .addParam('amount', 'decimal amount in human-readable units (ie 1.2 RBTC)')
+    .setAction(async (args, hre) => {
+        const { action, recipient } = args;
+        const { ethers } = hre;
+
+        const watcher = await ethers.getContractAt('Watcher', args.watcher);
+        const rbtcAddress = await watcher.RBTC_ADDRESS();
+
+        let token;
+        if (args.token === rbtcAddress) {
+            console.log('Token is RBTC, special logic applies')
+            token = new FauxRBTC(rbtcAddress, ethers.provider);
+        } else {
+            token = await ethers.getContractAt(erc20Abi, args.token);
+        }
+
+        const symbol = await token.symbol();
+        const decimals = await token.decimals();
+        console.log(`Token ${symbol} (${token.address}) with ${decimals} decimals`);
+
+        let currentWatcherBalanceWei;
+        let watcherBalanceTokenSymbol;
+        if (token.address === rbtcAddress) {
+            // watcher doesn't store RBTC, get WRBTC balance instead
+            const wrbtcToken = await ethers.getContractAt(erc20Abi, await watcher.wrbtcToken());
+            currentWatcherBalanceWei = await wrbtcToken.balanceOf(watcher.address);
+            watcherBalanceTokenSymbol = await wrbtcToken.symbol();
+        } else {
+            currentWatcherBalanceWei = await token.balanceOf(watcher.address);
+            watcherBalanceTokenSymbol = symbol;
+        }
+        const currentWatcherBalance = hre.ethers.utils.formatUnits(currentWatcherBalanceWei, decimals);
+        console.log(`Current watcher (${watcher.address}) balance: ${currentWatcherBalance} ${watcherBalanceTokenSymbol} (${currentWatcherBalanceWei} Wei)`);
+
+        const recipientBalanceWei = await token.balanceOf(recipient);
+        const recipientBalance = hre.ethers.utils.formatUnits(recipientBalanceWei, decimals);
+        console.log(`Recipient (${recipient}) balance: ${recipientBalance} ${symbol} (${recipientBalanceWei} Wei)`);
+
+        const roleHash = await watcher.ROLE_OWNER();
+        const hasRole = await watcher.hasRole(roleHash, recipient);
+        if (!hasRole) {
+            console.warn(`Recipient ${recipient} doesn't have the role OWNER (hash ${roleHash})`);
+        }
+
+        const recipientRbtcBalanceWei = await ethers.provider.getBalance(recipient);
+        if (recipientRbtcBalanceWei.isZero()) {
+            console.warn(`Recipient ${recipient} has no RBTC -- probably don't want to withdraw to it!`)
+            return;
+        }
+
+        const amountWei = hre.ethers.utils.parseUnits(args.amount, decimals);
+        console.log(`encoding withdrawal to ${recipient} of ${args.amount} ${symbol} (${amountWei} Wei)`);
+
+        if (amountWei.gt(currentWatcherBalanceWei)) {
+            console.warn(
+                `withdraw amount ${args.amount} is greater than watcher balance ${currentWatcherBalance}, ` +
+                `it will fail as of now`
+            )
+        }
+        const rawdata = watcher.interface.encodeFunctionData(
+            'withdrawTokens',
+            [token.address, amountWei, recipient]
+        );
+        console.log('');
+        console.log('raw tx details:');
+        console.log('address:', watcher.address);
+        console.log('data:', rawdata);
     });
