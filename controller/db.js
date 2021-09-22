@@ -107,8 +107,10 @@ class DbCtrl {
             allRows.forEach((row) => {
                 if (repo === 'liquidator') {
                     // TODO: should convert to a single currency based on symbols
-                    const [profitValue, symbol] = row.profit.split(' ');
-                    profit += Number(profitValue);
+                    if (row.profit) {
+                        const [profitValue, symbol] = row.profit.split(' ');
+                        profit += Number(profitValue);
+                    }
                 } else if (repo === 'rollover') {
                     // TODO: is amount even the same as profit?
                     profit += Number(row.amount);
