@@ -45,7 +45,7 @@ async function transferToken(from, to, val) {
         const res = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
 
     } catch (e) {
-        console.log(e);
+        console.error(e);
     }
 }
 
