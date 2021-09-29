@@ -225,14 +225,15 @@ describe("Watcher", function() {
         });
 
         it("should liquidate existing loan", async () => {
-            const collateral = parseEther('10');
-            const principal = parseEther('2000');
+            // take out a loan of 10 RBTC by providing 2000 DoC as collateral
+            const principal = parseEther('10');
+            const collateral = parseEther('2000');
             await loanProtocolSimulator.createLoan(
                 exampleLoanId,
-                wrbtcToken.address,  // collateral: WRBTC
-                docToken.address, // principal (loanToken): DoC
+                wrbtcToken.address,  // principal (loanToken): WRBTC
+                docToken.address, // collateral: DoC
+                principal,
                 collateral,
-                principal
             );
 
             const closeAmount = parseEther('2.5');
@@ -242,9 +243,8 @@ describe("Watcher", function() {
                 watcher.liquidate(exampleLoanId, closeAmount)
             ).to.be.revertedWith("healthy position");
 
-            await loanProtocolSimulator.updateLoanMargin(
+            await loanProtocolSimulator.updateLiquidatableAmounts(
                 exampleLoanId,
-                parseEther('10'),  // 10% current margin
                 parseEther('5'), // max liquidatable: 5 RBTC
                 parseEther('1000'), // max seizable: 1000 DOC
             )
@@ -256,10 +256,10 @@ describe("Watcher", function() {
             ).to.changeEtherBalance(
                 watcher, BigNumber.from(0)
             );
-            const watcherDocChange = watcherDocBefore.sub(await docToken.balanceOf(watcher.address));
-            const watcherWrbtcChange = watcherWrbtcBefore.sub(await wrbtcToken.balanceOf(watcher.address));
-            expect(watcherDocChange).to.equal(parseEther('-500'));
-            expect(watcherWrbtcChange).to.equal(parseEther('2.5'));
+            const watcherDocChange = (await docToken.balanceOf(watcher.address)).sub(watcherDocBefore);
+            const watcherWrbtcChange = (await wrbtcToken.balanceOf(watcher.address)).sub(watcherWrbtcBefore);
+            expect(watcherDocChange).to.equal(parseEther('500'));
+            expect(watcherWrbtcChange).to.equal(parseEther('-2.5'));
         });
     });
 

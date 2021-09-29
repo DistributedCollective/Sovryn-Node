@@ -89,7 +89,7 @@ contract TestLoanProtocol {
 			_withdrawAsset(seizedToken, receiver, seizedAmount);
 		}
 
-		_closeLoan(loan, loanCloseAmount);
+		_closeLoan(loan, loanCloseAmount, seizedAmount);
 
         // TODO: should emit liquidation event but who cares?
     }
@@ -161,16 +161,17 @@ contract TestLoanProtocol {
         loans[loan.loanId] = loan;
     }
 
-    function updateLoanMargin(
+    function updateLiquidatableAmounts(
         bytes32 loanId,
-        uint256 currentMargin,
         uint256 maxLiquidatable,
         uint256 maxSeizable
     )
     public
     {
         LoanReturnData storage loan = _getLoanOrThrow(loanId);
-        loan.currentMargin = currentMargin;
+        require(maxLiquidatable <= loan.principal, "maxLiquidatable too large");
+        require(maxSeizable <= loan.collateral, "maxSeizable too large");
+        loan.currentMargin = 14 ether;  // this hardly matters but it needs to be below maintenance margin
         loan.maxLiquidatable = maxLiquidatable;
         loan.maxSeizable = maxSeizable;
     }
@@ -196,8 +197,8 @@ contract TestLoanProtocol {
         return loan.currentMargin <= loan.maintenanceMargin && loan.maxLiquidatable > 0;
     }
 
-    function _closeLoan(LoanReturnData storage loanLocal, uint256 loanCloseAmount) internal {
-        // Forked from LoanClosingsBase, but adjusted
+    function _closeLoan(LoanReturnData storage loanLocal, uint256 loanCloseAmount, uint256 seizedAmount) internal {
+        // Forked from LoanClosingsBase, but heavily adjusted
         require(loanCloseAmount != 0, "nothing to close");
 
         if (loanCloseAmount == loanLocal.principal) {
@@ -208,8 +209,12 @@ contract TestLoanProtocol {
             //activeLoansSet.removeBytes32(loanLocal.id);
             //lenderLoanSets[loanLocal.lender].removeBytes32(loanLocal.id);
             //borrowerLoanSets[loanLocal.borrower].removeBytes32(loanLocal.id);
+            loanLocal.maxLiquidatable = 0;
+            loanLocal.maxSeizable = 0;
         } else {
             loanLocal.principal = loanLocal.principal.sub(loanCloseAmount);
+            loanLocal.maxLiquidatable = loanLocal.maxLiquidatable.sub(loanCloseAmount);
+            loanLocal.maxSeizable = loanLocal.maxSeizable.sub(seizedAmount);
         }
     }
 
