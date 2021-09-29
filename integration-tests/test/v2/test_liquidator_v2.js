@@ -188,6 +188,7 @@ describe("Liquidator controller V2", () => {
             collateralTokenSent, // collateralTokenSent
             collateralToken.address, // collateralTokenAddress
             borrowerAddress, // trader,
+            new BN(0), // minReturn
             "0x", // loanDataBytes (only required with ether)
             { from: borrowerAddress }
         );
