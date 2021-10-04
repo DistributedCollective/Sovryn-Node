@@ -1,10 +1,8 @@
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
+import { describe, it, xit, beforeEach } from 'mocha';
 import { ethers } from 'hardhat';
 import { Signer, Contract, BigNumber } from 'ethers';
 const { parseEther } = ethers.utils;
-
-const ZERO = BigNumber.from(0);
 
 describe("Watcher", function() {
     let accounts: Signer[];
@@ -174,7 +172,7 @@ describe("Watcher", function() {
             expect(docBalance).to.equal(initialDocBalance.sub(amount));
         });
 
-        it("only executor should be able to call should handle arbitrage", async () => {
+        it("only executor should be able to call arbitrage", async () => {
             await priceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("2000"));
             await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("3000"));
 
@@ -201,11 +199,17 @@ describe("Watcher", function() {
         const exampleLoanId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
         beforeEach(async () => {
-            const amount = parseEther('10000');
+            // give 100k of both WRBTC and DOC. Should be enough...
+            const wrbtcAmount = parseEther('50');
+            const amount = parseEther('100000');
 
-            await wrbtcToken.mint(ownerAddress, amount)
-            await wrbtcToken.approve(watcher.address, amount);
-            await watcher.depositTokens(wrbtcToken.address, amount);
+            await wrbtcToken.deposit({ value: wrbtcAmount.mul(3) })
+            await wrbtcToken.approve(watcher.address, wrbtcAmount);
+            await watcher.depositTokens(wrbtcToken.address, wrbtcAmount);
+            // approve wrbtc for loans (collateral)
+            await wrbtcToken.approve(loanProtocolSimulator.address, wrbtcAmount);
+            // send wrbtc for loans (principal)
+            await wrbtcToken.transfer(loanProtocolSimulator.address, wrbtcAmount);
 
             await docToken.mint(ownerAddress, amount);
             await docToken.approve(watcher.address, amount);
@@ -260,6 +264,224 @@ describe("Watcher", function() {
             const watcherWrbtcChange = (await wrbtcToken.balanceOf(watcher.address)).sub(watcherWrbtcBefore);
             expect(watcherDocChange).to.equal(parseEther('500'));
             expect(watcherWrbtcChange).to.equal(parseEther('-2.5'));
+        });
+
+        it("should liquidate existing loan (with WRBTC as collateral)", async () => {
+            // take out a loan of 40000 doc by providing 2 RBTC as collateral (overcollateralization)
+            const principal = parseEther('40000');
+            const collateral = parseEther('2');
+            await loanProtocolSimulator.createLoan(
+                exampleLoanId,
+                docToken.address, // principal (loanToken): DoC
+                wrbtcToken.address,  // collateral: WRBTC
+                principal,
+                collateral,
+            );
+
+            await loanProtocolSimulator.updateLiquidatableAmounts(
+                exampleLoanId,
+                parseEther('20000'), // max liquidatable: 20k doc
+                parseEther('0.5'), // max seizable: 0.5 RBTC
+            );
+
+            const closeAmount = parseEther('10000');
+
+            const watcherDocBefore = await docToken.balanceOf(watcher.address);
+            const watcherWrbtcBefore = await wrbtcToken.balanceOf(watcher.address);
+            let liquidationReceipt;
+            await expect(
+                () => {
+                    liquidationReceipt = watcher.liquidate(exampleLoanId, closeAmount);
+                    return liquidationReceipt;
+                },
+            ).to.changeEtherBalance(
+                watcher, BigNumber.from(0)
+            );
+            const watcherDocChange = (await docToken.balanceOf(watcher.address)).sub(watcherDocBefore);
+            const watcherWrbtcChange = (await wrbtcToken.balanceOf(watcher.address)).sub(watcherWrbtcBefore);
+            expect(watcherDocChange).to.equal(parseEther('-10000'));
+            expect(watcherWrbtcChange).to.equal(parseEther('0.25'));
+
+            await expect(liquidationReceipt).to.emit(watcher, 'Liquidation').withArgs(
+                exampleLoanId,
+                docToken.address,
+                wrbtcToken.address,
+                parseEther('10000'),
+                parseEther('0.25'),
+                executorAddress
+            );
+        });
+
+        it("should liquidate loan with liquidateSwapback when min profit is met", async () => {
+            // take out a loan of 40000 doc by providing 2 RBTC as collateral (overcollateralization)
+            const principal = parseEther('40000');
+            const collateral = parseEther('2');
+            await loanProtocolSimulator.createLoan(
+                exampleLoanId,
+                docToken.address, // principal (loanToken): DoC
+                wrbtcToken.address,  // collateral: WRBTC
+                principal,
+                collateral,
+            );
+
+            await loanProtocolSimulator.updateLiquidatableAmounts(
+                exampleLoanId,
+                parseEther('20000'), // max liquidatable: 20k doc
+                parseEther('0.5'), // max seizable: 0.5 RBTC
+            )
+
+            const closeAmount = parseEther('10000');
+
+            // 0.25 * 80k = 20k
+            await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("80000"));
+
+            const watcherDocBefore = await docToken.balanceOf(watcher.address);
+            const watcherWrbtcBefore = await wrbtcToken.balanceOf(watcher.address);
+            const swapbackReceipt = await watcher.liquidateWithSwapback(
+                exampleLoanId,
+                closeAmount,
+                [wrbtcToken.address, docToken.address],
+                0,
+                true // requireSwapback, can be true or false
+            );
+            const watcherDocChange = (await docToken.balanceOf(watcher.address)).sub(watcherDocBefore);
+            const watcherWrbtcChange = (await wrbtcToken.balanceOf(watcher.address)).sub(watcherWrbtcBefore);
+            expect(watcherDocChange).to.equal(parseEther('10000'));
+            expect(watcherWrbtcChange).to.equal(parseEther('0'));
+
+            await expect(swapbackReceipt).to.emit(watcher, 'Swapback').withArgs(
+                exampleLoanId,
+                wrbtcToken.address,
+                docToken.address,
+                parseEther('0.25'),
+                parseEther('20000'),
+                executorAddress
+            );
+            await expect(swapbackReceipt).to.emit(watcher, 'Liquidation').withArgs(
+                exampleLoanId,
+                docToken.address,
+                wrbtcToken.address,
+                parseEther('10000'),
+                parseEther('0.25'),
+                executorAddress
+            );
+        });
+
+        it("should liquidate loan with liquidateSwapback when min profit is NOT met", async () => {
+            // take out a loan of 40000 doc by providing 2 RBTC as collateral (overcollateralization)
+            const principal = parseEther('40000');
+            const collateral = parseEther('2');
+            await loanProtocolSimulator.createLoan(
+                exampleLoanId,
+                docToken.address, // principal (loanToken): DoC
+                wrbtcToken.address,  // collateral: WRBTC
+                principal,
+                collateral,
+            );
+
+            // this rate corresponds to 1btc = 40k doc
+            await loanProtocolSimulator.updateLiquidatableAmounts(
+                exampleLoanId,
+                parseEther('20000'), // max liquidatable: 20k doc
+                parseEther('0.5'), // max seizable: 0.5 RBTC
+            )
+
+            const closeAmount = parseEther('10000');
+
+            // too low rate, no chance  for swapback
+            await simulatorPriceFeeds.setRates(wrbtcToken.address, docToken.address, parseEther("20000"));
+
+            // min profit not met, so requireSwapback=true reverts
+            await expect(
+                watcher.liquidateWithSwapback(
+                    exampleLoanId,
+                    closeAmount,
+                    [wrbtcToken.address, docToken.address],
+                    0,
+                    true // requireSwapback
+                )
+            ).to.be.reverted;  // min profit not met
+
+            // without requireSwapback it should work, but nothing happens
+            const watcherDocBefore = await docToken.balanceOf(watcher.address);
+            const watcherWrbtcBefore = await wrbtcToken.balanceOf(watcher.address);
+            await watcher.liquidateWithSwapback(
+                exampleLoanId,
+                closeAmount,
+                [wrbtcToken.address, docToken.address],
+                0,
+                false // requireswapback
+            );
+            const watcherDocChange = (await docToken.balanceOf(watcher.address)).sub(watcherDocBefore);
+            const watcherWrbtcChange = (await wrbtcToken.balanceOf(watcher.address)).sub(watcherWrbtcBefore);
+            expect(watcherDocChange).to.equal(parseEther('-10000'));
+            expect(watcherWrbtcChange).to.equal(parseEther('0.25'));
+        });
+
+        // TODO: change from xit to it and fix the regression
+        xit("should handle multiple liquidations when closeAmount more than maxLiquidatable", async () => {
+            // Regression test for a bug that happened when first liquidating with closeAmount > maxLiquidatable
+            // (which resulted in leftover allowance) and then trying to liquidate again (which resulted in
+            // SafeERC20 approval fail, because of the leftover allowance).
+
+            // take out a loan of 10 RBTC by providing 2000 DoC as collateral
+            const principal = parseEther('10');
+            const collateral = parseEther('2000');
+            await loanProtocolSimulator.createLoan(
+                exampleLoanId,
+                wrbtcToken.address,  // principal (loanToken): WRBTC
+                docToken.address, // collateral: DoC
+                principal,
+                collateral,
+            );
+
+            const closeAmount = parseEther('7.5');
+
+            // sanity check -- healthy position
+            await expect(
+                watcher.liquidate(exampleLoanId, closeAmount)
+            ).to.be.revertedWith("healthy position");
+
+            await loanProtocolSimulator.updateLiquidatableAmounts(
+                exampleLoanId,
+                parseEther('5'), // max liquidatable: 5 RBTC
+                parseEther('1000'), // max seizable: 1000 DOC
+            )
+
+            // Sanity check, can be removed
+            expect(await docToken.allowance(watcher.address, loanProtocolSimulator.address)).to.equal(0);
+
+            let watcherDocBefore = await docToken.balanceOf(watcher.address);
+            let watcherWrbtcBefore = await wrbtcToken.balanceOf(watcher.address);
+            await expect(
+                () => watcher.liquidate(exampleLoanId, closeAmount),
+            ).to.changeEtherBalance(
+                watcher, BigNumber.from(0)
+            );
+            let watcherDocChange = (await docToken.balanceOf(watcher.address)).sub(watcherDocBefore);
+            let watcherWrbtcChange = (await wrbtcToken.balanceOf(watcher.address)).sub(watcherWrbtcBefore);
+            // should only close up to 5 rbtc
+            expect(watcherDocChange).to.equal(parseEther('1000'));
+            expect(watcherWrbtcChange).to.equal(parseEther('-5'));
+
+            // This is what happens in the regression, but we are better off not testing it because the real
+            // implementation might change
+            //expect(await wrbtcToken.allowance(watcher.address, loanProtocolSimulator.address)).to.equal(parseEther('2.5'));
+
+            // allow liquidation again
+            await loanProtocolSimulator.updateLiquidatableAmounts(
+                exampleLoanId,
+                parseEther('5'), // max liquidatable: 5 RBTC
+                parseEther('1000'), // max seizable: 1000 DOC
+            )
+
+            watcherDocBefore = await docToken.balanceOf(watcher.address);
+            watcherWrbtcBefore = await wrbtcToken.balanceOf(watcher.address);
+            await watcher.liquidate(exampleLoanId, closeAmount);
+            watcherDocChange = (await docToken.balanceOf(watcher.address)).sub(watcherDocBefore);
+            watcherWrbtcChange = (await wrbtcToken.balanceOf(watcher.address)).sub(watcherWrbtcBefore);
+            expect(watcherDocChange).to.equal(parseEther('1000'));
+            expect(watcherWrbtcChange).to.equal(parseEther('-5'));
         });
     });
 

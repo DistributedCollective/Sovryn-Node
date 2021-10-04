@@ -42,6 +42,13 @@ contract TestLoanProtocol {
         wrbtcToken = _wrbtcToken;
     }
 
+    function()
+    external
+    payable
+    {
+        // payable fallback required for WRBTC to work properly
+    }
+
     // ==================================================
     // SovrynProtocol API
     // ==================================================
@@ -122,8 +129,8 @@ contract TestLoanProtocol {
 
     function createLoan(
         bytes32 loanId,
-        address loanToken,
-        address collateralToken,
+        address payable loanToken,
+        address payable collateralToken,
         uint256 principal,
         uint256 collateral
     )
@@ -139,9 +146,20 @@ contract TestLoanProtocol {
         loans[loanId].maintenanceMargin = 15 ether;
         loans[loanId].currentMargin = 100 ether;
 
-        // Just create tokens out of thin air
-        TestToken(collateralToken).mint(address(this), collateral);
-        TestToken(loanToken).mint(msg.sender, principal);
+        // We cannot create WRBTC out of thin air, because that makes withdrawals work crappily
+        // (WRBTC contract's RBTC balance needs to equal the combined balanceOf of all users)
+        // The other tokens we might also transfer to/from user, but we can also just create them from thin air
+        if (collateralToken == address(wrbtcToken)) {
+            TestWrbtc(collateralToken).transferFrom(msg.sender, address(this), collateral);
+        } else {
+            TestToken(collateralToken).mint(address(this), collateral);
+        }
+        if (loanToken == address(wrbtcToken)) {
+            TestWrbtc(loanToken).transfer(msg.sender, principal);
+        } else {
+            // these we might also transfer from this address, but we can also just create from thin air
+            TestToken(loanToken).mint(msg.sender, principal);
+        }
     }
 
     function deleteLoan(
