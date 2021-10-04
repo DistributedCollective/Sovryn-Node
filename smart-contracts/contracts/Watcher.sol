@@ -265,8 +265,11 @@ contract Watcher is AccessControl {
         // but then it doesn't have max liquidation amounts
         ISovrynProtocol.LoanReturnData memory loan = sovrynProtocol.getLoan(_loanId);
         IERC20 loanToken = IERC20(loan.loanToken);
-        //closeAmount = loan.maxLiquidatable;
-        //require(closeAmount > 0, "loan not liquidatable");
+
+        // prevent leftover allowance by not allowing closeAmount > maxLiquidatable
+        if(_closeAmount > loan.maxLiquidatable) {
+            _closeAmount = loan.maxLiquidatable;
+        }
 
         loanToken.safeIncreaseAllowance(address(sovrynProtocol), _closeAmount);
         (loanCloseAmount, seizedAmount, seizedToken) = sovrynProtocol.liquidate(_loanId, address(this), _closeAmount);
