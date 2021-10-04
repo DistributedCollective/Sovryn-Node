@@ -238,7 +238,7 @@ contract Watcher is AccessControl {
         uint256 targetTokenAmount
     )
     {
-        _conversionPath[0].safeApprove(address(sovrynSwapNetwork), _amount);
+        _conversionPath[0].safeIncreaseAllowance(address(sovrynSwapNetwork), _amount);
 
         targetTokenAmount = sovrynSwapNetwork.convertByPath(
             _conversionPath,
@@ -268,7 +268,7 @@ contract Watcher is AccessControl {
         //closeAmount = loan.maxLiquidatable;
         //require(closeAmount > 0, "loan not liquidatable");
 
-        loanToken.safeApprove(address(sovrynProtocol), _closeAmount);
+        loanToken.safeIncreaseAllowance(address(sovrynProtocol), _closeAmount);
         (loanCloseAmount, seizedAmount, seizedToken) = sovrynProtocol.liquidate(_loanId, address(this), _closeAmount);
 
         // LoanClosings will send us RBTC instead of WRBTC if seizedToken == wrbtcToken.

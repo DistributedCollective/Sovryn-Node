@@ -418,8 +418,7 @@ describe("Watcher", function() {
             expect(watcherWrbtcChange).to.equal(parseEther('0.25'));
         });
 
-        // TODO: change from xit to it and fix the regression
-        xit("should handle multiple liquidations when closeAmount more than maxLiquidatable", async () => {
+        it("should handle multiple liquidations when closeAmount more than maxLiquidatable", async () => {
             // Regression test for a bug that happened when first liquidating with closeAmount > maxLiquidatable
             // (which resulted in leftover allowance) and then trying to liquidate again (which resulted in
             // SafeERC20 approval fail, because of the leftover allowance).
