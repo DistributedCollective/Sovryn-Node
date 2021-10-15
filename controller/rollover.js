@@ -107,12 +107,16 @@ class Rollover {
         const loanId = pos.loanId;
         this.handleRolloverStart(loanId);
         try {
-            const tx = await C.contractSovryn.methods.rollover(loanId, loanDataBytes).send({
+            const txOpts = {
                 from: wallet,
                 gas: 2500000,
                 gasPrice: gasPrice,
                 nonce:nonce
-            });
+            }
+            console.log('Trying to simulate rollover transaction first for', loanId);
+            const simulated = await C.contractSovryn.methods.rollover(loanId, loanDataBytes).call(txOpts);
+            console.log('result for', loanId, ':', simulated);
+            const tx = await C.contractSovryn.methods.rollover(loanId, loanDataBytes).send(txOpts);
 
             const msg = (
                 `Rollover Transaction successful: ${tx.transactionHash}\n` +
