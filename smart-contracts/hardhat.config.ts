@@ -1,5 +1,6 @@
 import "@nomiclabs/hardhat-waffle";
 import "@tenderly/hardhat-tenderly";
+import "@openzeppelin/hardhat-upgrades";
 import "./hardhat-tasks";
 
 export default {

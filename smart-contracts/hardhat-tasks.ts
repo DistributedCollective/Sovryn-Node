@@ -21,7 +21,7 @@ task("deploy-watcher", "Deploys the Watcher contract")
     .addOptionalParam('keystore', 'Path to keystore file for deployer')
     .addOptionalParam('privateKey', 'Path to private key file for deployer')
     .setAction(async (args, hre) => {
-        const { ethers } = hre;
+        const { ethers, upgrades } = hre;
         const {
             sovrynProtocol,
             sovrynSwapNetwork,
@@ -38,7 +38,7 @@ task("deploy-watcher", "Deploys the Watcher contract")
         await hre.run("compile");
         const Watcher = await ethers.getContractFactory('Watcher', deployer);
 
-        console.log('Deploying in 5s with args...')
+        console.log('Deploying upgradeable proxy in 5s with args...')
         console.log({
             sovrynProtocol,
             sovrynSwapNetwork,
@@ -48,7 +48,12 @@ task("deploy-watcher", "Deploys the Watcher contract")
         await sleep(5000);
 
         console.log('Deploying!')
-        const watcher = await Watcher.deploy(sovrynProtocol, sovrynSwapNetwork, priceFeeds, wrbtcToken);
+        const watcher = await upgrades.deployProxy(Watcher, [
+            sovrynProtocol,
+            sovrynSwapNetwork,
+            priceFeeds,
+            wrbtcToken
+        ]);
 
         console.log('Deployed! Address:', watcher.address);
 

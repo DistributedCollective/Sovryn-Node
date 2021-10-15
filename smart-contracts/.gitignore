@@ -5,6 +5,9 @@ node_modules
 cache
 artifacts
 
+# oz
+.openzeppelin/
+
 
 # deployment stuff
 secrets

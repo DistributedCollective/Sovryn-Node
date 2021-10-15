@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { describe, it, xit, beforeEach } from 'mocha';
-import { ethers } from 'hardhat';
-import { Signer, Contract, BigNumber } from 'ethers';
+import { describe, it, beforeEach } from 'mocha';
+import { ethers, upgrades } from 'hardhat';
+import {Signer, Contract, BigNumber, ContractFactory} from 'ethers';
 const { parseEther } = ethers.utils;
 
 describe("Watcher", function() {
@@ -58,14 +58,13 @@ describe("Watcher", function() {
         loanProtocolSimulator = await LoanProtocolSimulator.deploy(wrbtcToken.address);
         await loanProtocolSimulator.deployed();
 
-        watcher = await Watcher.deploy(
+        watcher = await upgrades.deployProxy(Watcher, [
             loanProtocolSimulator.address,
             sovrynSwapSimulator.address,
             priceFeeds.address,
             wrbtcToken.address
-        );
+        ]);
         await watcher.deployed();
-
         await watcher.grantRole(await watcher.ROLE_EXECUTOR(), executorAddress);
     });
 
@@ -597,4 +596,65 @@ describe("Watcher", function() {
             expect(await wrbtcToken.balanceOf(watcher.address)).to.equal(0);
         });
     });
+
+    describe("upgrades", () => {
+        let WatcherUpgrade: ContractFactory;
+
+        beforeEach(async () => {
+            WatcherUpgrade = await ethers.getContractFactory("WatcherUpgradeTest");
+        })
+
+        it('should update correctly', async () => {
+            const previousAddress = watcher.address;
+            watcher = await upgrades.upgradeProxy(watcher.address, WatcherUpgrade);
+            expect(watcher.address).to.equal(previousAddress);
+            expect(await watcher.getFoo()).to.equal(0);
+            await watcher.incrementFoo();
+            expect(await watcher.getFoo()).to.equal(1);
+        });
+
+        // TODO: this works but screws up the state of hardhat blockchain for other tests
+        it.skip('only owner should be able to upgrade', async () => {
+            const consoleLog = console.log;
+            try {
+                // stub out console.log because this spams
+                console.log = () => {};
+                await upgrades.admin.transferProxyAdminOwnership(executorAddress);
+            } finally {
+                console.log = consoleLog;
+            }
+
+            await expect(
+                upgrades.upgradeProxy(watcher.address, WatcherUpgrade),
+            ).to.be.revertedWith('Ownable: caller is not the owner');
+
+            await upgrades.upgradeProxy(watcher.address, WatcherUpgrade.connect(executorAccount));
+
+            await upgrades.admin.transferProxyAdminOwnership(executorAddress);
+        });
+
+        it('owner should be able to withdraw tokens after upgrade', async () => {
+            const amount = parseEther('500');
+            await docToken.mint(ownerAddress, amount);
+            await docToken.approve(watcher.address, amount);
+            await expect(
+                () => watcher.depositTokens(docToken.address, amount),
+            ).to.changeTokenBalances(
+                docToken,
+                [watcher, ownerAccount],
+                [amount, amount.mul(-1)]
+            );
+
+            watcher = await upgrades.upgradeProxy(watcher.address, WatcherUpgrade);
+
+            await expect(
+                () => watcher.withdrawTokens(docToken.address, amount, ownerAddress),
+            ).to.changeTokenBalances(
+                docToken,
+                [watcher, ownerAccount],
+                [amount.mul(-1), amount]
+            );
+        });
+
+    })
 });
