@@ -51,6 +51,13 @@ class Rollover {
 
             const amn = C.web3.utils.fromWei(position.collateral.toString(), "Ether");
 
+            // TODO: would want to check active = true but not sure how to get it from
+            // the smart contract
+            if (C.web3.utils.toBN(position.principal).isZero()) {
+                console.log(`Principal for loan ${p} is 0, not rolling over.`);
+                continue;
+            }
+
             const collateralTokenAddress = position.collateralToken.toLowerCase();
             if (collateralTokenAddress === conf.docToken.toLowerCase() && amn < 5) {
                 continue;
