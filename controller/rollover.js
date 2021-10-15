@@ -58,6 +58,15 @@ class Rollover {
                 continue;
             }
 
+            const unhealthyMarginThreshold = C.web3.utils.toWei('3', 'ether');
+            if (C.web3.utils.toBN(position.currentMargin).lte(unhealthyMarginThreshold)) {
+                console.log(
+                    `Current margin ${position.currentMargin} for loan ${p} is less than ` +
+                    `margin threshold for unhealthy position ${unhealthyMarginThreshold.toString()}, not rolling over.`
+                );
+                continue;
+            }
+
             const collateralTokenAddress = position.collateralToken.toLowerCase();
             if (collateralTokenAddress === conf.docToken.toLowerCase() && amn < 5) {
                 continue;
