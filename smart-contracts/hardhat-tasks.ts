@@ -120,6 +120,33 @@ task('watcher-role', 'Adds roles to accounts on watcher')
         console.log('all done');
     });
 
+task('set-sovryn-swap-network', 'Update swaps address')
+    .addParam('watcher', 'Watcher contract address', undefined, addressType)
+    .addParam('swaps', 'new address for swaps')
+    .addOptionalParam('keystore', 'Path to keystore file for owner')
+    .addOptionalParam('privateKey', 'Path to private key file for owner')
+    .setAction(async (args, hre) => {
+        const {
+            swaps,
+        } = args;
+        const owner = await loadAccountFromKeystoreOrPrivateKeyPath(args.keystore, args.privateKey, hre.ethers.provider);
+
+        const watcher = await hre.ethers.getContractAt('Watcher', args.watcher, owner);
+        const current = await watcher.sovrynSwapNetwork();
+        console.log('current address:', current)
+        console.log('changing to:    ', swaps)
+
+        // allow panicked users to Ctrl-C here
+        await sleep(2000);
+
+
+        console.log('sending tx...');
+        const tx = await watcher.setSovrynSwapNetwork(swaps);
+        console.log('tx hash:', tx.hash);
+        console.log('waiting for tx...')
+        await tx.wait();
+        console.log('all done');
+    });
 
 task('fund-watcher', 'withdraw/deposit/check token status')
     .addPositionalParam('action', 'withdraw/deposit/check')
