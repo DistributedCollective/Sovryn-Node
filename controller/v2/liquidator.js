@@ -17,7 +17,7 @@ class LiquidatorV2 extends Liquidator {
     // return [wallet so send liquidation from, balance available for liquidation]
     async getWallet(pos, token) {
         const requiredExecutorBalance = 0; // executor doesn't need any balance
-        const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, token, C.web3.utils.toBN);
+        const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, 'rBtc', C.web3.utils.toBN);
 
         // return the watcher contract balance for checking
         const tokenContract = C.getTokenInstance(pos.loanToken);
