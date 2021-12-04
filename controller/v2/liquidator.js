@@ -17,9 +17,13 @@ import {Liquidator} from "../liquidator";
 class LiquidatorV2 extends Liquidator {
     // return [wallet so send liquidation from, balance available for liquidation]
     async getWallet(pos, token) {
-        const wallet = A.liquidator[0].adr;
-        //const requiredExecutorBalance = 0; // executor doesn't need any balance
-        //const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, 'rBtc', C.web3.utils.toBN);
+        let wallet = A.liquidator[0].adr;
+        console.log('liq wallet', wallet);
+        if (!wallet) {
+            const requiredExecutorBalance = 0; // executor doesn't need any balance
+            [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, 'rBtc', C.web3.utils.toBN);
+            console.log('no direct wallet, new wallet', wallet);
+        }
 
         // return the watcher contract balance for checking
         const tokenContract = C.getTokenInstance(pos.loanToken);
