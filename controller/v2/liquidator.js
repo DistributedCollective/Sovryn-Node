@@ -70,7 +70,7 @@ class LiquidatorV2 extends Liquidator {
             delete this.liquidations[loanId];
         }
 
-        let requireSwapbackIfEnabled = true;
+        let requireSwapbackIfEnabled = false;
         let enableSwapback = false;
         let swapbackConversionPath = [];
         if (conf.enableSwapback) {
