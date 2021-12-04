@@ -7,6 +7,7 @@
 import C from '../contract';
 import U from '../../util/helper';
 import Wallet from '../wallet';
+import A from '../../secrets/accounts';
 import conf from '../../config/config';
 import common from '../common'
 import Extra from 'telegraf/extra';
@@ -16,8 +17,9 @@ import {Liquidator} from "../liquidator";
 class LiquidatorV2 extends Liquidator {
     // return [wallet so send liquidation from, balance available for liquidation]
     async getWallet(pos, token) {
-        const requiredExecutorBalance = 0; // executor doesn't need any balance
-        const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, 'rBtc', C.web3.utils.toBN);
+        const wallet = A.liquidator[0].adr;
+        //const requiredExecutorBalance = 0; // executor doesn't need any balance
+        //const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, 'rBtc', C.web3.utils.toBN);
 
         // return the watcher contract balance for checking
         const tokenContract = C.getTokenInstance(pos.loanToken);
