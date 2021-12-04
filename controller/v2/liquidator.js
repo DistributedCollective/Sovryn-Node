@@ -17,12 +17,11 @@ import {Liquidator} from "../liquidator";
 class LiquidatorV2 extends Liquidator {
     // return [wallet so send liquidation from, balance available for liquidation]
     async getWallet(pos, token) {
+        // Wallet rotation is disabled for now because of problems
         let wallet = A.liquidator[0];
-        console.log('liq wallet', wallet);
         if (!wallet) {
             const requiredExecutorBalance = 0; // executor doesn't need any balance
             [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, 'rBtc', C.web3.utils.toBN);
-            console.log('no direct wallet, new wallet', wallet);
         }
 
         // return the watcher contract balance for checking
@@ -71,6 +70,7 @@ class LiquidatorV2 extends Liquidator {
             delete this.liquidations[loanId];
         }
 
+        let requireSwapbackIfEnabled = true;
         let enableSwapback = false;
         let swapbackConversionPath = [];
         if (conf.enableSwapback) {
@@ -90,6 +90,9 @@ class LiquidatorV2 extends Liquidator {
                     swapbackConversionPath = await C.contractSwaps.methods.conversionPath(loan.collateralToken, loan.loanToken).call()
                     console.log("swapback conversion path:", swapbackConversionPath);
                 } catch(e) {
+                    if (requireSwapbackIfEnabled) {
+                        throw e;
+                    }
                     console.error("error getting swapback conversion path:", e, "swapback is disabled");
                     enableSwapback = false;
                 }
@@ -115,7 +118,7 @@ class LiquidatorV2 extends Liquidator {
                     amount.toString(),
                     swapbackConversionPath,
                     0, // min profit from swapback
-                    false,  // if true, revert if swapback doesn't happen
+                    requireSwapbackIfEnabled,  // if true, revert if swapback doesn't happen
                 ).send(txOpts);
             } else {
                 tx = await C.contractWatcher.methods.liquidate(loanId, amount.toString()).send(txOpts);
