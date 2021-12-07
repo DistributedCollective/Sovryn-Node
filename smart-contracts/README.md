@@ -42,7 +42,7 @@ Contract deployment
 npx hardhat deploy-watcher \
     --network rsk-testnet \
     --sovryn-protocol 0x25380305f223b32fdb844152abd2e82bc5ad99c3 \
-    --sovryn-swap-network 0x6390df6de9f24902b29740371525c2ceaa8f5a4f \
+    --sovryn-swap-network 0x61172b53423e205a399640e5283e51fe60ec2256 \
     --price-feeds 0x7f38c422b99075f63c9c919ecd200df8d2cf5bd4 \
     --wrbtc-token 0x69fe5cec81d5ef92600c1a0db1f11986ab3758ab \
     --private-key secrets/privatekey.pkey \
