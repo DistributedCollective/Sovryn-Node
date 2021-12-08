@@ -115,7 +115,12 @@ class PositionScanner {
                     // Bignumber error, probably. Quick and dirty fix.
                     console.log("Margin call for  "+l.loanId+". Current margin: "+l.currentMargin.toString()+" wei");
                 }
-                console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
+                try {
+                    console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
+                } catch(e) {
+                    // Bignumber error, probably. Quick and dirty fix.
+                    console.log("Liquidation will happen at the buffered maintenance margin");
+                }
             }
 
             //If liquidating at the very edge we often get errors if the price bounces back
