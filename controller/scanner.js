@@ -109,7 +109,12 @@ class PositionScanner {
             this.positionsTmp[l.loanId] = l;
 
             if(l.currentMargin<l.maintenanceMargin*1.02) {
-                console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
+                try {
+                    console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
+                } catch (e) {
+                    // Bignumber error, probably. Quick and dirty fix.
+                    console.log("Margin call for  "+l.loanId+". Current margin: "+l.currentMargin.toString()+" wei");
+                }
                 console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
             }
 
