@@ -60,7 +60,20 @@ export class Liquidator {
         console.log("started liquidation round");
         console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
 
-        for (let p in this.liquidations) {
+        const sortedLiquidations = Object.values(this.liquidations);
+        try {
+            sortedLiquidations.sort(
+                (a, b) => (
+                    parseInt(a.maxLiquidatable) > parseInt(b.maxLiquidatable) ? -1 : 1
+                )
+            );
+        } catch (e) {
+            console.error("Error sorting liquidations", e);
+        }
+
+        for (let unrefreshedLoan of sortedLiquidations) {
+            const p = unrefreshedLoan.loanId;
+
             // It's possible that something has changed in between of finding the position by the Scanner and calling
             // this method. Thus, we fetch the loan again here.
             const pos = await C.contractSovryn.methods.getLoan(p).call();
