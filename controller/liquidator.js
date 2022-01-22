@@ -64,7 +64,7 @@ export class Liquidator {
         try {
             sortedLiquidations.sort(
                 (a, b) => (
-                    parseInt(a.maxLiquidatable) > parseInt(b.maxLiquidatable) ? -1 : 1
+                    parseInt(a.maxSeizable) > parseInt(b.maxSeizable) ? -1 : 1
                 )
             );
         } catch (e) {
