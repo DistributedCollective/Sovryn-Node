@@ -79,6 +79,10 @@ class PositionScanner {
      */
     loadActivePositions(from, to) {
         //console.log("loading active positions from id " + from + " to " + to);
+        const count = to - from;
+        if (count <= 0) {
+            return [];
+        }
         return new Promise(resolve => {
             try {
                 C.contractSovryn.methods.getActiveLoans(from, to, false).call((error, res) => {
