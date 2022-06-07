@@ -51,6 +51,22 @@ class Rollover {
 
             const amn = C.web3.utils.fromWei(position.collateral.toString(), "Ether");
 
+            // TODO: would want to check active = true but not sure how to get it from
+            // the smart contract
+            if (C.web3.utils.toBN(position.principal).isZero()) {
+                console.log(`Principal for loan ${p} is 0, not rolling over.`);
+                continue;
+            }
+
+            const unhealthyMarginThreshold = C.web3.utils.toWei('3', 'ether');
+            if (C.web3.utils.toBN(position.currentMargin).lte(unhealthyMarginThreshold)) {
+                console.log(
+                    `Current margin ${position.currentMargin} for loan ${p} is less than ` +
+                    `margin threshold for unhealthy position ${unhealthyMarginThreshold.toString()}, not rolling over.`
+                );
+                continue;
+            }
+
             const collateralTokenAddress = position.collateralToken.toLowerCase();
             if (collateralTokenAddress === conf.docToken.toLowerCase() && amn < 5) {
                 continue;
@@ -91,12 +107,16 @@ class Rollover {
         const loanId = pos.loanId;
         this.handleRolloverStart(loanId);
         try {
-            const tx = await C.contractSovryn.methods.rollover(loanId, loanDataBytes).send({
+            const txOpts = {
                 from: wallet,
                 gas: 2500000,
                 gasPrice: gasPrice,
                 nonce:nonce
-            });
+            }
+            console.log('Trying to simulate rollover transaction first for', loanId);
+            const simulated = await C.contractSovryn.methods.rollover(loanId, loanDataBytes).call(txOpts);
+            console.log('result for', loanId, ':', simulated);
+            const tx = await C.contractSovryn.methods.rollover(loanId, loanDataBytes).send(txOpts);
 
             const msg = (
                 `Rollover Transaction successful: ${tx.transactionHash}\n` +

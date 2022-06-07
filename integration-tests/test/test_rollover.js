@@ -102,6 +102,7 @@ describe("Rollover controller", () => {
             0, // no collateral token sent
             wrbtcToken.address, // collateralTokenAddress
             borrowerAddress, // trader,
+            new BN(0), // minReturn
             "0x", // loanDataBytes (only required with ether)
             { from: borrowerAddress }
         );

@@ -79,6 +79,10 @@ class PositionScanner {
      */
     loadActivePositions(from, to) {
         //console.log("loading active positions from id " + from + " to " + to);
+        const count = to - from;
+        if (count <= 0) {
+            return [];
+        }
         return new Promise(resolve => {
             try {
                 C.contractSovryn.methods.getActiveLoans(from, to, false).call((error, res) => {
@@ -109,8 +113,18 @@ class PositionScanner {
             this.positionsTmp[l.loanId] = l;
 
             if(l.currentMargin<l.maintenanceMargin*1.02) {
-                console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
-                console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
+                try {
+                    console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
+                } catch (e) {
+                    // Bignumber error, probably. Quick and dirty fix.
+                    console.log("Margin call for  "+l.loanId+". Current margin: "+l.currentMargin.toString()+" wei");
+                }
+                try {
+                    console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
+                } catch(e) {
+                    // Bignumber error, probably. Quick and dirty fix.
+                    console.log("Liquidation will happen at the buffered maintenance margin");
+                }
             }
 
             //If liquidating at the very edge we often get errors if the price bounces back

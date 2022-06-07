@@ -154,7 +154,7 @@ export function calculateArbitrageOpportunity(
 /**
  * Main arbitrage controller
  */
-class Arbitrage {
+export class Arbitrage {
     constructor() {
         abiDecoder.addABI(abiSwap);
         this.BN = C.web3.utils.toBN;

@@ -13,7 +13,7 @@ class TelegramBot {
             try {
                 await this.bot.sendMessage(conf.sovrynInternalTelegramId, msg, extra);
             } catch(err) {
-                console.log(err)
+                console.error(err)
             }
         }
     }

@@ -30,6 +30,7 @@ export async function initSovrynNodeForTesting({
     loanTokenWrbtc,
     loanTokenEths,
     loanTokenSov,
+    watcher,
 }) {
     conf.network = 'test';
 
@@ -63,6 +64,12 @@ export async function initSovrynNodeForTesting({
     conf.loanTokenRBTC = loanTokenWrbtc.address.toLowerCase();
     conf.loanTokenETHs = loanTokenEths.address.toLowerCase();
     conf.loanTokenSOV = loanTokenSov.address.toLowerCase();
+
+    // V2
+    conf.watcherContract = watcher ? watcher.address : null;
+
+    // Swapback disabled by default...
+    conf.enableSwapback = false;
 
     // also deal with accounts
     A.liquidator = [

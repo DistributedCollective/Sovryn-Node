@@ -15,6 +15,12 @@ export default {
     enableLiquidator: true,
     enableRollover: true,
     enableArbitrage: true,
+    enableV2: {
+        arbitrage: true,
+        liquidator: true,
+    },
+    watcherContract: null,
+    enableSwapback: true,  // v2 only: swap back to loan token after liquidation if profitable and collateral token is not a stablecoin
     rolloverMinThreshold: 0.000052*2, //Btc 0,000052 = failing tx cost
     loanTokenSUSD: "0x74e00a8ceddc752074aad367785bfae7034ed89f", //underlying token = doc
     loanTokenRBTC: "0xe67fe227e0504e8e96a34c3594795756dc26e14b",

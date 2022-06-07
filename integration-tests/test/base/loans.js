@@ -10,7 +10,8 @@ const ISovryn = artifacts.require("ISovryn");
 const LoanSettings = artifacts.require("LoanSettings");
 const LoanMaintenance = artifacts.require("LoanMaintenance");
 const LoanOpenings = artifacts.require("LoanOpenings");
-const LoanClosings = artifacts.require("LoanClosings");
+const LoanClosingsWith = artifacts.require("LoanClosingsWith");
+const LoanClosingsBase = artifacts.require("LoanClosingsBase");
 
 const SwapsExternal = artifacts.require("SwapsExternal");
 
@@ -19,6 +20,8 @@ const LoanTokenLogicStandard = artifacts.require("LoanTokenLogicTest");
 const LoanTokenLogicWrbtc = artifacts.require("LoanTokenLogicWrbtc");
 
 const SwapsImplSovrynSwap = artifacts.require("SwapsImplSovrynSwap");
+
+const Affiliates = artifacts.require("Affiliates");
 
 const wei = web3.utils.toWei;
 const oneEth = new BN(wei("1", "ether"));
@@ -38,6 +41,10 @@ export const deploySovrynProtocol = async ({
     contractRegistry,
     priceFeeds
 }) => {
+    // NOTE: if we get "target not active" revert after updating sovryn-smart-contracts,
+    // double-check getSovryn function on sovryn-smart-contracts repo, path tests/Utils/initializer.js
+    // to see if new contracts have been added or this has changed otherwise.
+
     const sovrynproxy = await SovrynProtocol.new();
     const sovryn = await ISovryn.at(sovrynproxy.address);
 
@@ -46,6 +53,7 @@ export const deploySovrynProtocol = async ({
     await sovryn.replaceContract((await LoanMaintenance.new()).address);
     await sovryn.replaceContract((await SwapsExternal.new()).address);
 
+    // We don't use TestSovrynSwap because we are deploying the swaps too
     //const sovrynSwapSimulator = await TestSovrynSwap.new(priceFeeds.address);
     //await sovryn.setSovrynSwapContractRegistryAddress(sovrynSwapSimulator.address);
     await sovryn.setSovrynSwapContractRegistryAddress(contractRegistry.address);
@@ -64,7 +72,12 @@ export const deploySovrynProtocol = async ({
     await sovryn.setSwapsImplContract(swaps.address);
 
     // loanClosing
-    await sovryn.replaceContract((await LoanClosings.new()).address);
+    await sovryn.replaceContract((await LoanClosingsBase.new()).address);
+    await sovryn.replaceContract((await LoanClosingsWith.new()).address);
+
+    // affiliates
+    await sovryn.replaceContract((await Affiliates.new()).address);
+
     return sovryn;
 };
 

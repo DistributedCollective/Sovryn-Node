@@ -171,7 +171,7 @@ class TradeCtrl {
             p.web3.eth.getTransactionReceipt(txHash, (e, receipt) => {
                 if (e) {
                     console.error("Error parsing log");
-                    console.log(e);
+                    console.error(e);
                     return resolve(0);
                 }
                 const decodedLogs = abiDecoder.decodeLogs(receipt.logs);

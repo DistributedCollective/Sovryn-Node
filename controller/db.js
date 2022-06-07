@@ -22,7 +22,7 @@ class DbCtrl {
 
                     console.log('Connected to the ' + dbName + ' database.');
 
-                    this.initRepos().catch(console.log).then(() => resolve());
+                    this.initRepos().catch(console.error).then(() => resolve());
                 }
             });
         });
@@ -40,7 +40,7 @@ class DbCtrl {
             await this.rollRepo.createTable();
             await this.liqRepo.createTable();
         } catch (e) {
-            console.log(e);
+            console.error(e);
         }
     }
 
@@ -58,7 +58,7 @@ class DbCtrl {
                 status
             })
         } catch (e) {
-            console.log(e);
+            console.error(e);
         }
     }
 
@@ -70,7 +70,7 @@ class DbCtrl {
                 txHash, status
             })
         } catch (e) {
-            console.log(e);
+            console.error(e);
         }
     }
 
@@ -86,7 +86,7 @@ class DbCtrl {
                 pos
             });
         } catch (e) {
-            console.log(e);
+            console.error(e);
         }
     }
 
@@ -98,7 +98,7 @@ class DbCtrl {
                 case 'liquidator': table = this.liqRepo; break;
                 case 'arbitrage': table = this.arbRepo; break;
                 case 'rollover': table = this.rollRepo; break;
-                default: console.log("Not a known table. Returning liquidations table as default"); table = this.liqRepo;
+                default: console.warn("Not a known table. Returning liquidations table as default"); table = this.liqRepo;
             }
             const sqlQuery = last24H ? // select either all actions or only the last 24h ones
                 `SELECT * FROM ${repo} WHERE dateAdded BETWEEN DATETIME('now', '-1 day') AND DATETIME('now')` :
@@ -107,8 +107,10 @@ class DbCtrl {
             allRows.forEach((row) => {
                 if (repo === 'liquidator') {
                     // TODO: should convert to a single currency based on symbols
-                    const [profitValue, symbol] = row.profit.split(' ');
-                    profit += Number(profitValue);
+                    if (row.profit) {
+                        const [profitValue, symbol] = row.profit.split(' ');
+                        profit += Number(profitValue);
+                    }
                 } else if (repo === 'rollover') {
                     // TODO: is amount even the same as profit?
                     profit += Number(row.amount);
@@ -119,7 +121,7 @@ class DbCtrl {
             })
             return { totalActionsNumber: allRows.length, profit };
         } catch (e) {
-            console.log(e);
+            console.error(e);
         }
     }
 }
