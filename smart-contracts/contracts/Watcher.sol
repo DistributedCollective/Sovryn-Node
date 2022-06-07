@@ -1,19 +1,20 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import "./interfaces/ISovrynSwapNetwork.sol";
 import "./interfaces/ISovrynProtocol.sol";
 import "./interfaces/IPriceFeeds.sol";
 import "./interfaces/IWRBTCToken.sol";
 
-contract Watcher is AccessControl {
-    using SafeERC20 for IERC20;
+contract Watcher is Initializable, AccessControlUpgradeable {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    address public immutable RBTC_ADDRESS = address(0);
+    address public constant RBTC_ADDRESS = address(0);
     bytes32 public constant ROLE_EXECUTOR = keccak256("EXECUTOR");
     bytes32 public constant ROLE_OWNER = DEFAULT_ADMIN_ROLE;
 
@@ -50,12 +51,17 @@ contract Watcher is AccessControl {
         address _sender
     );
 
-    constructor(
+    function initialize(
         ISovrynProtocol _sovrynProtocol,
         ISovrynSwapNetwork _sovrynSwapNetwork,
         IPriceFeeds _priceFeeds,
         IWRBTCToken _wrbtcToken
-    ) {
+    )
+    public
+    initializer
+    {
+        __AccessControl_init();
+
         sovrynProtocol = _sovrynProtocol;
         sovrynSwapNetwork = _sovrynSwapNetwork;
         priceFeeds = _priceFeeds;
@@ -73,14 +79,14 @@ contract Watcher is AccessControl {
     }
 
     function arbitrage(
-        IERC20[] calldata _conversionPath,
+        IERC20Upgradeable[] calldata _conversionPath,
         uint256 _amount,
         uint256 _minProfit
     )
     external
     onlyRole(ROLE_EXECUTOR)
     {
-        (IERC20 sourceToken, IERC20 targetToken) = getSourceAndTargetTokens(_conversionPath);
+        (IERC20Upgradeable sourceToken, IERC20Upgradeable targetToken) = getSourceAndTargetTokens(_conversionPath);
         uint256 priceFeedReturn = priceFeeds.queryReturn(
             address(sourceToken),
             address(targetToken),
@@ -121,7 +127,7 @@ contract Watcher is AccessControl {
     function liquidateWithSwapback(
         bytes32 _loanId,
         uint256 _closeAmount, // denominated in loanToken
-        IERC20[] calldata _swapbackConversionPath,
+        IERC20Upgradeable[] calldata _swapbackConversionPath,
         uint256 _swapbackMinProfit,
         bool _requireSwapback
     )
@@ -137,7 +143,7 @@ contract Watcher is AccessControl {
         swapbackInternal(
             _loanId,
             loanCloseAmount,
-            IERC20(seizedToken),
+            IERC20Upgradeable(seizedToken),
             seizedAmount,
             _swapbackConversionPath,
             _swapbackMinProfit,
@@ -146,7 +152,7 @@ contract Watcher is AccessControl {
     }
 
     function withdrawTokens(
-        IERC20 _token,
+        IERC20Upgradeable _token,
         uint256 _amount,
         address payable _receiver
     )
@@ -166,7 +172,7 @@ contract Watcher is AccessControl {
     }
 
     function depositTokens(
-        IERC20 _token,
+        IERC20Upgradeable _token,
         uint256 _amount
     )
     external
@@ -214,13 +220,13 @@ contract Watcher is AccessControl {
     // internal functions
 
     function getSourceAndTargetTokens(
-        IERC20[] calldata _conversionPath
+        IERC20Upgradeable[] calldata _conversionPath
     )
     internal
     pure
     returns (
-        IERC20 sourceToken,
-        IERC20 targetToken
+        IERC20Upgradeable sourceToken,
+        IERC20Upgradeable targetToken
     )
     {
         require(_conversionPath.length >= 2, "Watcher: _conversionPath must contain at least 2 tokens");
@@ -229,7 +235,7 @@ contract Watcher is AccessControl {
     }
 
     function swapInternal(
-        IERC20[] calldata _conversionPath,
+        IERC20Upgradeable[] calldata _conversionPath,
         uint256 _amount,
         uint256 _minReturn
     )
@@ -264,7 +270,7 @@ contract Watcher is AccessControl {
         // NOTE: to save gas, we might be able to use sovrynProtocol.loans[loanId],
         // but then it doesn't have max liquidation amounts
         ISovrynProtocol.LoanReturnData memory loan = sovrynProtocol.getLoan(_loanId);
-        IERC20 loanToken = IERC20(loan.loanToken);
+        IERC20Upgradeable loanToken = IERC20Upgradeable(loan.loanToken);
 
         // prevent leftover allowance by not allowing closeAmount > maxLiquidatable
         if(_closeAmount > loan.maxLiquidatable) {
@@ -290,19 +296,19 @@ contract Watcher is AccessControl {
     function swapbackInternal(
         bytes32 _loanId,
         uint256 _loanCloseAmount,
-        IERC20 _seizedToken,
+        IERC20Upgradeable _seizedToken,
         uint256 _seizedAmount,
-        IERC20[] calldata _swapbackConversionPath,
+        IERC20Upgradeable[] calldata _swapbackConversionPath,
         uint256 _swapbackMinProfit,
         bool _requireSwapback
     )
     internal
     {
         require(
-            IERC20(_seizedToken) == _swapbackConversionPath[0],
+            IERC20Upgradeable(_seizedToken) == _swapbackConversionPath[0],
             "Watcher: _swapbackConversionPath must start with seizedToken"
         );
-        (IERC20 sourceToken, IERC20 targetToken) = getSourceAndTargetTokens(_swapbackConversionPath);
+        (IERC20Upgradeable sourceToken, IERC20Upgradeable targetToken) = getSourceAndTargetTokens(_swapbackConversionPath);
 
         if (!_requireSwapback) {
             // if we don't require swapback, we check the price and only do the swapback only if we get a profit

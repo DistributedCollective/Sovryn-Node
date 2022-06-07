@@ -1,5 +1,5 @@
 pragma solidity ^0.8.0;
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 //import "./IERC20Token.sol";
 
 /*
@@ -22,7 +22,7 @@ interface ISovrynSwapNetwork {
      * @return amount of tokens received from the conversion
      */
     function convertByPath(
-        IERC20[] memory _path,
+        IERC20Upgradeable[] memory _path,
         uint256 _amount,
         uint256 _minReturn,
         address _beneficiary,
@@ -40,8 +40,8 @@ interface ISovrynSwapNetwork {
      * @return conversion path between the two tokens
      */
     function conversionPath(
-        IERC20 _sourceToken,
-        IERC20 _targetToken
+        IERC20Upgradeable _sourceToken,
+        IERC20Upgradeable _targetToken
     ) external view returns (address[] memory);
 
     /**
@@ -54,7 +54,7 @@ interface ISovrynSwapNetwork {
      * @return expected target amount
      */
     function rateByPath(
-        IERC20[] memory _path,
+        IERC20Upgradeable[] memory _path,
         uint256 _amount
     ) external view returns (uint256);
 }
