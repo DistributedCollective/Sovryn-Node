@@ -86,11 +86,13 @@ class AppCtrl {
             p.liquidationWallets = res.liquidator;
             p.arbitrageWallet = res.arbitrage;
             p.rolloverWallet = res.rollover;
-            p.tokens = res.arbitrage.tokenBalances.map(balance => balance.token);
-            p.accounts = [...res.liquidator, res.arbitrage, res.rollover];
+            p.tokens = res.liquidator[0].tokenBalances.map(balance => balance.token);
+            p.accounts = [...res.liquidator, res.arbitrage, res.rollover].filter(a => !!a);
             if (res.watcher) {
                 p.accounts.push(res.watcher);
             }
+            p.totalUsdBalance = 0;
+            p.accounts.forEach(acc => p.totalUsdBalance += Number(acc.usdBalance))
 
             p.$scope.$applyAsync();
         });

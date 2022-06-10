@@ -8,6 +8,8 @@ const path = require('path');
 import Arbitrage from '../models/arbitrage';
 import Rollover from '../models/rollover';
 import Liquidator from '../models/liquidator';
+import A from '../controller/arbitrage';
+import config from '../config/config';
 
 
 class DbCtrl {
@@ -74,7 +76,7 @@ class DbCtrl {
         }
     }
 
-    async addRollover({loanId, txHash, rolloverAdr, rolledoverAdr, amount, status, pos}) {
+    async addRollover({loanId, txHash, rolloverAdr, rolledoverAdr, amount, status, pos, fee}) {
         try {
             return await this.rollRepo.insert({
                 loanId,
@@ -83,7 +85,8 @@ class DbCtrl {
                 rolledoverAdr,
                 amount,
                 status,
-                pos
+                pos,
+                fee
             });
         } catch (e) {
             console.error(e);
@@ -104,16 +107,27 @@ class DbCtrl {
                 `SELECT * FROM ${repo} WHERE dateAdded BETWEEN DATETIME('now', '-1 day') AND DATETIME('now')` :
                 `SELECT * FROM ${repo}`;
             const allRows = await table.all(sqlQuery, (err, rows) => { return rows });
+            const usdPrices = await A.getUsdPrices();
             allRows.forEach((row) => {
                 if (repo === 'liquidator') {
-                    // TODO: should convert to a single currency based on symbols
                     if (row.profit) {
-                        const [profitValue, symbol] = row.profit.split(' ');
-                        profit += Number(profitValue);
+                        let [profitValue, symbol] = row.profit.split(' ');
+                        symbol = symbol.toLowerCase();
+                        const symbolPrice = usdPrices[symbol] ? usdPrices[symbol] : 1;
+                        const fee = config.liquidationTxFee * usdPrices['rbtc'] || 0;
+                        profit += (Number(profitValue) * symbolPrice - fee);
                     }
                 } else if (repo === 'rollover') {
-                    // TODO: is amount even the same as profit?
-                    profit += Number(row.amount);
+                    if (row.amount) {
+                        let [amount, symbol] = String(row.amount).split(' ');
+                        symbol = symbol || 'rbtc';
+                        const symbolPrice = usdPrices[symbol] ? usdPrices[symbol] : 1;
+                        // const fee = Number(row.fee) * usdPrices['rbtc'] || 0;
+                        let [fee, symbolFee] = row.fee.split(' ');
+                        symbolFee = (symbolFee || 'rbtc').toLowerCase();
+
+                        profit += (Number(amount) * symbolPrice - Number(fee) * usdPrices[symbolFee]);
+                    }
                 } else {
                     profit += Number(row.profit);
                 }

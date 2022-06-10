@@ -988,6 +988,31 @@ export default
        "type":"event"
     },
     {
+       "anonymous":false,
+       "inputs":[
+          {
+             "indexed":true,
+             "internalType":"address",
+             "name":"asset",
+             "type":"address"
+          },
+          {
+             "indexed":true,
+             "internalType":"address",
+             "name":"to",
+             "type":"address"
+          },
+          {
+             "indexed":false,
+             "internalType":"uint256",
+             "name":"amount",
+             "type":"uint256"
+          }
+       ],
+        "name":"VaultWithdraw",
+       "type":"event"
+    },
+    {
        "constant":true,
        "inputs":[
           

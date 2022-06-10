@@ -71,9 +71,9 @@ class Contract {
         }
 
         //Add wallets to web3, so they are ready for sending transactions
-        if(addAccounts) {
-            for(let w in wallets) for (let a of wallets[w]) {
-                let pKey = a.pKey?a.pKey:this.web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
+        if (addAccounts) {
+            for (let w in wallets) for (let a of wallets[w]) {
+                let pKey = a.pKey ? a.pKey : this.web3.eth.accounts.decrypt(a.ks, process.argv[3]).privateKey;
                 this.web3.eth.accounts.wallet.add(pKey);
             }
         }
@@ -111,7 +111,7 @@ class Contract {
         return new Promise(async resolve => {
             const gasPrice = await this.getGasPrice();
             tokenCtr.methods.approve(receiver, amount)
-                .send({ from: from, gas:200000, gasPrice: gasPrice })
+                .send({ from: from, gas: 200000, gasPrice: gasPrice })
                 .then((tx) => {
                     console.log("Approved Transaction: ");
                     //console.log(tx);
@@ -128,13 +128,13 @@ class Contract {
      */
     async completeWalletCheck(adr) {
         const balRbtc = await this.getWalletBalance(adr);
-        if(balRbtc<=0) return false;
+        if (balRbtc <= 0) return false;
         //const balRbtcToken = await this.getWalletTokenBalance(adr, conf.testTokenRBTC);
         //if(balRbtcToken<=0) return false;
         const balDocToken = await this.getWalletTokenBalance(adr, conf.docToken);
-        if(balDocToken<=0) return false;
+        if (balDocToken <= 0) return false;
         const allowanceDoc = await this.getWalletTokenAllowance(adr, conf.sovrynProtocolAdr, conf.docToken);
-        if(allowanceDoc<=0) return false;
+        if (allowanceDoc <= 0) return false;
         //const alllowanceRbtc = await this.getWalletTokenAllowance(adr, conf.sovrynProtocolAdr, conf.testTokenRBTC);
         //if(alllowanceRbtc<=0) return false;
         return true;
@@ -159,7 +159,7 @@ class Contract {
             try {
                 tokenCtr.methods.balanceOf(adr).call((error, result) => {
                     if (error) {
-                        console.error("error loading wallet token balance "+adr);
+                        console.error("error loading wallet token balance " + adr);
                         console.error(error);
                         return resolve(false);
                     }
@@ -167,7 +167,7 @@ class Contract {
                 });
             }
             catch (e) {
-                console.error("error on retrieving wallet status for  "+adr);
+                console.error("error on retrieving wallet status for  " + adr);
                 console.error(e);
                 resolve(false)
             }
@@ -184,7 +184,7 @@ class Contract {
             try {
                 tokenCtr.methods.allowance(adr1, adr2).call((error, result) => {
                     if (error) {
-                        console.error("error loading allowance "+adr);
+                        console.error("error loading allowance " + adr);
                         console.error(error);
                         return resolve(false);
                     }
@@ -194,7 +194,7 @@ class Contract {
                 });
             }
             catch (e) {
-                console.error("error on retrieving allowance for  "+adr);
+                console.error("error on retrieving allowance for  " + adr);
                 console.error(e);
                 resolve(false)
             }
@@ -250,7 +250,7 @@ class Contract {
      * @returns {*} Token contract, or false if contract not found
      */
     getTokenInstance(tokenAddress) {
-        if(!tokenAddress) {
+        if (!tokenAddress) {
             return false;
         }
         return this.tokenContractsByAddress[tokenAddress.toLowerCase()] || false;
@@ -262,7 +262,7 @@ class Contract {
      * @returns {string} Symbol of token, or "(unknown)" if symbol is not found.
      */
     getTokenSymbol(tokenAddress) {
-        if(!tokenAddress) {
+        if (!tokenAddress) {
             return '(no address given)';
         }
         // return tokenAddress as default since this is mostly used for user-representable output
@@ -275,6 +275,16 @@ class Contract {
      */
     getAllTokenAddresses() {
         return Object.keys(this.tokenContractsByAddress);
+    }
+
+    getTokenAddress(symbol) {
+        if (symbol == 'wrbtc' || symbol == 'rbtc') return conf.testTokenRBTC;
+
+        for (const adr of Object.keys(this.tokenSymbolsByAddress)) {
+            if (this.tokenSymbolsByAddress[adr] == symbol.toLowerCase()) {
+                return adr;
+            }
+        }
     }
 
     async getGasPrice() {
@@ -292,6 +302,13 @@ class Contract {
         const converterRegistryNameBytes = this.web3.utils.asciiToHex('SovrynSwapConverterRegistry');
         const converterRegistryAddress = await contractRegistry.methods.addressOf(converterRegistryNameBytes).call();
         return new this.web3.eth.Contract(abiConverterRegistry, converterRegistryAddress);
+    }
+
+    isStablecoins(token) {
+        token = token.toLowerCase();
+        return token === conf.docToken.toLowerCase() ||
+            token === conf.USDTToken.toLowerCase() ||
+            token === conf.XUSDToken.toLowerCase();
     }
 }
 

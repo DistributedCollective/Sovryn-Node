@@ -3,25 +3,34 @@
  * Rsk currently only supports 4 simultaneos transactions per wallet. In order to avoid to use 4x more wallets a transaction queue is needed
  */
 
+import _ from 'lodash';
+import config from '../config/config';
 import A from '../secrets/accounts';
 import C from './contract';
+import U from '../util/helper';
+import Lock from '../util/lock';
 
 class Wallet {
     constructor() {
         this.txFee = 1e14;
 
-        let liquidationQueue = {};
+        let liquidationTxs = {};
         for (let liqWallet of A.liquidator)
-            liquidationQueue[liqWallet.adr] = []
+            liquidationTxs[liqWallet.adr] = 0; // key: loanId, value: { amount, token, nonce }
 
-        let rolloverQueue = {};
-        for (let rWallet of A.rollover)
-            rolloverQueue[rWallet.adr] = []
+        let rolloverTxs = {};
+        for (let liqWallet of A.rollover)
+            rolloverTxs[liqWallet.adr] = 0; // key: loanId, value: { amount, token, nonce }
 
-        this.queue = {
-            'liquidator': liquidationQueue,
-            'rollover': rolloverQueue
+        this.pendingTxs = {
+            'liquidator': liquidationTxs,
+            'rollover': rolloverTxs
         };
+        this.pendingBalances = {
+            'liquidator': {},
+            'rollover': {}
+        };
+        this.lastNonces = {};
     }
 
     /**
@@ -31,71 +40,155 @@ class Wallet {
      * Careful: Consider decimals for tokens. Rbtc and Doc have 18
      */
     async getWallet(type, reqTokenBalance, token, parseBalance = parseFloat) {
-        // TODO: just rework everything to use bignumbers instead of floats and remove parseBalance
+        const release = await Lock.acquire('getWallet:' + type, '');
 
-        console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + (token == "rBtc" ? "rBtc" : C.getTokenSymbol(token)));
-        for (let wallet of A[type]) {
-            if (this.queue[type][wallet.adr].length >= 4) continue;
+        try {
+            console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + (token == "rBtc" ? "rBtc" : C.getTokenSymbol(token)));
 
-            let wBalance;
-            if (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") wBalance = await C.web3.eth.getBalance(wallet.adr);
-            else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
+            const sortedWallets = _.sortBy(A[type], w => {
+                return this.pendingTxs[type][w.adr];
+            });
 
-            if (parseFloat(wBalance) >= parseFloat(reqTokenBalance)) return [wallet, parseBalance(wBalance)];
+            for (let wallet of sortedWallets) {
+                const pendingTxs = this.pendingTxs[type][wallet.adr];
+                if (pendingTxs >= 4) {
+                    console.log('wallet', wallet.adr, 'tx pending', pendingTxs);
+                    continue;
+                }
+
+                let wBalance;
+                if (token === "rBtc") {
+                    token = config.testTokenRBTC;
+                    wBalance = await C.web3.eth.getBalance(wallet.adr);
+                } else {
+                    wBalance = await C.getWalletTokenBalance(wallet.adr, token);
+                }
+
+                let pendingAmount = this.getPendingAmount(type, wallet.adr, token);
+                console.log(`Wallet bal ${String(wBalance)}, pending bal ${String(pendingAmount)} on ${wallet.adr}`,);
+                wBalance = parseBalance(wBalance).sub(pendingAmount);
+                
+                if (wBalance.gt(parseBalance(reqTokenBalance))) {
+                    this.pendingTxs[type][wallet.adr]++;
+                    release();
+                    return [wallet, wBalance];
+                }
+            }
+
+            //No wallet with enough funds found, return first one with balance > 0
+            //return the one with the highest balance
+            let res = [null, null];
+            for (let wallet of sortedWallets) {
+                const pendingTxs = this.pendingTxs[type][wallet.adr];
+                if (pendingTxs >= 4) continue;
+
+                let wBalance;
+                if (token === "rBtc") {
+                    token = config.testTokenRBTC;
+                    wBalance = await C.web3.eth.getBalance(wallet.adr);
+                } else {
+                    wBalance = await C.getWalletTokenBalance(wallet.adr, token);
+                }
+
+                let pendingAmount = this.getPendingAmount(type, wallet.adr, token);
+                console.log(`1. Wallet bal ${String(wBalance)}, pending bal ${String(pendingAmount)} on ${wallet.adr}`,);
+                wBalance = parseBalance(wBalance).sub(pendingAmount);
+
+                if (wBalance.gt(parseBalance('0')) && (res[1] == null || res[1] && wBalance.gt(res[1]))) {
+                    res = [wallet, wBalance];
+                }
+            }
+
+            if (res[0]) {
+                this.pendingTxs[type][res[0].adr]++;
+            }
+            release();
+
+            return res;
+        } catch (err) {
+            release();
+            console.error(err);
+            return [];
         }
-
-        //No wallet with enough funds found, return first one with balance > 0
-        //todo: return the one with the highest balance
-        for (let wallet of A[type]) {
-            if (this.queue[type][wallet.adr].length >= 4) continue;
-
-            let wBalance;
-            if (token === "rBtc" || token === "0x69FE5cEC81D5eF92600c1A0dB1F11986AB3758Ab") wBalance = await C.web3.eth.getBalance(wallet.adr);
-            else wBalance = await C.getWalletTokenBalance(wallet.adr, token);
-
-            if (parseFloat(wBalance) >= 0) return [wallet, parseBalance(wBalance)];
-        }
-
-        //completely drained or busy or both
-        return [null, null];
-    }
-
-
-    /**
-     * adds a transaction to the queue
-     * @param which either 'liq' or 'rol'
-     * @param address the wallet address
-     * @param loanId the loan Id
-     */
-    addToQueue(which, address, loanId) {
-        this.queue[which][address].push(loanId);
     }
 
     checkIfPositionExists(loanId) {
-        for(let p in this.queue["liquidator"]) {
-            if(this.queue["liquidator"][p].indexOf(loanId)!=-1) return true;
+        for (const adr of _.keys(this.pendingBalances['liquidator'])) {
+            if (this.pendingBalances['liquidator'][adr][loanId] != null && 
+                this.pendingBalances['liquidator'][adr][loanId].token != null
+            ) return true;
         }
         return false;
     }
 
     /**
-     * removes a transaction from the queue
-     * @param which either 'liquidator' or 'rollover'
+     * adds a transaction to pending transaction list
+     * @param which either 'liq' or 'rol'
      * @param address the wallet address
      * @param loanId the loan Id
      */
-    removeFromQueue(which, address, loanId) {
-        console.log("Remove wallet "+address+" loanId "+loanId+" from queue");
-        this.queue[which][address] = this.removeLoan(this.queue[which][address], loanId);
-        console.log(this.queue[which][address]);
+    addPendingTx(which, address, loanId, amount, token) {
+        this.pendingBalances[which][address] = this.pendingBalances[which][address] || {};
+        this.pendingBalances[which][address][loanId] = { amount, token };
     }
 
-    removeLoan(queue, loanId) {
-        var index = queue.indexOf(loanId);
-        if (index > -1) {
-            queue.splice(index, 1);
+    removePendingTx(which, address, loanId) {
+        this.pendingTxs[which][address] --;
+        this.pendingTxs[which][address] = Math.max(0, this.pendingTxs[which][address]);
+        if (this.pendingBalances[which][address]) {
+            delete this.pendingBalances[which][address][loanId];
         }
-        return queue;
+    }
+
+    getPendingAmount(which, address, token) {
+        const toBN = C.web3.utils.toBN;
+        const pendingBalances = this.pendingBalances[which][address];
+        // console.log(this.pendingTxs[which]);
+        let amount = toBN('0');
+        _.forEach(pendingBalances, tx => {
+            if (tx.token.toLowerCase() == token.toLowerCase()) {
+                amount = amount.add(toBN(tx.amount));
+            }
+        });
+        return amount;
+    }
+
+    countPendingTxs(which, address) {
+        return this.pendingTxs[which][address];
+    }
+
+    async getNonce(address) {
+        const get = async () => {
+            const lastNonce = this.lastNonces[address];
+            for (let cnt = 0; cnt < 5; cnt++) {
+                try {
+                    const nonce = await C.web3.eth.getTransactionCount(address, 'pending');
+                    if (lastNonce != null && nonce !== lastNonce + 1) {
+                        console.log("nonce %d not expected %d", nonce, lastNonce + 1);
+                        if (cnt === 4) {
+                            console.log("giving up and returning it anyway")
+                            return nonce;
+                        }
+    
+                        await U.wasteTime(0.5 ** 2 ** cnt);
+                    }
+                    else {
+                        return nonce;
+                    }
+                } catch (e) {
+                    console.error("Error retrieving transaction count");
+                    console.error(e);
+                }
+            }
+    
+            const finalNonce = lastNonce + 1 || 0;
+            console.error("Returning guessed nonce %d", finalNonce);
+            return finalNonce;
+        };
+
+        const nonce = await get();
+        this.lastNonces[address] = nonce;
+        return nonce;
     }
 }
 

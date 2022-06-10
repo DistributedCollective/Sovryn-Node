@@ -7,22 +7,18 @@
 import C from '../contract';
 import U from '../../util/helper';
 import Wallet from '../wallet';
-import A from '../../secrets/accounts';
 import conf from '../../config/config';
 import common from '../common'
 import Extra from 'telegraf/extra';
 import {Liquidator} from "../liquidator";
+import Lock from '../../util/lock';
 
 
 class LiquidatorV2 extends Liquidator {
     // return [wallet so send liquidation from, balance available for liquidation]
     async getWallet(pos, token) {
-        // Wallet rotation is disabled for now because of problems
-        let wallet = A.liquidator[0];
-        if (!wallet) {
-            const requiredExecutorBalance = 0; // executor doesn't need any balance
-            [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, 'rBtc', C.web3.utils.toBN);
-        }
+        const requiredExecutorBalance = 0.001; // executor doesn't need any balance
+        const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, 'rBtc', C.web3.utils.toBN);
 
         // return the watcher contract balance for checking
         const tokenContract = C.getTokenInstance(pos.loanToken);
@@ -59,18 +55,15 @@ class LiquidatorV2 extends Liquidator {
     }
 
     // also mostly a fork, but handle liquidation using Watcher V2 contract
-    async liquidate(loanId, wallet, amount, token, nonce, loan) {
+    async liquidate(loanId, wallet, amount, token, loan) {
         console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
-        Wallet.addToQueue("liquidator", wallet, loanId);
         const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());
-        console.log("Nonce: " + nonce);
 
         if (this.liquidations && Object.keys(this.liquidations).length > 0) {
             //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
             delete this.liquidations[loanId];
         }
 
-        let requireSwapbackIfEnabled = false;
         let enableSwapback = false;
         let swapbackConversionPath = [];
         if (conf.enableSwapback) {
@@ -90,9 +83,6 @@ class LiquidatorV2 extends Liquidator {
                     swapbackConversionPath = await C.contractSwaps.methods.conversionPath(loan.collateralToken, loan.loanToken).call()
                     console.log("swapback conversion path:", swapbackConversionPath);
                 } catch(e) {
-                    if (requireSwapbackIfEnabled) {
-                        throw e;
-                    }
                     console.error("error getting swapback conversion path:", e, "swapback is disabled");
                     enableSwapback = false;
                 }
@@ -103,9 +93,13 @@ class LiquidatorV2 extends Liquidator {
         const gasPrice = await C.getGasPrice();
 
         const pos = isRbtcToken ? 'long' : 'short';
+        const releaseLock = await Lock.acquire('liquidate:' + wallet);
 
         let tx;
         try {
+            const nonce = await Wallet.getNonce(wallet);
+            console.log("Nonce: " + nonce);
+
             const txOpts = {
                 from: wallet,
                 gas: conf.gasLimit,
@@ -118,12 +112,13 @@ class LiquidatorV2 extends Liquidator {
                     amount.toString(),
                     swapbackConversionPath,
                     0, // min profit from swapback
-                    requireSwapbackIfEnabled,  // if true, revert if swapback doesn't happen
+                    false,  // if true, revert if swapback doesn't happen
                 ).send(txOpts);
             } else {
                 tx = await C.contractWatcher.methods.liquidate(loanId, amount.toString()).send(txOpts);
             }
         } catch (err) {
+            releaseLock();
             console.error("Error on liquidating loan " + loanId);
             console.error(err);
 
@@ -140,6 +135,9 @@ class LiquidatorV2 extends Liquidator {
             );
             await p.handleLiqError(wallet, loanId, amount, pos);
             return;
+        } finally {
+            Wallet.removePendingTx('liquidator', wallet, loanId);
+            releaseLock();
         }
 
         console.log("loan " + loanId + " liquidated!");

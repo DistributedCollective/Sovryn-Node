@@ -566,14 +566,75 @@ export class Arbitrage {
         rBtcUsdtPf = C.web3.utils.fromWei(rBtcUsdtPf.toString(), "Ether");
         rBtcUsdtPf = parseFloat(rBtcUsdtPf).toFixed(5);
 
+        //xusd
+        let rBtcXusdAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.XUSDToken, amount);
+        rBtcXusdAmm = C.web3.utils.fromWei(rBtcXusdAmm.toString(), "Ether");
+        rBtcXusdAmm = parseFloat(rBtcXusdAmm).toFixed(5);
+        let rBtcXusdPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.XUSDToken, amount);
+        rBtcXusdPf = C.web3.utils.fromWei(rBtcXusdPf.toString(), "Ether");
+        rBtcXusdPf = parseFloat(rBtcXusdPf).toFixed(5);
+
+        //sov
+        let rBtcSovAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.sovToken, amount);
+        rBtcSovAmm = C.web3.utils.fromWei(rBtcSovAmm.toString(), "Ether");
+        rBtcSovAmm = parseFloat(rBtcSovAmm).toFixed(5);
+        let rBtcSovPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.sovToken, amount);
+        rBtcSovPf = C.web3.utils.fromWei(rBtcSovPf.toString(), "Ether");
+        rBtcSovPf = parseFloat(rBtcSovPf).toFixed(5);
+
         //bpro
-        /*
         let rBtcBproAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproAmm = C.web3.utils.fromWei(rBtcBproAmm.toString(), "Ether");
         let rBtcBproPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.BProToken, amount);
-        rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");*/
+        rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");
 
-        return {"doc": [rBtcDocAmm, rBtcDocPf], "usdt": [rBtcUsdtAmm, rBtcUsdtPf], /*"bpro": [rBtcBproAmm, rBtcBproPf]*/};
+        return {
+            "doc": [rBtcDocAmm, rBtcDocPf], 
+            "usdt": [rBtcUsdtAmm, rBtcUsdtPf], 
+            "xusd": [rBtcXusdAmm, rBtcXusdPf],
+            "sov": [rBtcSovAmm, rBtcSovPf],
+            "bpro": [rBtcBproAmm, rBtcBproPf]
+        };
+    }
+
+    // get price on sUSD (DOC)
+    async getUsdPrices() {
+        const amount = C.web3.utils.toWei("1", "Ether");
+
+        //rbtc
+        let rbtcPrice = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.XUSDToken, amount);
+        rbtcPrice = C.web3.utils.fromWei(rbtcPrice.toString(), "Ether");
+        rbtcPrice = parseFloat(rbtcPrice).toFixed(2);
+
+        //sov
+        let sovPrice = await this.getPriceFromAmm(C.contractSwaps, conf.sovToken, conf.XUSDToken, amount);
+        sovPrice = C.web3.utils.fromWei(sovPrice.toString(), "Ether");
+        sovPrice = parseFloat(sovPrice).toFixed(2);
+
+        //bpro
+        let bproPrice = await this.getPriceFromAmm(C.contractSwaps, conf.BProToken, conf.XUSDToken, amount);
+        bproPrice = C.web3.utils.fromWei(bproPrice.toString(), "Ether");
+        bproPrice = parseFloat(bproPrice).toFixed(2);
+
+        //doc
+        let docPrice = await this.getPriceFromAmm(C.contractSwaps, conf.docToken, conf.XUSDToken, amount);
+        docPrice = C.web3.utils.fromWei(docPrice.toString(), "Ether");
+        docPrice = parseFloat(docPrice).toFixed(2);
+
+        //eths
+        let ethsPrice = await this.getPriceFromAmm(C.contractSwaps, conf.ethsToken, conf.XUSDToken, amount);
+        ethsPrice = C.web3.utils.fromWei(ethsPrice.toString(), "Ether");
+        ethsPrice = parseFloat(ethsPrice).toFixed(2);
+
+        return {
+            "rbtc": Number(rbtcPrice),
+            "sov": Number(sovPrice),
+            "bpro": Number(bproPrice),
+            "eths": Number(ethsPrice),
+            "doc": Number(docPrice),
+            "xusd": 1,
+            "usdt": 1
+        };
     }
 
 
@@ -650,6 +711,7 @@ export class Arbitrage {
         else if(sourceCurrency === "bpro") sourceToken = conf.BProToken;
         else if(sourceCurrency === "xusd") sourceToken = conf.XUSDToken;
         else if(sourceCurrency === "eths") sourceToken = conf.ethsToken;
+        else if(sourceCurrency === "sov") sourceToken = conf.sovToken;
         else sourceToken = conf.testTokenRBTC;
 
         if(destCurrency === "doc") destToken = conf.docToken;
@@ -657,6 +719,7 @@ export class Arbitrage {
         else if(destCurrency === "bpro") destToken = conf.BProToken;
         else if(destCurrency === "xusd") destToken = conf.XUSDToken;
         else if(destCurrency === "eths") destToken = conf.ethsToken;
+        else if(destCurrency === "sov") destToken = conf.sovToken;
         else destToken = conf.testTokenRBTC;
 
         const contract1 = C.contractSwaps;
@@ -678,8 +741,14 @@ export class Arbitrage {
                     }
 
                     const gasPrice = await C.getGasPrice();
-                    contract2.methods["convertByPath"](result, amount, minReturn)
-                        .send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
+                    let tx;
+                    if (destCurrency == 'wrbtc' || sourceCurrency == 'wrbtc') {
+                        tx = contract1.methods["convertByPath"](result, amount, minReturn, beneficiary, affiliateAcc, affiliateFee);
+                    } else {
+                        tx = contract2.methods["convertByPath"](result, amount, minReturn);
+                    }
+
+                    tx.send({ from: beneficiary, gas: conf.gasLimit, gasPrice: gasPrice, value: val })
                         .then(async (tx) => {
                             const msg = `Arbitrage tx successful: traded ${C.web3.utils.fromWei(amount.toString(), 'Ether')} ${C.getTokenSymbol(sourceToken)} for ${C.getTokenSymbol(destToken)}
                                 \n${conf.blockExplorer}tx/${tx.transactionHash}`;

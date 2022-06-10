@@ -9,11 +9,19 @@ const io = require('socket.io')(http);
 import mainController from './controller/main';
 import conf from './config/config';
 
-const monitor = require('pm2-server-monitor');
-monitor({
-    name: conf.network,
-    port: conf.healthMonitorPort
-});
+const _oldConsole = console;
+
+global.console = {
+    ..._oldConsole,
+    log: (...args) => {
+        _oldConsole.log(`${new Date().toISOString()}:: `, ...args);
+    },
+    error: (...args) => {
+        _oldConsole.error(`${new Date().toISOString()}:: `, ...args);
+    },
+}
+
+
        
 app.use('/', express.static('public/dist'));
 http.listen(conf.serverPort, () => {

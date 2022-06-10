@@ -6,10 +6,10 @@
   "scripts": {
     "test-lx": "mocha -r esm ./tests/test_liquidations.js --timeout 2500000",
     "test-network": "node -r esm ./tests/network.js",
-    "start:test": "pm2 start start.js --node-arg=\"-r esm\" -- testnet",
-    "start:main": "pm2 start start.js --node-arg=\"-r esm\" -- mainnet",
+    "start:test": "pm2 start start.js --node-args=\"-r esm\" -- testnet",
+    "start:main": "pm2 start start.js --node-args=\"-r esm\" -- mainnet",
     "dev:test": "nodemon -r esm start.js testnet",
-    "dev:main": "nodemon -r esm start.js main",
+    "dev:main": "nodemon -r esm start.js mainnet",
     "dev": "npx webpack-dev-server --open --config ./public/webpack.config.ts",
     "build-client": "npx webpack --config ./public/webpack.config.ts",
     "approveWalletsMain": "node -r esm ./util/approval.js mainnet",
@@ -19,12 +19,12 @@
   "license": "ISC",
   "dependencies": {
     "abi-decoder": "^2.3.0",
+    "async-mutex": "^0.3.2",
     "axios": "^0.20.0",
     "copy-webpack-plugin": "6.2.1",
     "css-loader": "^5.2.0",
     "esm": "^3.2.25",
     "lodash": "^4.17.20",
-    "pm2-server-monitor": "^1.0.0",
     "socket.io": "^2.3.0",
     "sqlite3": "^5.0.0",
     "style-loader": "^2.0.0",
@@ -33,6 +33,8 @@
     "webpack-dev-server": "^3.11.2"
   },
   "devDependencies": {
+    "ts-node": "^10.4.0",
+    "typescript": "^4.7.2",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12"
   }

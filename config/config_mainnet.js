@@ -4,17 +4,17 @@ export default {
     serverPort: 3000,
     nodeProvider: 'https://mainnet.sovryn.app/rpc',
     publicNodeProvider: 'https://public-node.rsk.co',
-    blockExplorer: 'https://explorer.rsk.co/',
+    blockExplorer: 'https://explorer.rsk.co',
     network: "main",
     db: "sovryn_node_mainnet.db",
     nrOfProcessingPositions: 100,
-    scannerInterval: 60, //sec
-    rolloverScanInterval: 30, //sec
-    liquidatorScanInterval: 30, //sec
+    scannerInterval: 20, //sec
+    rolloverScanInterval: 10, //sec
+    liquidatorScanInterval: 20, //sec
     arbitrageScanInterval: 60,
     enableLiquidator: true,
     enableRollover: true,
-    enableArbitrage: true,
+    enableArbitrage: false,
     enableV2: {
         arbitrage: false,
         liquidator: false,
@@ -37,23 +37,28 @@ export default {
     priceFeed: "0x437ac62769f386b2d238409b7f0a7596d36506e4", //get oracle price
     wRbtcWrapper: "0xa3b6e18b9a4ecae44c7355458ae7db8874018c22",
     balanceThresholds: {
-        doc: 100, // in doc
-        usdt: 100, // in usdt
-        bpro: 0.01, // in bpro
-        wrbtc: 0.01 // in wrbtc
+        doc: 10000,
+        usdt: 10000,
+        bpro: 0.1,
+        xusd: 10000,
+        sov: 1000,
+        eths: 3,
+        wrbtc: 1,
+        rbtc: 0.01,
     },
-    thresholdArbitrage: 0.3, //in %
+    thresholdArbitrage: 0.1, //in %
     amountArbitrage: 0.01, //in rbtc
     enableDynamicArbitrageAmount: true,
     dynamicArbitrageMaxAmounts: {
-        rbtc: '0.1',
-        default: '1000',
-        xusd: '5000',
+        rbtc: '0.3',
+        default: '10000',
+        xusd: '10000',
     },
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -1001308978723,
-    healthMonitorPort: 10, //results in 3010
-    gasPriceBuffer: 10, //in %
+    gasPriceBuffer: 11, //in %
     gasLimit: 2500000,
-    maintenanceMarginBuffer: 0.95,  // <= 1.0 Require buffer when liquidating to avoid errors if price bounces back
+    maintenanceMarginBuffer: 0.98,  // <= 1.0 Require buffer when liquidating to avoid errors if price bounces back
+    minSeizableAmount: 2, //in usd
+    liquidationTxFee: 0.000042, //rbtc tx fee of liquidate + swapback
 }

@@ -2,12 +2,14 @@
  * Wallet tester
  * Set config file in /config.config.js manually because mocha.js overwrites process.arg
 */
-const assert = require('assert');
+import _ from 'lodash';
+import assert from 'assert';
 import conf from '../config/config';
 import C from '../controller/contract';
 import A from '../secrets/accounts';
 import Wallet from '../controller/wallet';
 import U from '../util/helper';
+import config from '../config/config';
 
 var liqQueue={};
 
@@ -68,27 +70,28 @@ describe('Wallet', async () => {
 
         it('should fill all open slots for the liquidator queue', async()=> {
             const reqBal = C.web3.utils.toWei("0.001", "Ether");
+            const token = config.testTokenRBTC;
             for(let i=0;i<A.liquidator.length;i++) {
-                const w = await Wallet.getWallet("liquidator", reqBal, "rBtc");
                 
                 for(let j=0;j<4;j++) {
                     const loanId = Math.random()*100000;
+                    const [w] = await Wallet.getWallet("liquidator", reqBal, token, C.web3.utils.toBN);
                     liqQueue[loanId]=w.adr;
                     console.log("Add loan "+loanId+" for address "+w.adr);
-                    Wallet.addToQueue("liquidator", w.adr, loanId);
+                    Wallet.addPendingTx("liquidator", w.adr, loanId, reqBal, token);
                 }
             }
-            for(let p in Wallet.queue["liquidator"]) assert(Wallet.queue["liquidator"][p].length==4);
+            for(let p in Wallet.pendingTxs["liquidator"]) assert(Wallet.pendingTxs["liquidator"][p] == 4);
         });
 
         it('should fail to return a wallet because all wallets are busy', async()=> {
-            const lastWallet = await Wallet.getWallet("liquidator", 0, "rBtc");
+            const [lastWallet] = await Wallet.getWallet("liquidator", 0, config.testTokenRBTC, C.web3.utils.toBN);
             assert(!lastWallet);
         });
 
         it('should recognize all loan-Ids are already in queue', async()=> {
             for(let l in liqQueue){
-                const inQueue = await Wallet.checkIfPositionExists(parseFloat(l));
+                const inQueue = Wallet.checkIfPositionExists(parseFloat(l));
                 assert(inQueue);
             }
         });
@@ -96,11 +99,11 @@ describe('Wallet', async () => {
         it('should remove all positions from the liquidator queue', async()=> {
             for(let l in liqQueue){
                 console.log("Remove loan "+l+" associated to address "+liqQueue[l]);
-                Wallet.removeFromQueue("liquidator", liqQueue[l], parseFloat(l));
+                Wallet.removePendingTx("liquidator", liqQueue[l], l);
+                delete liqQueue[l];
             }
-            assert(Object.keys(Wallet.queue["liquidator"]).length === 0);
+            assert(Object.keys(Wallet.pendingTxs["liquidator"]).length === 0);
         });
-
     });
 
     /*

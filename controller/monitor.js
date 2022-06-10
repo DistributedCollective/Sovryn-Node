@@ -9,6 +9,7 @@ import conf from '../config/config';
 import common from './common';
 import dbCtrl from './db';
 import accounts from '../secrets/accounts';
+import arbitrageCtrl from './arbitrage';
 
 class MonitorController {
 
@@ -172,17 +173,17 @@ class MonitorController {
     }
 
     async getAccountInfoForFrontend(account, type) {
+        if (!account) return null;
         const tokenAddresses = C.getAllTokenAddresses();
+        let _wrtcBal = await C.web3.eth.getBalance(account.adr);
+        _wrtcBal = Number(C.web3.utils.fromWei(_wrtcBal, "Ether"));
+       
         let accountWithInfo = { 
             address: account.adr,
             type, 
             rBtcBalance: {
-                balance: Number(C.web3.utils.fromWei(
-                    await C.web3.eth.getBalance(account.adr), "Ether")
-                ).toFixed(5),
-                overThreshold: Number(C.web3.utils.fromWei(
-                    await C.web3.eth.getBalance(account.adr), "Ether")
-                ) > conf.balanceThresholds['rbtc']
+                balance: _wrtcBal.toFixed(5),
+                overThreshold: _wrtcBal > conf.balanceThresholds['rbtc']
             },
             tokenBalances: await Promise.all(
                 tokenAddresses.map(async tokenAddress => ({
@@ -197,7 +198,20 @@ class MonitorController {
             ...tokenBalance,
             token: tokenBalance.token === 'rbtc' ? 'wrbtc' : tokenBalance.token,
             overThreshold: tokenBalance.balance > conf.balanceThresholds[tokenBalance.token]
-        }))
+        }));
+
+        let rbtcBal = Number(accountWithInfo.rBtcBalance.balance) || 0;
+        let usdBal = 0;
+        for (const tokenBal of accountWithInfo.tokenBalances) {
+            let bal = Number(tokenBal.balance) || 0;
+            if (tokenBal.token == 'wrbtc') bal += rbtcBal;
+            if (bal <= 0) continue;
+            const price = await this.getUsdPrice(tokenBal.token);
+            usdBal += (price * bal) || 0;
+        }
+
+        accountWithInfo.usdBalance = usdBal.toFixed(2);
+
         return accountWithInfo;
     }
 
@@ -222,7 +236,7 @@ class MonitorController {
         if (typeof cb === "function") cb(this.arbitrageDeals);
     }
 
-    getTokenDetails() {
+    async getTokenDetails() {
         if(!this.liquidations) {
             return null;
         }
@@ -246,19 +260,41 @@ class MonitorController {
             totalMaxSeizableByTokenAddress[loanTokenAddress] = totalMaxSeizable;
         }
 
+        const usdPrices = await arbitrageCtrl.getUsdPrices();
+
         const ret = [];
         for (let tokenAddress of C.getAllTokenAddresses()) {
             tokenAddress = tokenAddress.toLowerCase();
-            const totalMaxLiquidatable = totalMaxLiquidatableByTokenAddress[tokenAddress] || '0';
-            const totalMaxSeizable = totalMaxSeizableByTokenAddress[tokenAddress] || '0';
+            const tokenSymbol = C.getTokenSymbol(tokenAddress);
+            const price = usdPrices[tokenSymbol.toLowerCase()] || 1;
+            let totalMaxLiquidatable = totalMaxLiquidatableByTokenAddress[tokenAddress] || '0';
+            let totalMaxSeizable = totalMaxSeizableByTokenAddress[tokenAddress] || '0';
+
+            totalMaxLiquidatable = Number(price) * parseFloat(C.web3.utils.fromWei(totalMaxLiquidatable));
+            totalMaxSeizable = Number(price) * parseFloat(C.web3.utils.fromWei(totalMaxSeizable));
+
             ret.push({
                 tokenAddress: tokenAddress,
-                tokenSymbol: C.getTokenSymbol(tokenAddress),
-                totalMaxLiquidatable: parseFloat(C.web3.utils.fromWei(totalMaxLiquidatable)).toFixed(5),
-                totalMaxSeizable: parseFloat(C.web3.utils.fromWei(totalMaxSeizable)).toFixed(5),
+                tokenSymbol: tokenSymbol,
+                totalMaxLiquidatable: Number(totalMaxLiquidatable).toFixed(5),
+                totalMaxSeizable: Number(totalMaxSeizable).toFixed(5),
             });
         }
         return ret;
+    }
+
+    async getUsdPrice(symbol) {
+        if (symbol == 'doc') return 1;
+        symbol = symbol == 'wrbtc' ? 'rbtc' : symbol;
+        if (this.tokenPrices == null || this.tokenPrices.timestamp < Date.now() - 2000) {
+            this.tokenPrices = this.tokenPrices || {
+                prices: {},
+                timestamp: Date.now()
+            };
+            this.tokenPrices.prices = await arbitrageCtrl.getUsdPrices();
+            this.tokenPrices.timestamp = Date.now();
+        }
+        return this.tokenPrices.prices[symbol];
     }
 }
 

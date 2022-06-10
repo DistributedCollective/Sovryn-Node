@@ -15,10 +15,14 @@ import abiDecoder from 'abi-decoder';
 import abiComplete from "../config/abiComplete";
 import Extra from 'telegraf/extra';
 import dbCtrl from './db';
+import _ from 'lodash';
+import Lock from '../util/lock';
 
 export class Liquidator {
     constructor() {
         this.liquidationErrorList=[];
+        this.processingPos = {};
+        this.handlingRounds = [];
         abiDecoder.addABI(abiComplete);
     }
 
@@ -46,71 +50,122 @@ export class Liquidator {
      */
     async checkPositionsForLiquidations() {
         while (true) {
-            try {
-                await this.handleLiquidationRound();
-                console.log("Completed liquidation round");
-            } catch (e) {
-                console.error("Error processing a liquidation round:", e);
+            const roundId = Date.now();
+            
+            if (this.handlingRounds.length < 5) {
+                this.handlingRounds.push(roundId);
+                console.log("started liquidation round #" + roundId, ', queue:', this.handlingRounds.length);
+                console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
+    
+                this.handleLiquidationRound().then(() => {
+                    console.log("Completed liquidation round #" + roundId);
+                }).catch(e => {
+                    console.error(`Error processing a liquidation round #${roundId}:`, e);
+                }).finally(() => {
+                    this.handlingRounds.shift();
+                });
             }
+
             await U.wasteTime(conf.liquidatorScanInterval);
         }
     }
 
     async handleLiquidationRound() {
-        console.log("started liquidation round");
-        console.log(Object.keys(this.liquidations).length + " positions need to be liquidated");
-
-        const sortedLiquidations = Object.values(this.liquidations);
-        try {
-            sortedLiquidations.sort(
-                (a, b) => (
-                    parseInt(a.maxSeizable) > parseInt(b.maxSeizable) ? -1 : 1
-                )
-            );
-        } catch (e) {
-            console.error("Error sorting liquidations", e);
-        }
-
-        for (let unrefreshedLoan of sortedLiquidations) {
-            const p = unrefreshedLoan.loanId;
-
-            // It's possible that something has changed in between of finding the position by the Scanner and calling
-            // this method. Thus, we fetch the loan again here.
-            const pos = await C.contractSovryn.methods.getLoan(p).call();
-            if(!this.isLiquidatable(pos)) {
-                console.log(`Position no longer liquidatable: ${p}`);
+        let sortedPos = [];
+        for (let p in this.liquidations) {
+            //prevent process same position in concurrent rounds
+            if (this.processingPos[p]) {
+                if (Date.now() - this.processingPos[p] > 5 * 6000) delete this.processingPos[p];
                 continue;
             }
 
-            const token = pos.loanToken.toLowerCase() === conf.testTokenRBTC ? "rBtc" : pos.loanToken;
+            this.processingPos[p] = Date.now();
+
+            const pos = this.liquidations[p];
+            if (!this.isLiquidatable(pos) || Number(pos.maxLiquidatable) <= 0) {
+                console.log(`Position no longer liquidatable: ${p}`);
+                delete this.liquidations[p];
+                delete this.processingPos[p];
+                continue;
+            }
+
+            //failed too often -> have to check manually
+            if (this.liquidationErrorList[p] >= 5) {
+                delete this.processingPos[pos.loanId];
+                continue;
+            }
+
+            let maxSeizable = pos.maxSeizable;
+            if (!C.isStablecoins(pos.loanToken.toLowerCase())) {
+                maxSeizable = await Arbitrage.getPriceFromAmm(C.contractSwaps, pos.loanToken.toLowerCase(), conf.XUSDToken, maxSeizable);
+            }
+            
+            const usdAmount = Number(C.web3.utils.fromWei(String(maxSeizable), 'Ether'));
+
+            sortedPos.push({
+                pos,
+                usdAmount
+            });
+        }
+
+        console.log('profitable positions: ' + sortedPos.length);
+
+        sortedPos = _.sortBy(sortedPos, p => -p.usdAmount);
+
+        const sendingTxsPromises = [];
+        for (let i in sortedPos) {
+
+            // It's possible that something has changed in between of finding the position by the Scanner and calling
+            // this method. Thus, we fetch the loan again here.
+            let { pos } = sortedPos[i];
+
+            pos = await C.contractSovryn.methods.getLoan(pos.loanId).call();
+            const token = pos.loanToken;
+
+            this.processingPos[pos.loanId] = Date.now();
 
             //Position already in liquidation wallet-queue
-            if (Wallet.checkIfPositionExists(p)) continue;
-            //failed too often -> have to check manually
-            if(this.liquidationErrorList[p]>=5) continue;
+            if (Wallet.checkIfPositionExists(pos.loanId)) continue;
 
             const [wallet, wBalance] = await this.getWallet(pos, token);
             if (!wallet) {
-                this.handleNoWalletError(p).catch(e => {
+                this.handleNoWalletError(pos.loanId, pos).catch(e => {
                     console.error('Error handling noWalletError:', e);
                 });
+                delete this.processingPos[pos.loanId];
                 continue;
             }
 
             const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet);
             if (!liquidateAmount || liquidateAmount.isZero()) continue;
 
-            const nonce = await C.web3.eth.getTransactionCount(wallet.adr, 'pending');
+            const pendingTxs = Wallet.countPendingTxs('liquidator', wallet.adr);
+            console.log(`sending tx on wallet ${wallet.adr}, pending ${pendingTxs}`);
+            
+            Wallet.addPendingTx("liquidator", wallet.adr, pos.loanId, liquidateAmount, token);
 
-            await this.liquidate(p, wallet.adr, liquidateAmount, token, nonce, pos);
-            await U.wasteTime(30); //30 seconds break to avoid rejection from node
+            const tx = this.liquidate(pos.loanId, wallet.adr, liquidateAmount, token, pos);
+            sendingTxsPromises.push(tx);
+            await U.wasteTime(5);
+        }
+
+        if (!conf.enableV2.liquidator) {
+            let swapListResults = await Promise.all(sendingTxsPromises);
+    
+            await this.handleSwapForWallets(swapListResults);
+        }
+
+        for (const p of sortedPos) {
+            delete this.processingPos[p.pos.loanId];
         }
     }
 
     // return [wallet so send liquidation from, balance available for liquidation]
     async getWallet(pos, token) {
         // get wallet balance as bignumber
-        const [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token, C.web3.utils.toBN);
+        console.log('Finding wallet for position', pos.loanId);
+        let [wallet, wBalance] = await Wallet.getWallet("liquidator", pos.maxLiquidatable, token, C.web3.utils.toBN);
+
         return [wallet, wBalance]
     }
 
@@ -145,24 +200,132 @@ export class Liquidator {
         return liquidateAmount;
     }
 
+    // Handle swapback with grouped by wallet
+    async handleSwapForWallets(swapList) {
+        swapList = (swapList || []).filter(item => item && item.wallet && item.amount && item.conversionPath);
+        if (swapList.length == 0) return;
+       
+        const toBN = C.web3.utils.toBN;
+        const swapByWallet = {}; //{ <walletAdr>: { 'fromToken_toToken': swapData } }
+        swapList.forEach(({ wallet, loanId, amount, conversionPath }) => {
+            swapByWallet[wallet] = swapByWallet[wallet] || {};
+            const fromToken = conversionPath[0], toToken = conversionPath[conversionPath.length - 1];
+            const pair = `${fromToken}_${toToken}`;
+
+            if (swapByWallet[wallet][pair] == null) {
+                swapByWallet[wallet][pair] = {
+                    wallet,
+                    conversionPath,
+                    amount: toBN(String(amount)),
+                    loanIds: [loanId]
+                };
+            } else {
+                swapByWallet[wallet][pair].amount = swapByWallet[wallet][pair].amount.add(toBN(String(amount)));
+                swapByWallet[wallet][pair].loanIds.push(loanId);
+            }
+        });
+
+        const p = this;
+        await Promise.all(Object.keys(swapByWallet).map(async (wallet) => {
+            const list = Object.values(swapByWallet[wallet]);
+            for (const item of list) {
+                await p.swapBackAfterLiquidation(item.amount, item.conversionPath, wallet);
+            }
+        }));
+    }
+
     /**
     * swaps back to collateral currency after liquidation is completed
     * @param value should be sent in Wei format as String
     * @param sourceCurrency should be that hash of the contract
     * @param destCurrency is defaulting for now to 'rbtc'
     */
-    async swapBackAfterLiquidation(value, sourceCurrency, destCurrency = 'rbtc', wallet) {
-        sourceCurrency = sourceCurrency === 'rbtc' ? sourceCurrency : C.getTokenSymbol(sourceCurrency);
-        destCurrency = destCurrency === 'rbtc' ? destCurrency : C.getTokenSymbol(destCurrency);
-        console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency}`);
+    async swapBackAfterLiquidation(value, path, wallet) {
+        const sourceToken = path[0];
+        const destToken = path[path.length - 1];
+        if (sourceToken.toLowerCase() != conf.testTokenRBTC.toLowerCase()) {
+            const sourceTokenBal = await C.getWalletTokenBalance(wallet, sourceToken);
+            if (Number(sourceTokenBal) > 0) {
+                value = sourceTokenBal;
+            }
+        } else {
+            const walletBal = Number(await C.getWalletBalance(wallet));
+            if (walletBal > 0.002) {
+                value = C.web3.utils.toWei(String(Number(walletBal - 0.002).toFixed(18)), 'ether');
+            }
+        }
+
+        const sourceCurrency = C.getTokenSymbol(sourceToken);
+        const destCurrency = C.getTokenSymbol(destToken);
+        console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency} on ${wallet}`);
+
+        const releaseLock = await Lock.acquire('liquidate:' + wallet);
+
         try {
             const prices = await Arbitrage.getRBtcPrices();
             const tokenPriceInRBtc = prices[sourceCurrency];
-            if (!tokenPriceInRBtc) throw "No prices found for the " + sourceCurrency + " token";
-            const res = await Arbitrage.swap(value, sourceCurrency, destCurrency, wallet);
-            if (res) console.log("Swap successful!");
-        } catch(err) {
+            if (sourceCurrency !== 'rbtc' && !tokenPriceInRBtc) throw "No prices found for the " + sourceCurrency + " token";
+
+            const minReturn = 1;
+            const beneficiary = wallet;
+            const affiliateAcc = "0x0000000000000000000000000000000000000000";
+            const affiliateFee = 0;
+            const gasPrice = await C.getGasPrice();
+            const nonce = await Wallet.getNonce(wallet);
+            let txValue = 0;
+            let tx;
+            if (sourceCurrency == 'rbtc') {
+                tx = C.wRbtcWrapper.methods.convertByPath(path, value, minReturn);
+                txValue = value;
+            } else {
+                tx = C.contractSwaps.methods.convertByPath(path, value, minReturn, beneficiary, affiliateAcc, affiliateFee);
+            }
+
+            const res = await tx.send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, value: txValue, nonce });
+            releaseLock();
+
+            if (res) {
+                console.log(`Swap successful on ${wallet}, tx: ${res.transactionHash}`);
+            }
+        } catch (err) {
+            console.log(`Swap input ${value} ${sourceCurrency} to ${destCurrency} on ${wallet}`);
             console.log("Swap failed", err);
+        } finally {
+            releaseLock();
+        }
+    }
+
+    async checkLiquidateSwapback(loan, liquidateLog) {
+        let enableSwapback = false, conversionPath;
+        const collateralToken = loan.collateralToken.toLowerCase();
+        if (conf.enableSwapback && liquidateLog) {
+            // don't enable swapback if we're seizing stablecoins anyway
+            if (C.isStablecoins(collateralToken)) {
+                console.log("swapback would be enabled in config but disabled because collateralToken is a stablecoin");
+                enableSwapback = false;
+            } else {
+                console.log("swapback is enabled");
+                try {
+                    enableSwapback = true;
+                    conversionPath = await C.contractSwaps.methods.conversionPath(collateralToken, loan.loanToken).call()
+                    console.log("swapback conversion path:", conversionPath);
+                } catch (e) {
+                    console.error("error getting swapback conversion path:", e, "swapback is disabled");
+                    enableSwapback = false;
+                }
+            }
+            if (enableSwapback && conversionPath) {
+                let swapbackReturn = await C.contractSwaps.methods.rateByPath(conversionPath, liquidateLog.collateralWithdrawAmount).call();
+                console.log(swapbackReturn);
+                swapbackReturn = C.web3.utils.toBN(swapbackReturn);
+                console.log(Number(swapbackReturn), Number(liquidateLog.repayAmount))
+
+                if (Number(swapbackReturn) >= Number(liquidateLog.repayAmount)) {
+                    return conversionPath;
+                } else {
+                    throw `Swap failed: SwapbackReturn lt loan close amount (${Number(swapbackReturn)}, ${Number(liquidateLog.repayAmount)})`;
+                }
+            }
         }
     }
 
@@ -171,55 +334,80 @@ export class Liquidator {
     * If Loan token == WRBTC -> pass value
     * wallet = sender and receiver address
     */
-    async liquidate(loanId, wallet, amount, token, nonce, loan) {
-        console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
-        Wallet.addToQueue("liquidator", wallet, loanId);
-        const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());
-        const val = isRbtcToken ? amount : 0;
-        console.log("Sending val: " + val);
-        console.log("Nonce: " + nonce);
+    async liquidate(loanId, wallet, amount, token, loan) {
+        const releaseLock = await Lock.acquire('liquidate:' + wallet);
+        try {
+            console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
+            const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());
+            const val = 0;
+            const nonce = await Wallet.getNonce(wallet);
+            console.log("Sending val: " + val);
+            console.log("Nonce: " + nonce);
 
-        if (this.liquidations && Object.keys(this.liquidations).length > 0) {
-            //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
-            delete this.liquidations[loanId];
-        }
 
-        const p = this;
-        const gasPrice = await C.getGasPrice();
+            if (this.liquidations && Object.keys(this.liquidations).length > 0) {
+                //delete position from liquidation queue, regardless of success or failure because in the latter case it gets added again anyway
+                delete this.liquidations[loanId];
+            }
 
-        const pos = isRbtcToken ? 'long' : 'short';
+            const p = this;
+            const gasPrice = await C.getGasPrice();
 
-        return C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
-            .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: val })
-            .then(async (tx) => {
-                console.log("loan " + loanId + " liquidated!");
-                console.log(tx.transactionHash);
-                await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
-                await p.addLiqLog(tx.transactionHash, pos);
-                // remove swapback for now since it doesn't work too well
-                //if (!isRbtcToken) await p.swapBackAfterLiquidation(amount.toString(), token.toLowerCase(), collateralToken.toLowerCase(), wallet);
-            })
-            .catch(async (err) => {
-                console.error("Error on liquidating loan " + loanId);
-                console.error(err);
+            const pos = isRbtcToken ? 'long' : 'short';
 
-                let errorDetails;
-                if(err.receipt) {
-                    errorDetails = `${conf.blockExplorer}tx/${err.receipt.transactionHash}`;
-                } else {
-                    errorDetails = err.toString().slice(0, 200);
-                }
-                common.telegramBot.sendMessage(
-                    `<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${errorDetails}\n` +
-                    `LoanId: ${U.formatLoanId(loanId)}`,
-                    Extra.HTML()
-                );
-                await p.handleLiqError(wallet, loanId, amount, pos);
+            return new Promise((resolve) => {
+                C.contractSovryn.methods.liquidate(loanId, wallet, amount.toString())
+                    .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: 0 })
+                    .on('transactionHash', (transactionHash) => {
+                        console.log('liquidation transactionHash', transactionHash);
+                        releaseLock();
+                    })
+                    .on('receipt', async (tx) => {
+                        Wallet.removePendingTx('liquidator', wallet, loanId);
+                        console.log("loan " + loanId + " liquidated!", "tx hash", tx.transactionHash);
+                        await p.handleLiqSuccess(wallet, loanId, tx.transactionHash, amount, token);
+                        const parsedEvent = await p.addLiqLog(tx.transactionHash, pos);
+
+                        const swapbackConversionPath = await this.checkLiquidateSwapback(loan, parsedEvent);
+
+                        if (swapbackConversionPath) {
+                            resolve({
+                                wallet,
+                                loanId,
+                                amount: parsedEvent.collateralWithdrawAmount,
+                                conversionPath: swapbackConversionPath
+                            });
+                        }
+                    })
+                    .on('error', async (err, receipt) => {
+                        releaseLock();
+                        Wallet.removePendingTx('liquidator', wallet, loanId);
+                        console.error("Error on liquidating loan " + loanId);
+                        console.error(err);
+
+                        let errorDetails;
+                        if (receipt) {
+                            errorDetails = `${conf.blockExplorer}tx/${receipt.transactionHash}`;
+                        } else {
+                            errorDetails = err.toString().slice(0, 200);
+                        }
+                        common.telegramBot.sendMessage(
+                            `<b><u>L</u></b>\t\t\t\t ⚠️<b>ERROR</b>⚠️\n Error on liquidation tx: ${errorDetails}\n` +
+                            `LoanId: ${U.formatLoanId(loanId)}`,
+                            Extra.HTML()
+                        );
+                        resolve();
+                        await p.handleLiqError(wallet, loanId, amount, pos);
+                    });
             });
+        } catch (err) {
+            console.log(err);
+        } finally {
+            releaseLock();
+        }
     }
 
     async handleLiqSuccess(wallet, loanId, txHash, amount, token) {
-        Wallet.removeFromQueue("liquidator", wallet, loanId);
         this.liquidationErrorList[loanId]=null;
         const formattedAmount = C.web3.utils.fromWei(amount.toString(), 'Ether');
         let tokenSymbol;
@@ -239,7 +427,6 @@ export class Liquidator {
      * 2. Btc price moved in opposite direction and the amount cannot be liquidated anymore
      */
     async handleLiqError(wallet, loanId, amount, pos) {
-        Wallet.removeFromQueue("liquidator", wallet, loanId);
         if(!this.liquidationErrorList[loanId]) this.liquidationErrorList[loanId]=1;
         else this.liquidationErrorList[loanId]++;
 
@@ -259,9 +446,12 @@ export class Liquidator {
         }
     }
 
-    async handleNoWalletError(loanId) {
-        console.error("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available");
-        await common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed because no wallet with enough funds was found.`, Extra.HTML());
+    async handleNoWalletError(loanId, pos) {
+        const colToken = C.getTokenSymbol(pos.collateralToken).toUpperCase();
+        const loanToken = C.getTokenSymbol(pos.loanToken).toUpperCase();
+        const size = C.web3.utils.fromWei(pos.maxLiquidatable);
+        console.log("Liquidation of loan " + loanId + " failed because no wallet with enough funds was available, size " + size + " " + loanToken + ", col " + colToken);
+       // await common.telegramBot.sendMessage(`<b><u>L</u></b>\t\t\t\t ${conf.network} net-liquidation of loan ${U.formatLoanId(loanId)} failed because no wallet with enough funds was found.`, Extra.HTML());
     }
 
     async calculateLiqProfit(liqEvent) {
@@ -291,11 +481,12 @@ export class Liquidator {
                 const logs = abiDecoder.decodeLogs(receipt.logs) || [];
                 const liqEvent = logs.find(log => log && log.name === 'Liquidate');
                 console.log(liqEvent)
+                const parsedEvent = U.parseEventParams(liqEvent && liqEvent.events);
                 const {
                     user, liquidator, loanId, loanToken, collateralWithdrawAmount
-                } = U.parseEventParams(liqEvent && liqEvent.events);
+                } = parsedEvent;
 
-                console.log(U.parseEventParams(liqEvent && liqEvent.events))
+                console.log(parsedEvent)
 
                 if (user && liquidator && loanId) {
                     console.log("user found");
@@ -303,9 +494,9 @@ export class Liquidator {
                     console.log(liquidator);
                     console.log(loanId);
 
-                    const profit = await this.calculateLiqProfit(U.parseEventParams(liqEvent && liqEvent.events))
+                    const profit = await this.calculateLiqProfit(parsedEvent)
 
-                    const addedLog = await dbCtrl.addLiquidate({
+                    await dbCtrl.addLiquidate({
                         liquidatorAdr: liquidator,
                         liquidatedAdr: user,
                         amount: collateralWithdrawAmount,
@@ -316,7 +507,7 @@ export class Liquidator {
                         pos
                     });
 
-                    return addedLog;
+                    return parsedEvent;
                 }
             }
 

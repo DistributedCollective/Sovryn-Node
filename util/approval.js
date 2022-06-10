@@ -29,6 +29,7 @@ async function approveLiquidatorWallets() {
         const walletAddress = wallet.adr;
         for (let tokenContractAddress of tokenAddresses) {
             await approveToken(tokenContractAddress, walletAddress, conf.sovrynProtocolAdr);
+            await approveToken(tokenContractAddress, walletAddress, conf.swapsImpl);
         }
     }
 }

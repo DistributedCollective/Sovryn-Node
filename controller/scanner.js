@@ -32,16 +32,14 @@ class PositionScanner {
         console.log("Start processing active positions in "+conf.scannerInterval+" s interval");
 
         let from = 0;
-        let to = conf.nrOfProcessingPositions;
 
         while (true) {
             //active positions need to be read in batches.
-            const pos = await this.loadActivePositions(from, to);
+            const pos = await this.loadActivePositions(from, conf.nrOfProcessingPositions);
             if (pos && pos.length>0) {
                 this.addPosition(pos);
                 //console.log(pos.length + " active positions found");
-                from = to;
-                to = from + conf.nrOfProcessingPositions;
+                from += conf.nrOfProcessingPositions;
                 //wait a second to reduce the load from the node
                 await U.wasteTime(1);
             }
@@ -50,7 +48,6 @@ class PositionScanner {
                 console.log(Object.keys(this.positions).length+" active positions found");
                 //start from 0
                 from = 0;
-                to = conf.nrOfProcessingPositions;
                 //delete the position list and copy updated positions from positionsTmp. Causes an inconsitency for about 0.1-1second
                 for (let k in this.positions) if (this.positions.hasOwnProperty(k)) delete this.positions[k];
                 for (let k in this.positionsTmp) {
@@ -65,8 +62,7 @@ class PositionScanner {
             else {
                 console.error("Error retrieving pos");
                 //skip it this run, pick it up the next
-                from = to;
-                to = from + conf.nrOfProcessingPositions;
+                from += conf.nrOfProcessingPositions;
                 //wait a second to reduce the load from the node
                 await U.wasteTime(1);
             }
@@ -77,15 +73,11 @@ class PositionScanner {
      * Loading active positions from the contract
      * Returns an array or false
      */
-    loadActivePositions(from, to) {
+    loadActivePositions(from, count) {
         //console.log("loading active positions from id " + from + " to " + to);
-        const count = to - from;
-        if (count <= 0) {
-            return [];
-        }
         return new Promise(resolve => {
             try {
-                C.contractSovryn.methods.getActiveLoans(from, to, false).call((error, res) => {
+                C.contractSovryn.methods.getActiveLoans(from, count, false).call((error, res) => {
                     if (error) {
                         console.error("Error receiving user loans from "+from+" to: "+to);
                         console.error(error);
@@ -113,18 +105,8 @@ class PositionScanner {
             this.positionsTmp[l.loanId] = l;
 
             if(l.currentMargin<l.maintenanceMargin*1.02) {
-                try {
-                    console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
-                } catch (e) {
-                    // Bignumber error, probably. Quick and dirty fix.
-                    console.log("Margin call for  "+l.loanId+". Current margin: "+l.currentMargin.toString()+" wei");
-                }
-                try {
-                    console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
-                } catch(e) {
-                    // Bignumber error, probably. Quick and dirty fix.
-                    console.log("Liquidation will happen at the buffered maintenance margin");
-                }
+                console.log("Margin call for  "+l.loanId+". Current margin: "+C.web3.utils.fromWei(l.currentMargin.toString(), "Ether"));
+                console.log("Liquidation will happen at: "+C.web3.utils.fromWei((Liquidator.getBufferedMaintenanceMargin(l)).toString(), "Ether"));
             }
 
             //If liquidating at the very edge we often get errors if the price bounces back

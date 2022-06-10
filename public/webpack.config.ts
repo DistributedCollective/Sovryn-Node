@@ -3,7 +3,6 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: [
-    './public/src/initWeb3.js',
     './public/src/index.js',
     './public/src/styles.css'
   ],

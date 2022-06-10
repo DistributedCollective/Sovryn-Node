@@ -54,8 +54,9 @@ export default {
     },
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -492690059,
-    healthMonitorPort: 3, //results in 3003
     gasPriceBuffer: 10, //in %
     gasLimit: 2500000,
     maintenanceMarginBuffer: 0.95,  // <= 1.0 Require buffer when liquidating to avoid errors if price bounces back
+    minSeizableAmount: 2, //in usd
+    liquidationTxFee: 0.000042, //rbtc tx fee of liquidate + swapback
 }
