@@ -1,10 +1,10 @@
 import telegramBot from '../secrets/telegram.js';
 
 export default {
-    serverPort: 3000,
-    nodeProvider: 'https://mainnet.sovryn.app/rpc',
+    serverPort: 3001,
+    nodeProvider: 'http://18.221.102.225:4444/', //'http://3.130.67.5:4444',
     publicNodeProvider: 'https://public-node.rsk.co',
-    blockExplorer: 'https://explorer.rsk.co',
+    blockExplorer: 'https://explorer.rsk.co/',
     network: "main",
     db: "sovryn_node_mainnet.db",
     nrOfProcessingPositions: 100,
@@ -14,12 +14,12 @@ export default {
     arbitrageScanInterval: 60,
     enableLiquidator: true,
     enableRollover: true,
-    enableArbitrage: false,
+    enableArbitrage: true,
     enableV2: {
         arbitrage: false,
         liquidator: false,
     },
-    watcherContract: null,
+    watcherContract: "0x051B89F575FcD540f0A6A5b49c75f9a83Bb2Cf07",
     enableSwapback: true,  // v2 only: swap back to loan token after liquidation if profitable and collateral token is not a stablecoin
     loanTokenSUSD: "0xd8d25f03ebba94e15df2ed4d6d38276b595593c1", //underlying token = doc
     loanTokenRBTC: "0xa9dcdc63eabb8a2b6f39d7ff9429d88340044a7a",
