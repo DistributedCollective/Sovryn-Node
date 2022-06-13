@@ -257,7 +257,7 @@ class MonitorController {
 
             let totalMaxSeizable = totalMaxSeizableByTokenAddress[collateralTokenAddress] || C.web3.utils.toBN('0');
             totalMaxSeizable = totalMaxSeizable.add(maxSeizable);
-            totalMaxSeizableByTokenAddress[loanTokenAddress] = totalMaxSeizable;
+            totalMaxSeizableByTokenAddress[collateralTokenAddress] = totalMaxSeizable;
         }
 
         const usdPrices = await arbitrageCtrl.getUsdPrices();

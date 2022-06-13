@@ -128,6 +128,8 @@ export class Liquidator {
             if (Wallet.checkIfPositionExists(pos.loanId)) continue;
 
             const [wallet, wBalance] = await this.getWallet(pos, token);
+            
+            
             if (!wallet) {
                 this.handleNoWalletError(pos.loanId, pos).catch(e => {
                     console.error('Error handling noWalletError:', e);

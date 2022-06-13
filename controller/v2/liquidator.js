@@ -17,9 +17,8 @@ import Lock from '../../util/lock';
 class LiquidatorV2 extends Liquidator {
     // return [wallet so send liquidation from, balance available for liquidation]
     async getWallet(pos, token) {
-        const requiredExecutorBalance = 0.001; // executor doesn't need any balance
+        const requiredExecutorBalance = C.web3.utils.toWei('0.001', 'ether');
         const [wallet] = await Wallet.getWallet("liquidator", requiredExecutorBalance, 'rBtc', C.web3.utils.toBN);
-
         // return the watcher contract balance for checking
         const tokenContract = C.getTokenInstance(pos.loanToken);
         const watcherBalance = C.web3.utils.toBN(await tokenContract.methods.balanceOf(C.contractWatcher._address).call());
@@ -117,7 +116,10 @@ class LiquidatorV2 extends Liquidator {
             } else {
                 tx = await C.contractWatcher.methods.liquidate(loanId, amount.toString()).send(txOpts);
             }
+            Wallet.removePendingTx('liquidator', wallet, loanId);
+            releaseLock();
         } catch (err) {
+            Wallet.removePendingTx('liquidator', wallet, loanId);
             releaseLock();
             console.error("Error on liquidating loan " + loanId);
             console.error(err);
@@ -135,10 +137,7 @@ class LiquidatorV2 extends Liquidator {
             );
             await p.handleLiqError(wallet, loanId, amount, pos);
             return;
-        } finally {
-            Wallet.removePendingTx('liquidator', wallet, loanId);
-            releaseLock();
-        }
+        } 
 
         console.log("loan " + loanId + " liquidated!");
         console.log(tx.transactionHash);

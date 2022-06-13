@@ -65,7 +65,7 @@ class Wallet {
                 }
 
                 let pendingAmount = this.getPendingAmount(type, wallet.adr, token);
-                console.log(`Wallet bal ${String(wBalance)}, pending bal ${String(pendingAmount)} on ${wallet.adr}`,);
+                //console.log(`Wallet bal ${String(wBalance)}, pending bal ${String(pendingAmount)} on ${wallet.adr}`,);
                 wBalance = parseBalance(wBalance).sub(pendingAmount);
                 
                 if (wBalance.gt(parseBalance(reqTokenBalance))) {
@@ -91,7 +91,7 @@ class Wallet {
                 }
 
                 let pendingAmount = this.getPendingAmount(type, wallet.adr, token);
-                console.log(`1. Wallet bal ${String(wBalance)}, pending bal ${String(pendingAmount)} on ${wallet.adr}`,);
+                //console.log(`1. Wallet bal ${String(wBalance)}, pending bal ${String(pendingAmount)} on ${wallet.adr}`,);
                 wBalance = parseBalance(wBalance).sub(pendingAmount);
 
                 if (wBalance.gt(parseBalance('0')) && (res[1] == null || res[1] && wBalance.gt(res[1]))) {
@@ -133,6 +133,7 @@ class Wallet {
     }
 
     removePendingTx(which, address, loanId) {
+        console.log("remove pending tx for "+which)
         this.pendingTxs[which][address] --;
         this.pendingTxs[which][address] = Math.max(0, this.pendingTxs[which][address]);
         if (this.pendingBalances[which][address]) {

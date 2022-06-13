@@ -125,7 +125,7 @@ class Rollover {
         this.handleRolloverStart(loanId);
         const txOpts = {
             from: wallet,
-            gas: 2500000,
+            gas: 4500000,
             gasPrice: gasPrice,
         };
 
