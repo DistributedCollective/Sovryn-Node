@@ -40,7 +40,7 @@ class Wallet {
      * Careful: Consider decimals for tokens. Rbtc and Doc have 18
      */
     async getWallet(type, reqTokenBalance, token, parseBalance = parseFloat) {
-        const release = await Lock.acquire('getWallet:' + type, '');
+       // const release = await Lock.acquire('getWallet:' + type, '');
 
         try {
             console.log("Checking wallet of type " + type + ", required token Balance: " + reqTokenBalance + ", for token: " + (token == "rBtc" ? "rBtc" : C.getTokenSymbol(token)));
@@ -70,7 +70,7 @@ class Wallet {
                 
                 if (wBalance.gt(parseBalance(reqTokenBalance))) {
                     this.pendingTxs[type][wallet.adr]++;
-                    release();
+                    //release();
                     return [wallet, wBalance];
                 }
             }
@@ -102,11 +102,11 @@ class Wallet {
             if (res[0]) {
                 this.pendingTxs[type][res[0].adr]++;
             }
-            release();
+           // release();
 
             return res;
         } catch (err) {
-            release();
+          //  release();
             console.error(err);
             return [];
         }
@@ -128,12 +128,13 @@ class Wallet {
      * @param loanId the loan Id
      */
     addPendingTx(which, address, loanId, amount, token) {
+        console.log("add pending tx for "+which+"  "+address)
         this.pendingBalances[which][address] = this.pendingBalances[which][address] || {};
         this.pendingBalances[which][address][loanId] = { amount, token };
     }
 
     removePendingTx(which, address, loanId) {
-        console.log("remove pending tx for "+which)
+        console.log("remove pending tx for "+which+"  "+address)
         this.pendingTxs[which][address] --;
         this.pendingTxs[which][address] = Math.max(0, this.pendingTxs[which][address]);
         if (this.pendingBalances[which][address]) {

@@ -128,7 +128,7 @@ export class Liquidator {
             if (Wallet.checkIfPositionExists(pos.loanId)) continue;
 
             const [wallet, wBalance] = await this.getWallet(pos, token);
-            
+            console.log("wallet:"); console.log(wallet);
             
             if (!wallet) {
                 this.handleNoWalletError(pos.loanId, pos).catch(e => {
@@ -139,7 +139,10 @@ export class Liquidator {
             }
 
             const liquidateAmount = await this.calculateLiquidateAmount(wBalance, pos, token, wallet);
-            if (!liquidateAmount || liquidateAmount.isZero()) continue;
+            if (!liquidateAmount || liquidateAmount.isZero()) {
+                Wallet.removePendingTx("liquidator", wallet.adr, pos.loanId);
+                continue;
+            };
 
             const pendingTxs = Wallet.countPendingTxs('liquidator', wallet.adr);
             console.log(`sending tx on wallet ${wallet.adr}, pending ${pendingTxs}`);
@@ -261,7 +264,7 @@ export class Liquidator {
         const destCurrency = C.getTokenSymbol(destToken);
         console.log(`Swapping back ${value} ${sourceCurrency} to ${destCurrency} on ${wallet}`);
 
-        const releaseLock = await Lock.acquire('liquidate:' + wallet);
+       // const releaseLock = await Lock.acquire('liquidate:' + wallet);
 
         try {
             const prices = await Arbitrage.getRBtcPrices();
@@ -284,7 +287,7 @@ export class Liquidator {
             }
 
             const res = await tx.send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, value: txValue, nonce });
-            releaseLock();
+           // releaseLock();
 
             if (res) {
                 console.log(`Swap successful on ${wallet}, tx: ${res.transactionHash}`);
@@ -293,7 +296,7 @@ export class Liquidator {
             console.log(`Swap input ${value} ${sourceCurrency} to ${destCurrency} on ${wallet}`);
             console.log("Swap failed", err);
         } finally {
-            releaseLock();
+           // releaseLock();
         }
     }
 
@@ -337,7 +340,7 @@ export class Liquidator {
     * wallet = sender and receiver address
     */
     async liquidate(loanId, wallet, amount, token, loan) {
-        const releaseLock = await Lock.acquire('liquidate:' + wallet);
+        //const releaseLock = await Lock.acquire('liquidate:' + wallet);
         try {
             console.log("trying to liquidate loan " + loanId + " from wallet " + wallet + ", amount: " + amount);
             const isRbtcToken = (token.toLowerCase() === 'rbtc' || token.toLowerCase() === conf.testTokenRBTC.toLowerCase());
@@ -362,7 +365,7 @@ export class Liquidator {
                     .send({ from: wallet, gas: conf.gasLimit, gasPrice: gasPrice, nonce: nonce, value: 0 })
                     .on('transactionHash', (transactionHash) => {
                         console.log('liquidation transactionHash', transactionHash);
-                        releaseLock();
+                       // releaseLock();
                     })
                     .on('receipt', async (tx) => {
                         Wallet.removePendingTx('liquidator', wallet, loanId);
@@ -382,7 +385,7 @@ export class Liquidator {
                         }
                     })
                     .on('error', async (err, receipt) => {
-                        releaseLock();
+                       // releaseLock();
                         Wallet.removePendingTx('liquidator', wallet, loanId);
                         console.error("Error on liquidating loan " + loanId);
                         console.error(err);
@@ -405,7 +408,7 @@ export class Liquidator {
         } catch (err) {
             console.log(err);
         } finally {
-            releaseLock();
+           // releaseLock();
         }
     }
 
