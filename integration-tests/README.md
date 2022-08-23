@@ -6,6 +6,8 @@ setting things up in RSK testnet.
 
 Usage:
 
+0. First you need to have the main Sovryn-Node package installed, so in the parent dir of this dir run `npm install`.
+   Then, in this directory:
 1. `npm install`
 2. `npm run init-contracts  # initializes submodule, copies contracts to ./contracts`
 3. `npm test`
