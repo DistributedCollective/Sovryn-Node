@@ -13,7 +13,6 @@ import abiComplete from "../config/abiComplete";
 import Extra from 'telegraf/extra';
 import dbCtrl from './db';
 import Arbitrage from './arbitrage';
-import wallet from './wallet';
 import * as _ from 'lodash';
 import Lock from '../util/lock';
 
@@ -78,12 +77,7 @@ class Rollover {
                 continue;
             }
 
-            const collateralToken = position.collateralToken.toLowerCase();
-            if (collateralToken === conf.BProToken.toLowerCase()) {
-                // Bpro can't be rolled over. Amm messed up
-                continue;
-            } 
-            
+        
             if (this.isRolloverAlreadySent(position.loanId)) {
                 continue;
             }
