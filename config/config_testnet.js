@@ -30,7 +30,7 @@ export default {
     docToken: "0xcb46c0ddc60d18efeb0e586c17af6ea36452dae0", //former susd
     USDTToken: "0x4d5a316d23ebe168d8f887b4447bf8dbfa4901cc",
     BProToken: "0x4da7997a819bb46b6758b9102234c289dd2ad3bf",
-    XUSDToken: "0x74858FE37d391f81F89472e1D8BC8Ef9CF67B3b1",
+    XUSDToken: "0xa9262cc3fb54ea55b1b0af00efca9416b8d59570",
     ethsToken: "0x499bb1355b36adeb93706b08a897ce6022de6ac9",
     sovToken: "0x6a9a07972d07e58f0daf5122d11e069288a375fb",
     sovrynProtocolAdr: "0x25380305f223b32fdb844152abd2e82bc5ad99c3",

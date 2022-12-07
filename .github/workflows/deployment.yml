@@ -1,0 +1,32 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ development ] 
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  init:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 12
+
+      - name: Read repo properties
+        shell: bash
+        run: |
+          npm install && \
+          mkdir db && \
+          mkdir secrets && \
+          echo 'export default ""' > secrets/telegram.js && \
+          echo 'export default {}' > secrets/accounts.js && \
+          cd integration-tests && \
+          npm install && \
+          npm run init-contracts && \
+          npm test
