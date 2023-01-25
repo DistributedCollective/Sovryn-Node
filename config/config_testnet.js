@@ -33,6 +33,7 @@ export default {
     XUSDToken: "0xa9262cc3fb54ea55b1b0af00efca9416b8d59570",
     ethsToken: "0x499bb1355b36adeb93706b08a897ce6022de6ac9",
     sovToken: "0x6a9a07972d07e58f0daf5122d11e069288a375fb",
+    dllrToken: "0x007b3aa69a846cb1f76b60b3088230a52d2a83ac",
     sovrynProtocolAdr: "0x25380305f223b32fdb844152abd2e82bc5ad99c3",
     swapsImpl: "0x61172b53423e205a399640e5283e51fe60ec2256", //get price from amm/old execute swaps
     priceFeed: "0x7f38c422b99075f63c9c919ecd200df8d2cf5bd4", //get oracle price
@@ -42,7 +43,8 @@ export default {
         usdt: 100, // in usdt
         bpro: 0.01, // in bpro
         wrbtc: 0.01, // in wrbtc
-        xusd: 1000
+        xusd: 1000,
+        dllr: 1000
     },
     thresholdArbitrage: 0.1, //in %
     amountArbitrage: 0.05, //in rbtc
@@ -51,6 +53,7 @@ export default {
         rbtc: '1',
         default: '100000',
         xusd: '10000',
+        dllr: '10000',
     },
     errorBotTelegram: telegramBot,
     sovrynInternalTelegramId: -492690059,

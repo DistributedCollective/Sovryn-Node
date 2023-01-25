@@ -183,6 +183,9 @@ export class Arbitrage {
         const v1PoolTokens = [
             ['xusd', conf.XUSDToken],
         ]
+        if (conf.dllrToken) {
+            v1PoolTokens.push(['dllr', conf.dllrToken]);
+        }
         while(true) {
             console.log("started checking prices (dynamic)");
 
@@ -588,13 +591,30 @@ export class Arbitrage {
         let rBtcBproPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.BProToken, amount);
         rBtcBproPf = C.web3.utils.fromWei(rBtcBproPf.toString(), "Ether");
 
-        return {
+
+        const ret = {
             "doc": [rBtcDocAmm, rBtcDocPf], 
             "usdt": [rBtcUsdtAmm, rBtcUsdtPf], 
             "xusd": [rBtcXusdAmm, rBtcXusdPf],
             "sov": [rBtcSovAmm, rBtcSovPf],
             "bpro": [rBtcBproAmm, rBtcBproPf]
         };
+
+        if (conf.dllrToken) {
+            let rBtcDllrAmm = await this.getPriceFromAmm(C.contractSwaps, conf.testTokenRBTC, conf.dllrToken, amount);
+            rBtcDllrAmm = C.web3.utils.fromWei(rBtcDllrAmm.toString(), "Ether");
+            rBtcDllrAmm = parseFloat(rBtcDllrAmm).toFixed(5);
+            let rBtcDllrPf = await this.getPriceFromPriceFeed(C.contractPriceFeed, conf.testTokenRBTC, conf.dllrToken, amount);
+            rBtcDllrPf = C.web3.utils.fromWei(rBtcDllrPf.toString(), "Ether");
+            rBtcDllrPf = parseFloat(rBtcDllrPf).toFixed(5);
+            if (rBtcDllrAmm && rBtcDllrPf) {
+                ret["dllr"] = [rBtcDllrAmm, rBtcDllrPf];
+            } else {
+                console.error("Error loading dllr prices!");
+            }
+        }
+
+        return ret;
     }
 
     // get price on sUSD (DOC)
@@ -626,7 +646,7 @@ export class Arbitrage {
         ethsPrice = C.web3.utils.fromWei(ethsPrice.toString(), "Ether");
         ethsPrice = parseFloat(ethsPrice).toFixed(2);
 
-        return {
+        const ret = {
             "rbtc": Number(rbtcPrice),
             "sov": Number(sovPrice),
             "bpro": Number(bproPrice),
@@ -635,6 +655,12 @@ export class Arbitrage {
             "xusd": 1,
             "usdt": 1
         };
+
+        if (conf.dllrToken) {
+            ret['dllr'] = 1;
+        }
+
+        return ret;
     }
 
 
@@ -712,6 +738,7 @@ export class Arbitrage {
         else if(sourceCurrency === "xusd") sourceToken = conf.XUSDToken;
         else if(sourceCurrency === "eths") sourceToken = conf.ethsToken;
         else if(sourceCurrency === "sov") sourceToken = conf.sovToken;
+        else if(sourceCurrency === "dllr") sourceToken = conf.dllrToken;
         else sourceToken = conf.testTokenRBTC;
 
         if(destCurrency === "doc") destToken = conf.docToken;
@@ -720,6 +747,7 @@ export class Arbitrage {
         else if(destCurrency === "xusd") destToken = conf.XUSDToken;
         else if(destCurrency === "eths") destToken = conf.ethsToken;
         else if(destCurrency === "sov") destToken = conf.sovToken;
+        else if(destCurrency === "dllr") destToken = conf.dllrToken;
         else destToken = conf.testTokenRBTC;
 
         const contract1 = C.contractSwaps;
