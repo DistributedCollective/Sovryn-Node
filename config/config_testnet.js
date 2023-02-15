@@ -31,7 +31,7 @@ export default {
     USDTToken: "0x4d5a316d23ebe168d8f887b4447bf8dbfa4901cc",
     BProToken: "0x4da7997a819bb46b6758b9102234c289dd2ad3bf",
     XUSDToken: "0xa9262cc3fb54ea55b1b0af00efca9416b8d59570",
-    ethsToken: "0x499bb1355b36adeb93706b08a897ce6022de6ac9",
+    ethsToken: "0x0fd0d8d78ce9299ee0e5676a8d51f938c234162c",
     sovToken: "0x6a9a07972d07e58f0daf5122d11e069288a375fb",
     dllrToken: "0x007b3aa69a846cb1f76b60b3088230a52d2a83ac",
     sovrynProtocolAdr: "0x25380305f223b32fdb844152abd2e82bc5ad99c3",
