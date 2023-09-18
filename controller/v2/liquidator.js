@@ -72,7 +72,8 @@
              if (
                  collateralToken === conf.docToken.toLowerCase() ||
                  collateralToken === conf.USDTToken.toLowerCase() ||
-                 collateralToken === conf.XUSDToken.toLowerCase()
+                 collateralToken === conf.XUSDToken.toLowerCase() ||
+                 collateralToken === conf.dllrToken.toLowerCase()
              ) {
                  console.log("swapback would be enabled in config but disabled because collateralToken is a stablecoin");
                  enableSwapback = false;

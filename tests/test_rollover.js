@@ -22,7 +22,7 @@ abiDecoder.addABI(abiComplete);
 const contractISUSD = new C.web3.eth.Contract(abiLoanToken, conf.loanTokenSUSD);
 
 var requiredC=0;
-var loanId="";
+var loanId="0x131796b66be037e197c42f05894b15dbb4247d25e892e6f088e6beab51ea6712";
 var rollover=[];
 
 describe('Contract', async () => {

@@ -70,6 +70,7 @@ class ArbitrageV2 extends Arbitrage {
         else if(sourceCurrency === "bpro") sourceToken = conf.BProToken;
         else if(sourceCurrency === "xusd") sourceToken = conf.XUSDToken;
         else if(sourceCurrency === "eths") sourceToken = conf.ethsToken;
+        else if(sourceCurrency === "dllr") sourceToken = conf.dllrToken;
         else sourceToken = conf.testTokenRBTC;
 
         if(destCurrency === "doc") destToken = conf.docToken;
@@ -77,6 +78,7 @@ class ArbitrageV2 extends Arbitrage {
         else if(destCurrency === "bpro") destToken = conf.BProToken;
         else if(destCurrency === "xusd") destToken = conf.XUSDToken;
         else if(destCurrency === "eths") destToken = conf.ethsToken;
+        else if(destCurrency === "dllr") destToken = conf.dllrToken;
         else destToken = conf.testTokenRBTC;
 
         const minProfit = 0; // no profit enforced yet

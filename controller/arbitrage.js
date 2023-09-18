@@ -177,11 +177,12 @@ export class Arbitrage {
 
     async startDynamicAmount(arbitrageDeals = null) {
         const tokens = [
-            ['usdt', conf.USDTToken],
-            ['doc', conf.docToken],
+            /*['usdt', conf.USDTToken],
+            ['doc', conf.docToken],*/
         ];
         const v1PoolTokens = [
-            ['xusd', conf.XUSDToken],
+            //['xusd', conf.XUSDToken],
+            ['dllr', conf.dllrToken],
         ]
         while(true) {
             console.log("started checking prices (dynamic)");
