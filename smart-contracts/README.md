@@ -134,4 +134,9 @@ Watcher V2 is enabled in Sovryn Node with the following configuration options:
   watcherContract: "0x1234567890123456789012345678901234567890",
   enableSwapback: true, // optional, swap back to stablecoins after liquidation
 }
-```
+```  
+
+SOV-4702
+=========  
+
+After checking deeply the Sovryn-Node git repo, it was found that there is no explicit script or function watching if the total available funds are enough for an aggregated amount of liquidations. As the repo is really old, it only do a test for aggregated estimation of funds in Dollar-On-Chain and rBTC, but it don't take in count other loan positions and an aggregated estimation for rUSDT - which is archaic, but still are old positions active - BPro, XUSD, and DLLR. So, a new separate branch has been created in the same Sovryn-Node repo to develop the calculation functions and take advantage on the alerts the current repo does to Telegram, and integrate an alert system to Discord, as required by SOV-4707.
